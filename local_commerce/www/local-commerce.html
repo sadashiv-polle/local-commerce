@@ -1,7 +1,15 @@
-{% extends "templates/web.html" %}
-{% block title %}Local Commerce{% endblock %}
-{% block page_content %}
-<div id="lc-app"></div>
-{% for css in lc_css %}<link rel="stylesheet" href="{{ css | e }}">{% endfor %}
-<script type="module" src="{{ lc_entry | e }}"></script>
-{% endblock %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#176547">
+  <title>Local — Your neighbourhood, together</title>
+  {% for css in lc_css %}<link rel="stylesheet" href="{{ css | e }}">{% endfor %}
+</head>
+<body>
+  <div id="lc-app"><p role="status">Opening Local Commerce…</p></div>
+  <noscript>Please enable JavaScript to use Local Commerce.</noscript>
+  <script type="module" src="{{ lc_entry | e }}"></script>
+</body>
+</html>

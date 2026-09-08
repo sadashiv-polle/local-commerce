@@ -29,28 +29,32 @@ onMounted(() => { if (canList.value) load() })
 </script>
 
 <template>
-  <section v-if="canList">
-    <div class="lc-section-heading"><h2>Your shops</h2><a v-if="session.platform_admin" href="/app/lc-shop">Manage in Desk ↗</a></div>
-    <p v-if="error" role="alert" class="lc-notice">{{ error }}</p>
-    <p v-if="loading" role="status">Loading shops…</p>
-    <template v-else>
-      <p v-if="!shops.length" class="lc-empty">No shops are available. A platform administrator can create a shop and assign membership in Desk.</p>
-      <div class="lc-grid">
-        <button v-for="shop in shops" :key="shop.name" class="lc-card" @click="open(shop.name)">
-          <span class="lc-status">{{ shop.status }}</span><h3>{{ shop.shop_name }}</h3><span>{{ shop.company }}</span><span class="lc-card-link">Open shop →</span>
-        </button>
-      </div>
-      <div class="lc-pagination"><button :disabled="!start" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="shops.length < 20" @click="load(20)">Next</button><button @click="load()">Refresh</button></div>
-    </template>
-    <form v-if="selected" class="lc-form" @submit.prevent="save">
-      <h2>Shop settings</h2>
-      <label>Name<input v-model="selected.shop_name" required :disabled="!canEdit"></label>
-      <label>Company<input :value="selected.company" disabled></label>
-      <label>Status<select v-model="selected.status" :disabled="!canEdit"><option>Draft</option><option>Active</option><option>Temporarily Closed</option><option>Disabled</option></select></label>
-      <label>Description<textarea v-model="selected.description" :disabled="!canEdit"></textarea></label>
-      <button v-if="canEdit" class="lc-primary" :disabled="saving">{{ saving ? 'Saving…' : 'Save settings' }}</button>
-      <p v-if="saved" role="status">{{ saved }}</p>
-    </form>
+  <section v-if="canList" class="owner-page">
+    <aside class="owner-sidebar"><span class="eyebrow">WORKSPACE</span><strong class="sidebar-active">⌂ &nbsp; My shops</strong><p>Manage your shops and keep your neighbourhood up to date.</p><div class="sidebar-bottom"><span class="status-pill">Connected</span><small>{{ session.user }}</small></div></aside>
+    <div class="owner-content">
+      <span class="eyebrow">A GOOD DAY TO GROW LOCAL</span><h1>Your business, at a glance.</h1><p class="muted">Your shops. Your people. Your neighbourhood.</p>
+      <div class="lc-section-heading"><h2>Shop directory</h2><a v-if="session.platform_admin" href="/app/lc-shop">Manage in Desk ↗</a></div>
+      <p v-if="error" role="alert" class="lc-notice">{{ error }}</p>
+      <p v-if="loading" role="status">Loading shops…</p>
+      <template v-else>
+        <p v-if="!shops.length" class="lc-empty">No shops are available. A platform administrator can create a shop and assign membership in Desk.</p>
+        <div class="lc-grid">
+          <button v-for="shop in shops" :key="shop.name" class="lc-card" @click="open(shop.name)">
+            <div class="shop-avatar" aria-hidden="true">{{ shop.shop_name.slice(0, 1).toUpperCase() }}</div><span class="lc-status">{{ shop.status }}</span><h3>{{ shop.shop_name }}</h3><span>{{ shop.company }}</span><span class="lc-card-link">Open shop →</span>
+          </button>
+        </div>
+        <div class="lc-pagination"><button :disabled="!start" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="shops.length < 20" @click="load(20)">Next</button><button @click="load()">Refresh</button></div>
+      </template>
+      <form v-if="selected" class="lc-form" @submit.prevent="save">
+        <h2>Shop settings</h2>
+        <label>Name<input v-model="selected.shop_name" required :disabled="!canEdit"></label>
+        <label>Company<input :value="selected.company" disabled></label>
+        <label>Status<select v-model="selected.status" :disabled="!canEdit"><option>Draft</option><option>Active</option><option>Temporarily Closed</option><option>Disabled</option></select></label>
+        <label>Description<textarea v-model="selected.description" :disabled="!canEdit"></textarea></label>
+        <button v-if="canEdit" class="lc-primary" :disabled="saving">{{ saving ? 'Saving…' : 'Save settings' }}</button>
+        <p v-if="saved" role="status">{{ saved }}</p>
+      </form>
+    </div>
   </section>
   <section v-else class="lc-empty">
     <h2>Your account is connected</h2>

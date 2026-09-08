@@ -28,3 +28,74 @@
 #lc-app .lc-primary { background: var(--lc-green); color: white; }
 #lc-app footer { padding: 24px 32px; color: #53645f; font-size: 12px; border-top: 1px solid var(--lc-line); }
 @media (max-width: 500px) { #lc-app main, #lc-app .lc-header { padding: 22px 18px; } #lc-app .lc-section-heading { align-items: start; flex-direction: column; } }
+/* Dedicated Vue page; these body rules apply only to its standalone document. */
+body { margin: 0; background: #fbfcf8; }
+html { scroll-behavior: smooth; }
+#lc-app { --lc-ink: #203a2c; --lc-green: #176547; --lc-line: #e3e8df; border-radius: 0; background: #fbfcf8; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
+#lc-app a { text-decoration: none; }
+#lc-app h1 { font-size: clamp(32px, 4vw, 56px); line-height: 1.12; letter-spacing: -2px; font-weight: 750; }
+#lc-app h2 { letter-spacing: -.7px; font-size: 25px; line-height: 1.3; }
+#lc-app p { line-height: 1.7; }
+#lc-app .topbar { background: #fff; min-height: 96px; border-bottom: 1px solid var(--lc-line); display: flex; align-items: center; gap: 44px; padding: 18px 5%; }
+#lc-app .brand { font-size: 40px; line-height: 1; letter-spacing: -3px; font-weight: 850; color: #176547; }
+#lc-app .brand>span { color: #e2ad28; font-size: 17px; letter-spacing: -1px; }
+#lc-app .brand small { display: block; margin-top: 9px; font-size: 8px; letter-spacing: 1.6px; color: #627367; font-weight: 650; }
+#lc-app .header-note { border-left: 1px solid var(--lc-line); padding-left: 35px; display: flex; gap: 13px; align-items: center; }
+#lc-app .header-note small { display: block; color: #798479; margin-top: 3px; }
+#lc-app .pin { font-size: 30px; color: #176547; }
+#lc-app nav { display: flex; align-items: center; gap: 25px; margin-left: auto; font-weight: 600; }
+#lc-app .account { display: flex; gap: 10px; align-items: center; }
+#lc-app .account>span:first-child { background: #eff2e8; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; }
+#lc-app main { padding: 0; max-width: none; }
+#lc-app .store-page { max-width: 1320px; padding: 38px 40px; margin: auto; }
+#lc-app .eyebrow { display: block; font-size: 10px; letter-spacing: 2px; font-weight: 750; color: #5b7661; }
+#lc-app .store-hero { overflow: hidden; background: #edf2dc; border-radius: 22px; min-height: 360px; padding: 48px; display: grid; grid-template-columns: 1.35fr 1fr; align-items: center; gap: 20px; }
+#lc-app .store-hero h1 { margin: 20px 0; }
+#lc-app .store-hero p { font-size: 16px; color: #5d705b; margin-bottom: 25px; }
+#lc-app .primary { display: inline-flex; gap: 28px; background: #176547; color: white; padding: 13px 20px; border-radius: 9px; font-weight: 600; }
+#lc-app .hero-art { position: relative; min-height: 285px; text-align: center; background: #e2eac8; border-radius: 50%; }
+#lc-app .art-label { position: relative; top: 20px; font-size: 9px; letter-spacing: 3px; color: #6c7949; }
+#lc-app .produce { font-size: 80px; letter-spacing: -30px; position: relative; top: 5px; transform: rotate(-8deg); padding-right: 30px; }
+#lc-app .produce span { position: relative; top: -15px; }
+#lc-app .market-bag { background: #c79153; color: #443b24; font-size: 62px; letter-spacing: -4px; font-weight: 850; transform: rotate(-7deg); width: 210px; height: 155px; margin: -18px auto 0; position: relative; box-shadow: 12px 14px 0 #56724518; border-radius: 5px 5px 32px 30px; padding: 25px 0; }
+#lc-app .market-bag span { display: block; font-size: 10px; letter-spacing: 1px; font-weight: 500; }
+#lc-app .art-sticker { position: absolute; right: 0; bottom: 22px; background: #f8d260; width: 88px; height: 88px; border-radius: 50%; display: grid; align-content: center; font-size: 17px; line-height: 1.2; font-weight: 750; transform: rotate(13deg); }
+#lc-app .browse-section { padding-top: 40px; scroll-margin-top: 20px; }
+#lc-app .section-title { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+#lc-app .section-title h2 { margin: 8px 0; }
+#lc-app .muted { color: #728071; }
+#lc-app .category-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 14px; }
+#lc-app .category-grid button { background: transparent; border: 1px solid transparent; padding: 8px; border-radius: 12px; }
+#lc-app .category-grid button>span { display: grid; place-items: center; height: 95px; background: #f0f2e9; border-radius: 14px; font-size: 43px; margin-bottom: 12px; transition: transform .15s; }
+#lc-app .category-grid button:nth-child(3n)>span { background: #fbf0df; }
+#lc-app .category-grid button:nth-child(3n+1)>span { background: #eaf2e6; }
+#lc-app .category-grid strong { font-size: 12px; }
+#lc-app .category-grid .chosen { border-color: #176547; }
+#lc-app .category-grid button:hover>span { transform: translateY(-3px); }
+#lc-app .opening-card { display: flex; gap: 30px; align-items: center; padding: 35px; margin: 40px 0; border: 1px solid #e4e7d6; border-radius: 16px; background: #f6f5ec; }
+#lc-app .opening-card h2 { margin: 8px 0; }
+#lc-app .opening-card p { color: #6c7764; max-width: 650px; }
+#lc-app .opening-icon { width: 90px; flex-shrink: 0; height: 90px; background: #e7e8d1; display: grid; place-items: center; font-size: 65px; color: #68824b; border-radius: 22px; }
+#lc-app .status-pill { display: inline-block; padding: 5px 10px; font-size: 11px; border-radius: 20px; background: #e9eddb; color: #506636; font-weight: 650; }
+#lc-app .values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; padding: 5px 0 20px; }
+#lc-app .values p { font-size: 12px; color: #7a8376; }
+#lc-app .app-footer { display: flex; align-items: center; gap: 30px; padding: 30px 5%; }
+#lc-app .app-footer small { margin-left: auto; }
+#lc-app .app-footer .brand { font-size: 30px; }
+#lc-app .owner-page { display: grid; grid-template-columns: 235px 1fr; min-height: 75vh; }
+#lc-app .owner-sidebar { background: #fff; border-right: 1px solid var(--lc-line); padding: 35px 24px; display: flex; flex-direction: column; }
+#lc-app .sidebar-active { background: #eef4e8; color: #176547; padding: 14px; border-radius: 9px; margin-top: 22px; }
+#lc-app .owner-sidebar p { color: #7e887b; font-size: 12px; padding: 10px; }
+#lc-app .sidebar-bottom { margin-top: auto; padding-top: 40px; }
+#lc-app .sidebar-bottom small { display: block; font-size: 10px; overflow-wrap: anywhere; margin-top: 10px; }
+#lc-app .owner-content { padding: 45px; max-width: 1300px; width: 100%; min-width: 0; }
+#lc-app .owner-content h1 { font-size: 36px; margin-top: 14px; }
+#lc-app .lc-section-heading { margin-top: 40px; }
+#lc-app .lc-card { border-radius: 15px; position: relative; }
+#lc-app .lc-card .lc-status { position: absolute; right: 20px; top: 24px; }
+#lc-app .shop-avatar { width: 50px; height: 50px; border-radius: 12px; background: #eff1e3; color: #61733b; display: grid; place-items: center; font-size: 23px; font-weight: 750; }
+#lc-app .lc-form { background: white; padding: 28px; border: 1px solid var(--lc-line); border-radius: 15px; }
+#lc-app .page-state { padding: 80px 30px; text-align: center; min-height: 65vh; }
+@media(max-width: 900px) { #lc-app .header-note { display: none; } #lc-app .category-grid { grid-template-columns: repeat(4, 1fr); } #lc-app .store-hero { padding: 30px; } #lc-app .hero-art { transform: scale(.85); } #lc-app .owner-page { grid-template-columns: 180px 1fr; } #lc-app .owner-content { padding: 30px; } }
+@media(max-width: 600px) { #lc-app .topbar { gap: 10px; padding: 18px 20px; } #lc-app .brand small { font-size: 6px; } #lc-app nav { gap: 12px; font-size: 11px; } #lc-app .account>span:last-child { display: none; } #lc-app .store-page { padding: 20px 16px; } #lc-app .store-hero { grid-template-columns: 1fr; padding: 28px; } #lc-app .hero-art { min-height: 255px; width: 270px; max-width: 100%; margin: auto; } #lc-app .store-hero h1 { font-size: 37px; } #lc-app .category-grid { gap: 5px; } #lc-app .category-grid button>span { height: 70px; font-size: 32px; } #lc-app .category-grid strong { font-size: 10px; } #lc-app .section-title>.muted { display: none; } #lc-app .opening-card { padding: 22px; gap: 16px; } #lc-app .opening-icon { display: none; } #lc-app .values { grid-template-columns: 1fr; gap: 10px; } #lc-app .owner-page { grid-template-columns: 1fr; } #lc-app .owner-sidebar { display: none; } #lc-app .owner-content { padding: 25px 18px; } #lc-app .owner-content h1 { font-size: 30px; } #lc-app .app-footer { flex-wrap: wrap; gap: 15px; } #lc-app .app-footer small { margin-left: 0; } }
+@media(prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } #lc-app * { transition: none !important; } }

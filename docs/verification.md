@@ -56,3 +56,12 @@ Added local controller-discovery regression coverage and a Bench integration
 test exercising TemplatePage's actual discovery. All 11 local tests and Ruff
 checks pass; the new Bench test has not run here. Pull the fix and clear the
 site website cache while the development Bench is running, then reload the page.
+
+## Dedicated Vue interface
+
+Added responsive customer/store and owner/shop hash routes within the same Vue
+application and replaced the ERPNext website wrapper with a standalone document.
+Existing owner APIs and permission checks remain in use. Customer categories are
+presentation-only and shopping is explicitly unavailable pending its backend.
+Vue lint and production build passed, along with 3 client tests and 11 Python
+regression tests. Browser visual checks and server verification remain pending.

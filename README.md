@@ -104,3 +104,21 @@ Monitor web error rates and latency, worker queues/failures, scheduler heartbeat
 - Install failure: confirm both framework major versions and resolve reported namespace collisions before retrying.
 
 Implementation references: [Frappe v15 app generator](https://github.com/frappe/frappe/blob/version-15/frappe/utils/boilerplate.py), [Frappe hooks](https://docs.frappe.io/framework/user/en/python-api/hooks), [Frappe apps](https://docs.frappe.io/framework/user/en/basics/apps).
+
+## Dedicated customer and owner interface
+
+The Frappe-served page now renders its own complete HTML document, without the
+ERPNext website header/footer. It remains one Vue app and one Frappe backend:
+
+- `/local-commerce#/store`: customer storefront with category browsing and an
+  explicit opening-soon state. Categories are presentation choices only; no
+  catalog, serviceability, cart, checkout or payment is implemented yet.
+- `/local-commerce#/shop`: owner/staff workspace using real scoped shop data and
+  the existing shop-setting APIs. Platform administrators can also use it.
+- `/local-commerce`: chooses the owner workspace for permitted managers and the
+  storefront for other authenticated users. Both views still require login.
+
+After pulling a UI update, run `bench build --app local_commerce`, clear the site
+and website caches, then reload the browser. No schema migration is needed for
+this interface change. Root-level `/shop` is not claimed by this app, avoiding
+collisions with existing installed apps.
