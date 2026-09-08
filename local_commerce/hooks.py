@@ -28,10 +28,20 @@ fixtures = [
     }
 ]
 permission_query_conditions = {
+    "Item": "local_commerce.services.products.item_query",
     "LC Shop": "local_commerce.permissions.scope.shop_query",
     "LC Shop Member": "local_commerce.permissions.scope.member_query",
 }
 has_permission = {
+    "Item": "local_commerce.services.products.item_permission",
     "LC Shop": "local_commerce.permissions.scope.shop_permission",
     "LC Shop Member": "local_commerce.permissions.scope.member_permission",
+}
+
+doc_events = {
+    "Item": {
+        "validate": "local_commerce.services.products.validate_item",
+        "on_trash": "local_commerce.services.products.protect_item",
+        "before_rename": "local_commerce.services.products.protect_item",
+    }
 }

@@ -65,3 +65,15 @@ Existing owner APIs and permission checks remain in use. Customer categories are
 presentation-only and shopping is explicitly unavailable pending its backend.
 Vue lint and production build passed, along with 3 client tests and 11 Python
 regression tests. Browser visual checks and server verification remain pending.
+
+## Owner product creation milestone
+
+Added a narrow ERPNext Item creation/list/options service and owner Vue product
+form. Added Item.lc_shop through the install/migrate Custom Field mechanism and
+Item permission/controller hooks. No new DocType or financial/stock mutation.
+Seven new Bench tests cover tenant creation, cross-shop APIs and Item permissions,
+staff, revocation, immutable ownership, direct-write denial and invalid taxonomy.
+These tests require Frappe/ERPNext and have not run locally. Existing 11 local
+Python tests and 3 client tests pass; Ruff, Vue lint and production build pass.
+Server migration and API verification are still required before relying on this
+feature in production.

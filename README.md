@@ -122,3 +122,39 @@ After pulling a UI update, run `bench build --app local_commerce`, clear the sit
 and website caches, then reload the browser. No schema migration is needed for
 this interface change. Root-level `/shop` is not claimed by this app, avoiding
 collisions with existing installed apps.
+
+## Owner product creation
+
+In the owner workspace, open a shop to see **Products → Add a product**. Owners
+choose a product name, ERPNext Item Group and enabled UOM. The server generates a
+unique Item code, sets `Item.lc_shop` from an authorized shop, and sets the Item
+Default Company from that shop's Company. Two shops can use the same display name
+without sharing an Item. Existing Items are not automatically assigned to shops.
+
+Run `bench --site <site-name> migrate` after pulling this update: the repeatable
+install/migrate hook creates the read-only, indexed `Item.lc_shop` Custom Field.
+This release adds no stock balance, price, warehouse transaction or customer
+catalog publication. Stock-enabled Items start without an opening-stock entry.
+
+Owners can create and list their own products; Staff can only list its shop's
+products. Customers and drivers cannot use these APIs. LC tenant roles are also
+restricted by Item document/query hooks even if combined with a standard Item
+role. Direct Item writes by tenant users are denied; the product service narrowly
+allows insertion after authorization and passes only explicit server-approved
+fields. Shop ownership cannot be reassigned, and shop Items cannot be renamed or
+deleted through normal document operations. Creation owner/time are standard
+Frappe audit fields. Standard ERPNext administrators retain their normal access;
+this is tenant isolation, not isolation from site administrators.
+
+Item Groups and UOMs are shared taxonomy visible through the options API, capped
+at 500 choices each. Configure them through ERPNext before adding products. The
+new endpoints are `local_commerce.api.products.options`, `list_items`, and POST
+`create_item`; all require a shop selector that is checked against membership.
+No broad Stock Manager role needs to be granted to shop owners.
+
+Do not use this Item ownership feature as permission for financial or inventory
+reports: standard related DocTypes (such as Item Price, Bin and Stock Ledger
+Entry) are not yet scoped by this milestone. Keep unrelated ERPNext permissions
+restricted. Bench integration tests in `local_commerce.tests.test_products`
+cover creation ownership, cross-shop API/document/list denial, staff/revocation,
+immutable ownership and invalid taxonomy. Run them on a disposable test site.

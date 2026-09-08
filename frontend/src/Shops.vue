@@ -1,6 +1,7 @@
 <script setup>
 import { computed, inject, onMounted, ref } from 'vue'
 import { call } from './api.js'
+import Products from './Products.vue'
 const session = inject('session'), shops = ref([]), error = ref(''), loading = ref(false)
 const start = ref(0), selected = ref(null), saving = ref(false), saved = ref('')
 const canList = computed(() => session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role)))
@@ -45,6 +46,7 @@ onMounted(() => { if (canList.value) load() })
         </div>
         <div class="lc-pagination"><button :disabled="!start" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="shops.length < 20" @click="load(20)">Next</button><button @click="load()">Refresh</button></div>
       </template>
+      <Products v-if="selected" :key="selected.name" :shop="selected.name" :editable="canEdit" />
       <form v-if="selected" class="lc-form" @submit.prevent="save">
         <h2>Shop settings</h2>
         <label>Name<input v-model="selected.shop_name" required :disabled="!canEdit"></label>

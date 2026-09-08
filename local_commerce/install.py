@@ -27,4 +27,26 @@ def after_install():
 
 
 def after_migrate():
+    from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+    existing = frappe.get_meta("Item").get_field("lc_shop")
+    if existing and (existing.fieldtype != "Link" or existing.options != "LC Shop"):
+        frappe.throw("Item.lc_shop field collision: expected a Link to LC Shop")
+    create_custom_fields(
+        {
+            "Item": [
+                {
+                    "fieldname": "lc_shop",
+                    "label": "Local Commerce Shop",
+                    "fieldtype": "Link",
+                    "options": "LC Shop",
+                    "read_only": 1,
+                    "no_copy": 1,
+                    "search_index": 1,
+                    "insert_after": "item_name",
+                }
+            ]
+        }
+    )
+
     frappe.db.add_unique("LC Shop Member", ["shop", "user"], "lc_shop_member_unique")
