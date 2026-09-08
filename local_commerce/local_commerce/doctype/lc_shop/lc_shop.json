@@ -9,7 +9,12 @@
     "shop_name",
     "company",
     "status",
-    "description"
+    "description",
+    "inventory_section",
+    "warehouse",
+    "stock_adjustment_account",
+    "cost_center",
+    "selling_price_list"
   ],
   "fields": [
     {
@@ -40,6 +45,37 @@
       "fieldname": "description",
       "label": "Description",
       "fieldtype": "Small Text"
+    },
+    {
+      "fieldname": "inventory_section",
+      "label": "Inventory and pricing",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "warehouse",
+      "label": "Default Warehouse",
+      "fieldtype": "Link",
+      "options": "Warehouse"
+    },
+    {
+      "fieldname": "stock_adjustment_account",
+      "label": "Stock Adjustment Account",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "cost_center",
+      "label": "Cost Center",
+      "fieldtype": "Link",
+      "options": "Cost Center"
+    },
+    {
+      "fieldname": "selling_price_list",
+      "label": "Selling Price List",
+      "fieldtype": "Link",
+      "options": "Price List",
+      "read_only": 1,
+      "unique": 1
     }
   ],
   "permissions": [

@@ -8,7 +8,15 @@ export async function call(method, args = {}, mutate = false) {
     ...(mutate ? { body: JSON.stringify(args) } : {}),
   })
   if (response.status === 401) { window.location.assign('/login?redirect-to=/local-commerce'); throw new Error('Please sign in again.') }
-  if (response.status === 403) throw new Error('You do not have access to this operation.')
-  if (!response.ok) throw new Error('The request could not be completed. Please retry or contact your administrator.')
+  if (!response.ok) {
+    let message = response.status === 403 ? 'You do not have access to this operation.' : 'The request could not be completed. Please retry or contact your administrator.'
+    try {
+      const body = await response.json()
+      if (response.status === 417 && typeof body.lc_message === 'string') message = body.lc_message
+    } catch { /* Non-JSON proxy responses use the safe generic message. */ }
+    const error = new Error(message)
+    error.status = response.status
+    throw error
+  }
   return (await response.json()).message
 }

@@ -8,7 +8,8 @@ def before_install():
 
     if frappe.__version__.split(".")[0] != "15" or erpnext.__version__.split(".")[0] != "15":
         frappe.throw("Local Commerce requires Frappe 15 and ERPNext 15")
-    for name in ("LC Shop", "LC Shop Member"):
+    before_migrate()
+    for name in ("LC Shop", "LC Shop Member", "LC Stock Operation"):
         if frappe.db.exists("DocType", name):
             frappe.throw(f"DocType collision: {name}; inspect ownership before installing")
     if frappe.db.exists("Web Page", {"route": "local-commerce"}):
@@ -49,4 +50,70 @@ def after_migrate():
         }
     )
 
+    create_custom_fields(
+        {
+            "Item": [
+                {
+                    "fieldname": "lc_creation_key",
+                    "label": "LC Creation Key",
+                    "fieldtype": "Data",
+                    "unique": 1,
+                    "read_only": 1,
+                    "hidden": 1,
+                    "no_copy": 1,
+                },
+                {
+                    "fieldname": "lc_sold_out",
+                    "label": "Local Commerce Sold Out",
+                    "fieldtype": "Check",
+                    "default": "0",
+                    "read_only": 1,
+                },
+                {
+                    "fieldname": "lc_low_stock",
+                    "label": "Local Commerce Low Stock Threshold",
+                    "fieldtype": "Float",
+                    "default": "0",
+                    "read_only": 1,
+                },
+                {
+                    "fieldname": "lc_description",
+                    "label": "Local Commerce Description",
+                    "fieldtype": "Small Text",
+                    "read_only": 1,
+                },
+            ],
+            "Stock Entry": [
+                {
+                    "fieldname": "lc_shop",
+                    "label": "Local Commerce Shop",
+                    "fieldtype": "Link",
+                    "options": "LC Shop",
+                    "read_only": 1,
+                    "no_copy": 1,
+                    "search_index": 1,
+                }
+            ],
+        }
+    )
     frappe.db.add_unique("LC Shop Member", ["shop", "user"], "lc_shop_member_unique")
+
+
+def before_migrate():
+    for name in ("LC Shop", "LC Shop Member", "LC Stock Operation"):
+        module = frappe.db.get_value("DocType", name, "module")
+        if module and module != "Local Commerce":
+            frappe.throw(f"DocType collision: {name} belongs to {module}")
+    for doctype, field, fieldtype, options in (
+        ("Item", "lc_shop", "Link", "LC Shop"),
+        ("Item", "lc_creation_key", "Data", None),
+        ("Item", "lc_description", "Small Text", None),
+        ("Item", "lc_low_stock", "Float", None),
+        ("Item", "lc_sold_out", "Check", None),
+        ("Stock Entry", "lc_shop", "Link", "LC Shop"),
+    ):
+        existing = frappe.get_meta(doctype).get_field(field)
+        if existing and (
+            existing.fieldtype != fieldtype or (options and existing.options != options)
+        ):
+            frappe.throw(f"Custom field collision: {doctype}.{field}")

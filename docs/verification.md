@@ -87,3 +87,29 @@ defaults, preserving valid values and ERPNext validation. No global defaults are
 changed and no arbitrary Warehouse is selected. Fourteen local Python tests and
 Ruff pass, including three new default-filter tests. Added a Bench integration
 regression with a foreign user warehouse default; it remains unrun locally.
+
+## Owner product, pricing and inventory continuation
+
+Repository inspection completed before edits. Added IMPLEMENTATION_STATUS.md with
+an explicit gap table and preserved the continuation specification. No unrelated
+working-tree changes existed when work began.
+
+Executed successfully:
+- `python3 -m unittest discover -s tests -q`: 22 tests passed.
+- `npm test`: 5 tests passed.
+- `.venv/bin/ruff check .`: passed.
+- `.venv/bin/ruff format --check .`: passed.
+- `npm run lint`: passed without warnings after formatting.
+- `npm run build`: Vite production assets and manifest generated, 27 modules.
+- `python3 -m compileall -q local_commerce`: passed.
+- `.venv/bin/python -m build`: Python wheel/source distribution built.
+
+Not executed: `bench --site <test-site> migrate`, `bench build --app local_commerce`,
+`bench --site <test-site> run-tests --app local_commerce`, fresh-site install or
+uninstall/reinstall. Bench/Frappe/ERPNext are not installed in the local environment
+(`command -v bench` found no executable). Direct Vite build is not a substitute for
+Bench build. New database/stock/accounting integration tests are committed and
+unrun. No browser runner is available here; visual checks and sessionStorage
+retry behavior need browser testing. Concurrency stress against other ERPNext
+writers also remains unverified. The workflow is implemented, not certified
+production-ready, and the complete owner/marketplace specification is unfinished.

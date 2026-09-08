@@ -1,5 +1,6 @@
 """Narrow owner product API; ERPNext remains the Item master."""
 
+import hashlib
 from contextvars import ContextVar
 
 import frappe
@@ -89,7 +90,7 @@ def list_items(shop, start=0):
     )
 
 
-def create_item(shop, item_name, item_group, stock_uom):
+def create_item(shop, item_name, item_group, stock_uom, request_key=None):
     require_shop(shop, "write")
     shop_doc = frappe.get_doc("LC Shop", shop)
     if shop_doc.status == "Disabled":
@@ -102,9 +103,32 @@ def create_item(shop, item_name, item_group, stock_uom):
         frappe.throw("Select a valid item group")
     if not frappe.db.exists("UOM", {"name": stock_uom, "enabled": 1}):
         frappe.throw("Select an enabled unit of measure")
+    creation_key = None
+    if request_key is not None:
+        if not isinstance(request_key, str) or not 16 <= len(request_key) <= 100:
+            frappe.throw("Invalid product request key")
+        frappe.db.sql("select name from `tabLC Shop` where name=%s for update", (shop,))
+        creation_key = hashlib.sha256(
+            f"{frappe.session.user}:{shop}:{request_key}".encode()
+        ).hexdigest()
+        existing = frappe.db.get_value(
+            "Item",
+            {"lc_creation_key": creation_key},
+            ["name", "item_name", "item_group", "stock_uom"],
+            as_dict=True,
+        )
+        if existing:
+            if (existing.item_name, existing.item_group, existing.stock_uom) != (
+                item_name.strip(),
+                item_group,
+                stock_uom,
+            ):
+                frappe.throw("This request key was already used for a different product")
+            return existing
     doc = frappe.get_doc(
         {
             "doctype": "Item",
+            "lc_creation_key": creation_key,
             "item_code": "LC-" + frappe.generate_hash(length=20),
             "item_name": item_name.strip(),
             "item_group": item_group,

@@ -14,5 +14,5 @@ def list_items(shop, start=0):
 
 
 @frappe.whitelist(methods=["POST"])
-def create_item(shop, item_name, item_group, stock_uom):
-    return products.create_item(shop, item_name, item_group, stock_uom)
+def create_item(shop, item_name, item_group, stock_uom, request_key=None):
+    return products.create_item(shop, item_name, item_group, stock_uom, request_key)

@@ -24,3 +24,13 @@ test('server errors do not expose server response', async () => {
   globalThis.fetch = async () => ({ status: 500, ok: false, json: async () => ({ exc: 'private trace' }) })
   await assert.rejects(call('shops.list_shops'), /could not be completed/)
 })
+
+test('owner validation messages are safe and preserve status for retry handling', async () => {
+  globalThis.fetch = async () => ({ status: 417, ok: false, json: async () => ({ lc_message: 'Not enough stock', exc: 'private traceback' }) })
+  await assert.rejects(call('owner.adjust_stock', {}, true), error => error.status === 417 && error.message === 'Not enough stock')
+})
+
+test('ordinary framework validation does not expose raw server messages', async () => {
+  globalThis.fetch = async () => ({ status: 417, ok: false, json: async () => ({ _server_messages: 'private information' }) })
+  await assert.rejects(call('owner.adjust_stock', {}, true), /could not be completed/)
+})

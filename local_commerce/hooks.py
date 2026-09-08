@@ -9,6 +9,7 @@ required_apps = ["erpnext"]
 before_install = "local_commerce.install.before_install"
 after_install = "local_commerce.install.after_install"
 after_migrate = "local_commerce.install.after_migrate"
+before_migrate = "local_commerce.install.before_migrate"
 fixtures = [
     {
         "dt": "Role",
@@ -46,3 +47,24 @@ doc_events = {
         "before_rename": "local_commerce.services.products.protect_item",
     }
 }
+
+permission_query_conditions["LC Stock Operation"] = "local_commerce.services.owner.operation_query"
+has_permission["LC Stock Operation"] = "local_commerce.services.owner.operation_permission"
+doc_events["LC Shop"] = {"validate": "local_commerce.services.owner.validate_configuration"}
+for _doctype in (
+    "Item Price",
+    "Price List",
+    "Warehouse",
+    "Bin",
+    "Stock Entry",
+    "Stock Ledger Entry",
+    "GL Entry",
+):
+    permission_query_conditions[_doctype] = "local_commerce.services.owner.restricted_query"
+    has_permission[_doctype] = "local_commerce.services.owner.restricted_permission"
+    doc_events[_doctype] = {
+        "validate": "local_commerce.services.owner.restricted_write",
+        "on_trash": "local_commerce.services.owner.restricted_write",
+        "before_rename": "local_commerce.services.owner.restricted_write",
+    }
+doc_events["Stock Entry"]["before_cancel"] = "local_commerce.services.owner.immutable_stock_entry"
