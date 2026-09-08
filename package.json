@@ -1,0 +1,23 @@
+{
+  "name": "local_commerce",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build --config frontend/vite.config.js",
+    "dev": "vite --config frontend/vite.config.js",
+    "lint": "eslint frontend",
+    "test": "node --test frontend/tests/*.test.js"
+  },
+  "dependencies": {
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "vite": "^6.1.0",
+    "@vitejs/plugin-vue": "^5.2.0",
+    "eslint": "^9.20.0",
+    "eslint-plugin-vue": "^9.32.0",
+    "globals": "^15.15.0"
+  }
+}

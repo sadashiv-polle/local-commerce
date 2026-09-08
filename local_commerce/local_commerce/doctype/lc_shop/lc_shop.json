@@ -1,0 +1,69 @@
+{
+  "doctype": "DocType",
+  "name": "LC Shop",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "custom": 0,
+  "track_changes": 1,
+  "field_order": [
+    "shop_name",
+    "company",
+    "status",
+    "description"
+  ],
+  "fields": [
+    {
+      "fieldname": "shop_name",
+      "label": "Shop Name",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "company",
+      "label": "Company",
+      "fieldtype": "Link",
+      "options": "Company",
+      "reqd": 1,
+      "unique": 1
+    },
+    {
+      "fieldname": "status",
+      "label": "Status",
+      "fieldtype": "Select",
+      "options": "Draft\nActive\nTemporarily Closed\nDisabled",
+      "default": "Draft",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "description",
+      "label": "Description",
+      "fieldtype": "Small Text"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "report": 1,
+      "export": 1
+    },
+    {
+      "role": "LC Shop Owner",
+      "read": 1,
+      "write": 1
+    },
+    {
+      "role": "LC Shop Staff",
+      "read": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "autoname": "hash",
+  "title_field": "shop_name"
+}

@@ -1,0 +1,7 @@
+{% extends "templates/web.html" %}
+{% block title %}Local Commerce{% endblock %}
+{% block page_content %}
+<div id="lc-app"></div>
+{% for css in lc_css %}<link rel="stylesheet" href="{{ css | e }}">{% endfor %}
+<script type="module" src="{{ lc_entry | e }}"></script>
+{% endblock %}

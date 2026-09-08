@@ -1,0 +1,4325 @@
+Multi-Shop Commerce, Delivery, Marketplace Payments & ERPNext Platform
+
+Build a production-ready, secure, cloud-deployable multi-shop local commerce, delivery, marketplace payment and ERPNext integration platform.
+
+The platform must support multiple independent local businesses operating from a single Frappe/ERPNext installation while maintaining strict shop/company data isolation.
+
+The initial business use case is a fish shop, but the architecture must be completely generic and must support:
+
+Fish shops
+
+Meat shops
+
+Grocery stores
+
+Restaurants
+
+Fast-food businesses
+
+Bakeries
+
+Pharmacies where legally appropriate
+
+Local retailers
+
+Other small and medium local businesses
+
+The application must be configuration-driven, API-first, permission-aware and extensible.
+
+0\. NON-NEGOTIABLE FRAPPE CUSTOM APP AND GIT REPOSITORY REQUIREMENT
+
+This project must be built as a real, installable Frappe custom application—not as a generic Python project, standalone Vue project, mock-up, code sample, architecture document or collection of disconnected files.
+
+The final repository must follow the standard structure and conventions produced by `bench new-app` and must be directly compatible with a normal Frappe Bench installation.
+
+Use these canonical identifiers consistently unless I explicitly change them before development begins:
+
+App/repository name: `local_commerce`
+
+Python package name: `local_commerce`
+
+Frappe module name: `Local Commerce`
+
+Custom DocType prefix: `LC`
+
+The app name must use lowercase snake_case, must not contain spaces or hyphens, and must be identical in `hooks.py`, `modules.txt`, `pyproject.toml`, package imports, build configuration and installation commands.
+
+Target Frappe and ERPNext version 15. Do not use APIs that are exclusive to later versions unless they are protected by a documented compatibility layer.
+
+If a working Bench environment is available, first generate the base app using:
+
+`bench new-app local_commerce`
+
+Then implement the project inside that generated app. If Bench is not available in the development environment, reproduce the same valid Frappe v15 app scaffold exactly. Do not invent a custom framework layout.
+
+The Git repository root must be the app root—the directory containing `pyproject.toml`, `README.md`, `license.txt`, `package.json` where required, and the inner `local_commerce` Python package. Do not wrap the app in an unnecessary extra parent project directory.
+
+The completed repository must include, as applicable:
+
+```text
+local_commerce/
+├── .github/
+│   └── workflows/
+├── frontend/                         # Vue 3 source application
+├── local_commerce/                   # Installable Python package
+│   ├── __init__.py
+│   ├── hooks.py
+│   ├── modules.txt
+│   ├── patches.txt
+│   ├── config/
+│   │   ├── __init__.py
+│   │   └── desktop.py
+│   ├── local_commerce/               # Frappe module directory
+│   │   ├── __init__.py
+│   │   ├── doctype/
+│   │   │   └── <doctype_name>/
+│   │   │       ├── __init__.py
+│   │   │       ├── <doctype_name>.json
+│   │   │       ├── <doctype_name>.py
+│   │   │       ├── <doctype_name>.js       # only when Desk logic is needed
+│   │   │       └── test_<doctype_name>.py
+│   │   ├── report/
+│   │   ├── dashboard/
+│   │   └── workspace/
+│   ├── api/
+│   ├── services/
+│   ├── integrations/
+│   ├── permissions/
+│   ├── utils/
+│   ├── patches/
+│   ├── fixtures/
+│   ├── public/
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── frontend/                 # compiled Vue assets; generated as required
+│   ├── templates/
+│   ├── www/
+│   └── www.py or route handlers only where genuinely required
+├── .gitignore
+├── license.txt
+├── package.json                      # app-level build commands where required
+├── pyproject.toml
+├── README.md
+└── yarn.lock or package-lock.json    # commit exactly one lockfile
+```
+
+This tree is a baseline, not permission to create empty placeholder folders. Include the standard scaffold files and add only the directories required by the implementation. Every Frappe module and DocType directory that Python imports must contain the necessary `__init__.py` file.
+
+All custom DocTypes must be developer-mode files committed to Git. Each DocType must have its standard JSON definition, Python controller, tests and optional JavaScript controller in the canonical Frappe module path. Do not create essential schema manually in production through Desk and do not depend on uncommitted database-only customization.
+
+Any required Custom Fields, Property Setters, Roles, Role Profiles, Workflows, Notifications, Print Formats, Workspace records or other configuration records must be reproducible after installation. Store them using the correct Frappe mechanism: standard app records, fixtures declared in `hooks.py`, install/migrate hooks, or idempotent patches. Never require manual recreation on every server.
+
+All patches must be idempotent, listed in `patches.txt`, safe to run through `bench migrate`, and covered by tests when they change business data. Never edit ERPNext core files, Frappe core files, or another app's source code. Extend them only through documented hooks, overrides used sparingly, custom fields, events, APIs and fixtures.
+
+The Vue 3 interface must live inside the same Git repository and the same Frappe app. `frontend/` contains the Vue source. Its production build must output versioned assets into `local_commerce/public/frontend` or another documented Frappe-served app asset directory. Configure Vite base paths, routing and asset URLs so the production UI works when served by Frappe—not only from the Vite development server.
+
+Do not create a second backend, separate Node/Express API, separate authentication database or independently deployed frontend. Frappe is the backend, authentication layer, permission engine and API host. Node tooling may be used only to build the Vue frontend.
+
+Use Frappe session authentication, CSRF protection, whitelisted methods, permission checks, background jobs, realtime events and site configuration correctly. Never import Bench or site-specific paths into application code. Never hard-code a bench path, site name, domain, server IP, Redis URL, database credentials or production secret in the repository.
+
+The repository must be installable using the normal Git-to-Bench workflow:
+
+```bash
+cd /path/to/frappe-bench
+bench get-app https://github.com/<owner>/local_commerce.git
+bench --site <site-name> install-app local_commerce
+bench build --app local_commerce
+bench --site <site-name> migrate
+bench restart
+```
+
+For local app development, the documented workflow may use `bench get-app /path/to/local_commerce` or an editable app created under `frappe-bench/apps`, but the committed repository itself must remain portable.
+
+The `README.md` must include prerequisites, supported versions, installation, frontend development, production build, site setup, required ERPNext setup, configuration, migrations, tests, background workers, scheduler/realtime requirements, backup/upgrade procedure and troubleshooting.
+
+Provide a valid `pyproject.toml` with package metadata and dependencies. Keep secrets and environment-specific values out of Git. Supply `.env.example` only for frontend development variables that are genuinely required and non-secret placeholders. Runtime secrets must use Frappe site configuration or Password fields.
+
+Add automated checks suitable for GitHub, including Python formatting/linting, JavaScript/Vue linting, unit tests and build verification. Do not commit `node_modules`, Python virtual environments, logs, site data, private backups, generated caches or secret files. Commit compiled frontend assets only if the selected deployment workflow requires them, and document that decision clearly.
+
+The development output must be implementation-ready. For each milestone, create or modify the actual repository files and provide complete working code. Do not respond with pseudocode, shortened examples, `TODO` placeholders, ellipses standing in for logic, or instructions telling me to manually create core files later.
+
+Before declaring the app complete, verify at minimum:
+
+`bench --site <test-site> install-app local_commerce`
+
+`bench --site <test-site> migrate`
+
+`bench build --app local_commerce`
+
+`bench --site <test-site> run-tests --app local_commerce`
+
+Frontend production build and lint commands
+
+Fresh-site installation without manual database edits
+
+Uninstallation or reinstall behavior where install hooks create records
+
+If the environment cannot run one of these commands, state exactly which command was not run and why. Never claim successful verification without command output.
+
+Work incrementally in Git-ready milestones. At the end of each milestone, report the files created or changed, migrations or fixtures added, commands executed, test results and the next milestone. Do not redesign the folder structure midway through development without a concrete Frappe compatibility reason.
+
+1\. TECHNOLOGY STACK
+
+Use:
+
+Frappe Framework
+
+ERPNext
+
+Vue 3
+
+Vue Router
+
+Frappe REST APIs
+
+Frappe realtime/WebSockets
+
+Redis
+
+Frappe background workers
+
+ERPNext accounting
+
+ERPNext inventory
+
+Configurable maps/routing provider
+
+Configurable payment/marketplace provider
+
+Configurable notification provider
+
+PWA support for delivery personnel where practical
+
+The system must be deployable to a production cloud environment.
+
+2\. CORE ARCHITECTURE PRINCIPLE
+
+The application consists of:
+
+                    ONE VUE APPLICATION
+
+                           |
+
+        +------------------+------------------+
+
+        |                  |                  |
+
+      ADMIN            SHOP USER           DRIVER
+
+        |                  |                  |
+
+        +------------------+------------------+
+
+                           |
+
+                       CUSTOMER
+
+                           |
+
+                           v
+
+                     FRAPPE API
+
+                           |
+
+              +------------+-------------+
+
+              |                          |
+
+       DOMAIN SERVICES              ERPNext
+
+              |                          |
+
+              |                    Inventory
+
+              |                    Sales
+
+              |                    Invoice
+
+              |                    Payments
+
+              |                    Accounting
+
+              |
+
+      External provider adapters
+
+              |
+
+       +------+------+------+
+
+       |      |      |      |
+
+    Payment Maps  SMS/Email Other
+
+
+
+Do not create separate frontend applications for:
+
+Admin
+
+Shop owner
+
+Shop staff
+
+Driver
+
+Customer
+
+Use one unified Vue application.
+
+After authentication, determine:
+
+User
+
+Roles
+
+Permissions
+
+Shop
+
+Company
+
+Enabled capabilities
+
+Feature flags
+
+Then dynamically render the appropriate interface.
+
+Frontend permissions are only for UX.
+
+All authorization must be enforced server-side.
+
+3\. CRITICAL CUSTOM APP NAMESPACE RULE
+
+The custom application must never conflict with Frappe or ERPNext standard DocTypes, fields, modules, controllers, routes, APIs or naming conventions.
+
+Before creating any DocType, field, Python module, API endpoint or route:
+
+Check whether Frappe already provides the functionality.
+
+Check whether ERPNext already provides the functionality.
+
+Reuse the standard ERPNext/Frappe DocType where appropriate.
+
+Only create a custom DocType when the marketplace requires functionality that does not already exist.
+
+Do not duplicate standard ERPNext functionality unnecessarily.
+
+4\. CUSTOM DOCTYPE NAMING STRATEGY
+
+Use a unique application namespace/prefix for all custom DocTypes.
+
+Example application namespace:
+
+Local Commerce
+
+
+
+Recommended custom DocType naming pattern:
+
+LC Shop
+
+LC Shop Capability
+
+LC Delivery Configuration
+
+LC Delivery Slot
+
+LC Delivery Batch
+
+LC Delivery
+
+LC Delivery Assignment
+
+LC Delivery Location
+
+LC Marketplace Order
+
+LC Marketplace Payment
+
+LC Marketplace Refund
+
+LC Marketplace Commission Rule
+
+LC Marketplace Settlement
+
+LC Marketplace Settlement Item
+
+LC Payment Provider Configuration
+
+LC Maps Provider Configuration
+
+LC Notification Rule
+
+LC Serviceability Rule
+
+LC Delivery Pricing Rule
+
+LC Driver Profile
+
+LC Customer Address Snapshot
+
+LC Inventory Reservation
+
+LC Order State Transition
+
+LC Audit Event
+
+
+
+The exact prefix may be configurable at development time, but it must be unique.
+
+Do NOT create custom DocTypes with generic names such as:
+
+Shop
+
+Order
+
+Payment
+
+Delivery
+
+Settlement
+
+Refund
+
+Product
+
+Customer
+
+Company
+
+Invoice
+
+Item
+
+Address
+
+User
+
+
+
+unless the name is guaranteed not to conflict with existing ERPNext/Frappe DocTypes.
+
+Prefer a unique namespace such as:
+
+LC Shop
+
+LC Delivery
+
+LC Marketplace Payment
+
+
+
+or the application's actual unique prefix.
+
+5\. STANDARD ERPNext REUSE PRINCIPLE
+
+Before implementing custom functionality, determine whether ERPNext already has an appropriate standard DocType.
+
+Where appropriate, reuse:
+
+Company
+
+Customer
+
+Supplier
+
+Item
+
+Item Group
+
+Warehouse
+
+Stock Entry
+
+Stock Reconciliation
+
+Sales Order
+
+Sales Invoice
+
+Payment Entry
+
+Journal Entry
+
+Pricing Rule
+
+Tax templates
+
+Address
+
+Contact
+
+User
+
+Role
+
+Role Profile
+
+File
+
+Communication
+
+Notification
+
+Workflow
+
+Naming Series
+
+Do not create custom replacements for these unless there is a documented technical reason.
+
+Marketplace-specific data should complement ERPNext.
+
+6\. DOMAIN SERVICE LAYER
+
+Do not place all business logic directly inside Vue or raw DocType controllers.
+
+Create reusable server-side domain/service modules such as:
+
+OrderService
+
+CheckoutService
+
+PricingService
+
+InventoryService
+
+PaymentService
+
+MarketplacePaymentService
+
+RefundService
+
+SettlementService
+
+CommissionService
+
+DeliveryService
+
+ServiceabilityService
+
+RoutingService
+
+MapsService
+
+DistanceService
+
+ETAService
+
+NotificationService
+
+CapabilityService
+
+TaxService
+
+AuditService
+
+
+
+Core business rules should live server-side.
+
+7\. CONFIGURATION-DRIVEN DESIGN
+
+Do NOT hard-code:
+
+Delivery prices
+
+Commission percentages
+
+Payment fees
+
+Delivery radius
+
+Booking slots
+
+Delivery start times
+
+Shop operating hours
+
+Preparation times
+
+Shop permissions
+
+Feature availability
+
+Payment providers
+
+Maps providers
+
+Notification providers
+
+Naming prefixes
+
+Tax rules
+
+Cancellation policies
+
+Refund policies
+
+Driver capacity
+
+Order limits
+
+Business rules
+
+If an administrator or shop owner could reasonably need to change a value later, make it configurable.
+
+8\. MULTI-SHOP / MULTI-COMPANY ARCHITECTURE
+
+Each independent business should be represented using an ERPNext Company where appropriate.
+
+Example:
+
+Platform
+
+ |
+
+ +-- Fish World
+
+ |
+
+ +-- Burger House
+
+ |
+
+ +-- Sharma Grocery
+
+
+
+Each business can have:
+
+Company
+
+Shop profile
+
+Products
+
+Inventory
+
+Warehouses
+
+Customers
+
+Orders
+
+Sales transactions
+
+Invoices
+
+Payments
+
+Drivers
+
+Deliveries
+
+Delivery settings
+
+Financial records
+
+Use ERPNext Company functionality instead of installing separate ERPNext instances.
+
+9\. TENANT / DATA ISOLATION
+
+Every business record must have an authoritative Shop/Company relationship where applicable.
+
+Never trust frontend-provided:
+
+Shop ID
+
+Company ID
+
+Driver ID
+
+Customer ID
+
+Order owner
+
+Settlement owner
+
+The server must determine what the authenticated user is allowed to access.
+
+Every API query must enforce the user's permitted Shop/Company scope.
+
+Cross-shop access must fail even if a user manually modifies:
+
+URL parameters
+
+Request body
+
+Filters
+
+Query parameters
+
+API payloads
+
+IDs
+
+Background jobs must enforce the same isolation.
+
+Realtime channels must enforce the same isolation.
+
+10\. USER ROLES
+
+Minimum roles:
+
+Platform Administrator
+
+Shop Owner
+
+Shop Staff
+
+Delivery Person
+
+Customer
+
+Platform Administrator
+
+Can manage authorized platform-wide:
+
+Shops
+
+Companies
+
+Users
+
+Customers
+
+Products
+
+Inventory
+
+Orders
+
+Deliveries
+
+Drivers
+
+Payments
+
+Refunds
+
+Commissions
+
+Settlements
+
+Delivery pricing
+
+Feature capabilities
+
+Reports
+
+Configuration
+
+Audit information
+
+Shop Owner
+
+Can access only their own shop/company.
+
+Can manage:
+
+Orders
+
+Products
+
+Inventory
+
+Customers
+
+Drivers
+
+Delivery assignments
+
+Deliveries
+
+Scheduled delivery
+
+Delivery batches
+
+Reports
+
+Settlements
+
+Shop settings
+
+Shop Staff
+
+Permissions must be configurable.
+
+Delivery Person
+
+Can access only assigned/authorized deliveries.
+
+Customer
+
+Can access only their own:
+
+Profile
+
+Addresses
+
+Cart
+
+Orders
+
+Payments
+
+Tracking
+
+History
+
+11\. SHOP MANAGEMENT
+
+Each shop should have:
+
+Shop name
+
+Company
+
+Logo
+
+Images
+
+Description
+
+Address
+
+Latitude
+
+Longitude
+
+Contact details
+
+Status
+
+Operating hours
+
+Delivery configuration
+
+Payment capabilities
+
+Feature capabilities
+
+Commission configuration
+
+Serviceability configuration
+
+Shop dashboard:
+
+Today's Orders
+
+Today's Sales
+
+Pending Orders
+
+Preparing
+
+Ready
+
+Active Deliveries
+
+Scheduled Orders
+
+Drivers
+
+Low Stock
+
+Settlement Balance
+
+12\. SHOP OPERATING HOURS
+
+Operating hours must be configurable.
+
+Support:
+
+Opening time
+
+Closing time
+
+Days of operation
+
+Holidays
+
+Temporary closure
+
+Order acceptance window
+
+Preparation window
+
+Delivery availability
+
+Emergency shop closure must be possible without code changes.
+
+Customers must not be able to place normal orders when the shop is not accepting orders.
+
+13\. SHOP CAPABILITY SYSTEM
+
+Create a scalable capability system.
+
+Examples:
+
+Normal Delivery
+
+Scheduled Delivery
+
+Online Payment
+
+Cash on Delivery
+
+Live Tracking
+
+Route Optimization
+
+Marketplace Payments
+
+Customer Pickup
+
+
+
+Capabilities must be configurable per shop.
+
+Do not write:
+
+if shop == "Fish World":
+
+
+
+Business-specific behavior must be represented using configuration/capabilities.
+
+14\. PRODUCTS
+
+Use ERPNext Item functionality wherever appropriate.
+
+Products may contain:
+
+Item
+
+Item Group
+
+Image
+
+Price
+
+Stock
+
+Warehouse
+
+Availability
+
+Company
+
+Unit of Measure
+
+Tax information
+
+Weight
+
+Volume
+
+Preparation requirements
+
+Expiry/batch information
+
+15\. BUSINESS-TYPE EXTENSIBILITY
+
+The platform must not contain fish-specific core logic.
+
+Fish products may use:
+
+Weight
+
+Batch
+
+Expiry
+
+Storage information
+
+Special handling
+
+Other businesses can use different attributes.
+
+Business-specific fields should use appropriate configuration/custom fields or extensible structures.
+
+16\. WEIGHT-BASED PRODUCTS
+
+Support:
+
+Piece
+
+Kg
+
+Gram
+
+Liter
+
+Pack
+
+Other configurable units
+
+Support variable quantities where appropriate.
+
+Example:
+
+Pomfret
+
+1.25 kg
+
+
+
+The server must validate quantity and pricing.
+
+17\. INVENTORY
+
+Use ERPNext inventory functionality.
+
+Support:
+
+Warehouses
+
+Stock movements
+
+Stock reconciliation
+
+Batches
+
+Expiry
+
+Stock reservations where appropriate
+
+Stock availability
+
+Inventory must be validated server-side.
+
+18\. INVENTORY RESERVATION
+
+Prevent overselling during concurrent checkout.
+
+Support temporary reservations containing:
+
+Reservation ID
+
+Order/cart reference
+
+Item
+
+Warehouse
+
+Quantity
+
+Created time
+
+Expiry time
+
+Status
+
+Reservations must:
+
+Expire safely
+
+Release after failed payment
+
+Release after abandoned checkout
+
+Convert to actual stock transaction at the appropriate stage
+
+Concurrency must be handled transactionally.
+
+19\. CUSTOMER EXPERIENCE
+
+Customer flow:
+
+Login
+
+ ↓
+
+Choose Address
+
+ ↓
+
+Find Serviceable Shops
+
+ ↓
+
+Open Shop
+
+ ↓
+
+Browse Products
+
+ ↓
+
+Cart
+
+ ↓
+
+Checkout
+
+ ↓
+
+Delivery Method
+
+ ↓
+
+Payment
+
+ ↓
+
+Order Confirmation
+
+ ↓
+
+Track Order
+
+
+
+Only show shops capable of serving the selected address.
+
+20\. CUSTOMER ADDRESSES
+
+Customers may maintain multiple addresses:
+
+Home
+
+Work
+
+Other
+
+Store:
+
+Address label
+
+Address lines
+
+Locality
+
+City
+
+State
+
+Postal code
+
+Country
+
+Latitude
+
+Longitude
+
+Delivery instructions
+
+Validate address/serviceability server-side.
+
+When an order is created, create an immutable delivery-address snapshot.
+
+Changing the customer's address later must not change historical orders.
+
+21\. SERVICEABILITY
+
+Create a dedicated:
+
+ServiceabilityService
+
+
+
+Serviceability can consider:
+
+Shop active status
+
+Customer address
+
+Delivery radius
+
+Delivery zone
+
+Postal code
+
+Routing distance
+
+Shop operating hours
+
+Delivery method
+
+Delivery capacity
+
+Scheduled slot availability
+
+Driver availability
+
+Other configurable rules
+
+All serviceability validation must occur server-side.
+
+22\. ORDER SYSTEM
+
+Use ERPNext standard sales documents wherever appropriate while maintaining marketplace-specific order information separately when needed.
+
+Order information must include or reference:
+
+Order ID
+
+Shop
+
+Company
+
+Customer
+
+Delivery address snapshot
+
+Items
+
+Quantities
+
+Subtotal
+
+Tax
+
+Discount
+
+Delivery method
+
+Delivery fee
+
+Platform commission
+
+Payment processing fee
+
+Payment status
+
+Settlement status
+
+Order status
+
+Driver
+
+Delivery
+
+Delivery batch
+
+Booking slot
+
+Created time
+
+Updated time
+
+23\. CHECKOUT PRICE SECURITY
+
+Never trust prices or totals sent by Vue.
+
+At checkout, server-side logic must recalculate:
+
+Product prices
+
+Quantities
+
+Discounts
+
+Taxes
+
+Delivery fees
+
+Commission
+
+Payment fees
+
+Final total
+
+The client is never authoritative.
+
+Store the final pricing/rule snapshot on the transaction.
+
+Historical orders must not change when future pricing rules change.
+
+24\. ORDER STATE MACHINE
+
+Implement server-side state transitions.
+
+Example:
+
+Pending
+
+ ↓
+
+Accepted
+
+ ↓
+
+Preparing
+
+ ↓
+
+Ready for Pickup
+
+ ↓
+
+Assigned
+
+ ↓
+
+Picked Up
+
+ ↓
+
+Out for Delivery
+
+ ↓
+
+Delivered
+
+
+
+Possible additional states:
+
+Cancelled
+
+Failed Delivery
+
+Returned
+
+Refunded
+
+
+
+Every transition must define:
+
+Previous state
+
+Next state
+
+Authorized role
+
+Required fields
+
+Side effects
+
+Notifications
+
+Audit event
+
+Invalid transitions must be rejected.
+
+25\. NORMAL DELIVERY
+
+Flow:
+
+Customer Orders
+
+ ↓
+
+Shop Accepts
+
+ ↓
+
+Shop Prepares
+
+ ↓
+
+Driver Assigned
+
+ ↓
+
+Pickup
+
+ ↓
+
+Out for Delivery
+
+ ↓
+
+Delivered
+
+
+
+Delivery pricing must be calculated using configurable rules.
+
+26\. SCHEDULED DELIVERY
+
+Scheduled delivery is a booking window and must not automatically be represented as the exact delivery time.
+
+Example:
+
+Booking:
+
+09:00–10:00
+
+Expected Delivery Start:
+
+11:30
+
+
+
+Store separately:
+
+Booking start
+
+Booking end
+
+Delivery start
+
+Actual delivery start
+
+Actual delivery completion
+
+Customer messaging must clearly explain that the booking window is not necessarily the actual delivery time.
+
+27\. DYNAMIC DELIVERY SLOTS
+
+Create custom DocTypes using the application's unique namespace, for example:
+
+LC Delivery Slot
+
+
+
+Fields may include:
+
+Booking Start Time
+
+Booking End Time
+
+Delivery Start Time
+
+Applicable Date
+
+Recurring Days
+
+Capacity
+
+Active
+
+Shop
+
+Company
+
+Support:
+
+One-time slots
+
+Recurring slots
+
+Disabled slots
+
+Edited slots
+
+Slot capacity
+
+No slot time may be hard-coded into Vue or Python.
+
+28\. SCHEDULED CHECKOUT
+
+When scheduled delivery is enabled:
+
+Delivery Method
+
+( ) Normal Delivery
+
+    Delivery fee calculated
+
+( ) Scheduled Delivery
+
+    Free by default
+
+    Choose slot
+
+    [Dynamic slots]
+
+
+
+Scheduled delivery fee defaults to ₹0 but must remain configurable.
+
+The system must not hard-code this assumption throughout the application.
+
+29\. SCHEDULED DELIVERY BATCHES
+
+Create a namespaced custom DocType such as:
+
+LC Delivery Batch
+
+
+
+Example:
+
+Delivery Batch
+
+Shop: Fish World
+
+Booking Slot: 09:00–10:00
+
+Orders:
+
+ORD-001
+
+ORD-002
+
+ORD-003
+
+ORD-004
+
+Driver:
+
+Rahul
+
+
+
+Shop owner can:
+
+View orders
+
+Select orders
+
+Create batch
+
+Assign driver
+
+Reassign driver
+
+Generate route
+
+Start delivery
+
+Do not automatically start delivery merely because booking closes.
+
+30\. DELIVERY PERSON MANAGEMENT
+
+Each shop may manage its own drivers.
+
+Driver status:
+
+Active
+
+Offline
+
+Available
+
+Busy
+
+On Break
+
+Suspended
+
+Only eligible drivers may receive assignments.
+
+Shop owners can:
+
+Add drivers
+
+Activate/deactivate
+
+Assign
+
+Reassign
+
+View active deliveries
+
+View delivery history
+
+Drivers can only access authorized assignments.
+
+31\. DRIVER CAPACITY
+
+Driver capacity must be configurable.
+
+Possible limits:
+
+Maximum orders
+
+Maximum weight
+
+Maximum volume
+
+Maximum route distance
+
+The routing/assignment system must consider these constraints where applicable.
+
+32\. ROUTE PLANNING
+
+Create provider-independent interfaces:
+
+MapsService
+
+RoutingService
+
+DistanceService
+
+ETAService
+
+
+
+Do not hard-code a particular maps provider.
+
+Route calculation may consider:
+
+Shop location
+
+Customer locations
+
+Distance
+
+Travel time
+
+Driver capacity
+
+Delivery constraints
+
+Order priority
+
+Route optimization rules
+
+33\. DRIVER EXPERIENCE
+
+Optimize for mobile/PWA.
+
+Driver should see:
+
+Current delivery
+
+Next stop
+
+Route
+
+Navigation
+
+Customer information permitted by policy
+
+Order
+
+Payment status
+
+Delivery instructions
+
+Delivery actions
+
+GPS status
+
+Actions:
+
+Accept assignment
+
+Navigate
+
+Pick Up
+
+Start Delivery
+
+Arrived
+
+Delivered
+
+Failed Delivery
+
+Support future:
+
+OTP
+
+Signature
+
+Photo proof
+
+Barcode/QR verification
+
+34\. DELIVERY FAILURE
+
+Support failure reasons:
+
+Customer unavailable
+
+Wrong address
+
+Customer refused
+
+Shop closed
+
+Driver issue
+
+Vehicle issue
+
+Other
+
+Possible workflow:
+
+Out for Delivery
+
+ ↓
+
+Failed Delivery
+
+ ↓
+
+Retry
+
+OR
+
+Return to Shop
+
+OR
+
+Cancel
+
+
+
+Failed deliveries must integrate with:
+
+Inventory
+
+Refunds
+
+Accounting
+
+Settlement
+
+Audit
+
+35\. DELIVERY RADIUS
+
+Delivery radius must be configurable.
+
+Example values are only examples.
+
+Support:
+
+Platform Maximum
+
+Shop Radius
+
+Delivery Zone
+
+Postal Code Rules
+
+Routing Distance
+
+
+
+Never hard-code values such as 3 km, 5 km or 10 km.
+
+Validate server-side.
+
+36\. DELIVERY PRICING
+
+Create namespaced configurable pricing rules.
+
+Support:
+
+Flat fee
+
+Distance based
+
+Free delivery
+
+Free above order value
+
+Shop-specific pricing
+
+Zone-specific pricing
+
+Effective dates
+
+Example:
+
+0–2 km → configurable
+
+2–4 km → configurable
+
+4–6 km → configurable
+
+
+
+These are examples only.
+
+The calculated fee must be stored on the order.
+
+Changing pricing later must not change historical orders.
+
+37\. PREPARATION TIME
+
+Support configurable preparation time:
+
+Shop level
+
+Product/category level where appropriate
+
+ETA may consider:
+
+Preparation Time
+
+\+
+
+Routing Time
+
+\+
+
+Delivery Constraints
+
+
+
+Do not promise exact delivery times without sufficient information.
+
+38\. MARKETPLACE PAYMENT ARCHITECTURE
+
+The platform is a marketplace connecting customers with independent businesses.
+
+Do not design the system around manually receiving all customer payments into a personal bank account and manually transferring funds.
+
+Use a proper marketplace/merchant/partner payment architecture through a provider supporting the required capabilities.
+
+The payment provider must be configurable.
+
+Create abstractions:
+
+PaymentService
+
+MarketplacePaymentService
+
+RefundService
+
+SettlementService
+
+39\. PAYMENT PROVIDER ABSTRACTION
+
+Create:
+
+LC Payment Provider Configuration
+
+
+
+Support:
+
+Provider name
+
+Credentials/configuration
+
+Merchant/partner configuration
+
+Webhook configuration
+
+Active/inactive
+
+Environment
+
+Capabilities
+
+Architecture:
+
+Application
+
+    |
+
+PaymentService
+
+    |
+
+Provider Adapter
+
+    |
+
+Payment Provider
+
+
+
+The core checkout/order logic must not depend directly on a specific provider.
+
+40\. PAYMENT FLOW
+
+Preferred architecture:
+
+Customer
+
+   |
+
+   | Payment
+
+   v
+
+Marketplace Payment Provider
+
+   |
+
+   +------------------+
+
+   |                  |
+
+   v                  v
+
+Shop Settlement   Platform Revenue
+
+
+
+Example:
+
+Order value: ₹1,000
+
+Commission: configurable
+
+Shop share: calculated
+
+Platform share: calculated
+
+
+
+Numbers must never be hard-coded.
+
+41\. PLATFORM COMMISSION
+
+Commission configuration must support:
+
+Percentage
+
+Fixed amount
+
+Default rate
+
+Shop-specific override
+
+Promotional rate
+
+Effective date
+
+Expiry date
+
+Example:
+
+Default: 7%
+
+Fish World: 5%
+
+Promotion: 0%
+
+
+
+Examples only.
+
+Store the actual applied commission on the transaction.
+
+Historical transactions must not change when commission rules change.
+
+42\. PAYMENT PROCESSING FEES
+
+Payment fees must remain separate from platform commission.
+
+Store separately:
+
+Order Amount
+
+Delivery Fee
+
+Tax
+
+Platform Commission
+
+Payment Processing Fee
+
+Shop Amount
+
+Platform Amount
+
+Refund Amount
+
+Settlement Amount
+
+Treatment of payment fees must be configurable.
+
+43\. PAYMENT STATE CONSISTENCY
+
+Design for failures such as:
+
+Payment succeeds but order creation fails
+
+Order exists but payment fails
+
+Browser closes
+
+Webhook arrives late
+
+Webhook arrives twice
+
+Provider timeout
+
+Inventory becomes unavailable
+
+Refund succeeds but webhook is delayed
+
+Never assume frontend payment success is final.
+
+Server-side provider status must determine final payment state.
+
+44\. PAYMENT WEBHOOKS
+
+Support:
+
+Payment authorized
+
+Payment captured
+
+Payment failed
+
+Payment refunded
+
+Settlement completed
+
+Other provider events
+
+Webhook authenticity must be verified.
+
+Webhook processing must be idempotent.
+
+45\. IDEMPOTENCY
+
+All financial operations must be idempotent.
+
+Prevent:
+
+Duplicate orders
+
+Duplicate payments
+
+Duplicate webhook processing
+
+Duplicate refunds
+
+Duplicate settlements
+
+Duplicate commission entries
+
+Use:
+
+Provider transaction IDs
+
+Internal unique IDs
+
+Idempotency keys
+
+Database uniqueness constraints
+
+46\. CASH ON DELIVERY
+
+COD must be configurable per shop.
+
+Support:
+
+COD enabled/disabled
+
+COD order limit
+
+COD serviceability
+
+Amount due
+
+Cash collected
+
+Cash collection confirmation
+
+Shortage/overage
+
+Driver cash balance
+
+Cash remittance
+
+COD reconciliation
+
+COD must remain separate from online payment transactions.
+
+47\. REFUNDS
+
+Support:
+
+Full refund
+
+Partial refund
+
+Cancellation refund
+
+Failed payment refund
+
+Failed delivery refund
+
+Do not modify old payment records to represent a refund.
+
+Create a separate refund transaction/audit trail.
+
+Refunds must update appropriately:
+
+Payment state
+
+Order state
+
+Platform revenue
+
+Shop settlement
+
+ERPNext accounting
+
+48\. CANCELLATION POLICY
+
+Create configurable cancellation rules.
+
+Support:
+
+Customer cancellation
+
+Shop cancellation
+
+Cancellation before preparation
+
+Cancellation after preparation
+
+Cancellation after pickup
+
+Driver failed delivery
+
+Out-of-stock cancellation
+
+Payment failure
+
+Rules may determine:
+
+Refund eligibility
+
+Refund amount
+
+Cancellation fee
+
+Commission treatment
+
+Settlement adjustment
+
+The applied rule must be recorded with the transaction.
+
+49\. SHOP SETTLEMENTS
+
+Create:
+
+LC Marketplace Settlement
+
+LC Marketplace Settlement Item
+
+
+
+Example:
+
+Settlement
+
+Shop: Fish World
+
+Period: 01 Aug – 07 Aug
+
+Gross Sales
+
+\- Commission
+
+\- Payment Fees
+
+\- Refunds
+
+\- Adjustments
+
+Net Settlement
+
+
+
+Statuses:
+
+Pending
+
+Processing
+
+Paid
+
+Failed
+
+Cancelled
+
+Maintain complete settlement history.
+
+50\. SETTLEMENT RECONCILIATION
+
+Settlement calculations must be reproducible.
+
+Every settlement amount must be traceable back to:
+
+Order
+
+Payment
+
+Commission
+
+Refund
+
+Adjustment
+
+Provider transaction
+
+ERPNext accounting transaction
+
+Never calculate a settlement as an unexplained final number.
+
+51\. SHOP FINANCIAL DASHBOARD
+
+Shop owners can see only their own financial information:
+
+Gross Sales
+
+Platform Commission
+
+Payment Fees
+
+Refunds
+
+Adjustments
+
+Net Amount
+
+Pending Settlement
+
+Paid Settlement
+
+Settlement History
+
+52\. ERPNext ACCOUNTING
+
+Use ERPNext accounting functionality wherever appropriate.
+
+Typical flow:
+
+Marketplace Order
+
+       ↓
+
+ERPNext Sales Order
+
+       ↓
+
+Sales Invoice
+
+       ↓
+
+Payment Entry
+
+       ↓
+
+Accounting
+
+
+
+Marketplace-specific commission and settlement records must remain traceable.
+
+Platform revenue must be separately identifiable from shop sales.
+
+Payment provider fees must be separately identifiable where required.
+
+Refunds must be traceable.
+
+Do not create a parallel accounting system that unnecessarily duplicates ERPNext.
+
+53\. TAX / GST
+
+Use ERPNext taxation functionality wherever appropriate.
+
+Support configurable:
+
+Tax templates
+
+GST applicability
+
+CGST
+
+SGST
+
+IGST
+
+Tax-inclusive pricing
+
+Tax-exclusive pricing
+
+HSN/SAC
+
+Tax exemptions
+
+Tax invoices
+
+Credit notes
+
+Refund taxation
+
+Tax calculation must be server-side.
+
+Do not hard-code tax percentages.
+
+54\. SHOP RECEIPTS
+
+Each shop/company must have its own business identity.
+
+Example:
+
+FISH WORLD
+
+Order #FW-00045
+
+Pomfret       ₹600
+
+Rohu          ₹300
+
+Delivery      FREE
+
+Total         ₹900
+
+
+
+Use ERPNext Company and appropriate naming series.
+
+55\. ORDER NUMBERING
+
+Use configurable naming series.
+
+Example:
+
+Fish World:
+
+FW-00001
+
+Burger House:
+
+BH-00001
+
+
+
+Do not hard-code prefixes.
+
+Prefer ERPNext naming-series mechanisms where appropriate.
+
+56\. CUSTOMER ORDER HISTORY
+
+Customers can see only their own orders.
+
+Support:
+
+Active orders
+
+Completed orders
+
+Cancelled orders
+
+Refunded orders
+
+Scheduled orders
+
+Historical records must remain immutable except through proper transactional mechanisms.
+
+57\. REALTIME DELIVERY TRACKING
+
+Driver:
+
+GPS
+
+ ↓
+
+Vue/PWA
+
+ ↓
+
+Frappe
+
+ ↓
+
+Realtime/WebSocket
+
+
+
+Location sharing must be:
+
+Permission-aware
+
+Time-limited where appropriate
+
+Restricted to active deliveries
+
+Protected against unauthorized access
+
+Customer:
+
+Only their active delivery.
+
+Shop:
+
+Only their shop's active deliveries.
+
+Admin:
+
+According to authorization.
+
+58\. DRIVER LOCATION PRIVACY
+
+Driver GPS must never be publicly accessible.
+
+Store only the location history necessary for business and operational purposes.
+
+Location update interval must be configurable.
+
+Support configurable retention of historical GPS data.
+
+59\. REALTIME EVENTS
+
+Support events such as:
+
+order\_created
+
+order\_status\_changed
+
+delivery\_assigned
+
+delivery\_status\_changed
+
+delivery\_location\_updated
+
+delivery\_batch\_created
+
+delivery\_batch\_started
+
+driver\_arrived
+
+order\_delivered
+
+payment\_updated
+
+refund\_updated
+
+settlement\_updated
+
+
+
+Realtime subscriptions must enforce permissions.
+
+60\. NOTIFICATIONS
+
+Create a notification abstraction.
+
+Support configurable notification rules for:
+
+New Order
+
+Order Accepted
+
+Order Ready
+
+Driver Assigned
+
+Picked Up
+
+Out for Delivery
+
+Driver Nearby
+
+Delivered
+
+Scheduled Booking Confirmed
+
+Payment Successful
+
+Payment Failed
+
+Refund
+
+Settlement
+
+Failed Delivery
+
+Channels may include:
+
+In-app
+
+Email
+
+SMS
+
+Push notification
+
+WhatsApp where legally and technically appropriate
+
+Do not hard-code one provider.
+
+61\. BACKGROUND JOBS
+
+Use workers for:
+
+Route calculation
+
+Heavy reports
+
+Notifications
+
+Settlement processing
+
+Payment reconciliation
+
+Webhook retry
+
+GPS processing where appropriate
+
+Scheduled tasks
+
+Cleanup/retention tasks
+
+Do not block normal customer requests with expensive processing.
+
+62\. API DESIGN
+
+Create secure APIs for:
+
+Authentication
+
+Shops
+
+Products
+
+Inventory
+
+Addresses
+
+Serviceability
+
+Cart
+
+Checkout
+
+Orders
+
+Payments
+
+Refunds
+
+Settlements
+
+Delivery
+
+Delivery assignment
+
+Delivery slots
+
+Delivery batches
+
+Routes
+
+GPS
+
+Realtime
+
+Customer tracking
+
+Shop dashboard
+
+Admin dashboard
+
+Reports
+
+All APIs require server-side authorization.
+
+63\. API SECURITY
+
+Never trust client-provided:
+
+Shop
+
+Company
+
+Customer
+
+Driver
+
+Order owner
+
+Price
+
+Commission
+
+Delivery fee
+
+Payment status
+
+Settlement amount
+
+Permissions
+
+Sensitive values must be calculated or validated server-side.
+
+64\. API PAGINATION AND PERFORMANCE
+
+Large datasets must use server-side:
+
+Pagination
+
+Filtering
+
+Sorting
+
+Search
+
+Date ranges
+
+Never load entire tables into Vue.
+
+Use indexed fields and appropriate database queries.
+
+Avoid N+1 query patterns.
+
+65\. FRONTEND ROUTING
+
+Use Vue Router.
+
+Customer:
+
+/login
+
+/home
+
+/shops
+
+/shop/\:id
+
+/product/\:id
+
+/cart
+
+/checkout
+
+/orders
+
+/order/\:id
+
+/order/\:id/tracking
+
+
+
+Shop:
+
+/shop/dashboard
+
+/shop/orders
+
+/shop/products
+
+/shop/inventory
+
+/shop/customers
+
+/shop/delivery
+
+/shop/delivery/\:id
+
+/shop/schedules
+
+/shop/batches
+
+/shop/settlements
+
+/shop/reports
+
+/shop/settings
+
+
+
+Driver:
+
+/delivery/dashboard
+
+/delivery/orders
+
+/delivery/order/\:id
+
+/delivery/route
+
+/delivery/history
+
+/delivery/profile
+
+
+
+Admin:
+
+/admin/dashboard
+
+/admin/shops
+
+/admin/users
+
+/admin/orders
+
+/admin/deliveries
+
+/admin/pricing
+
+/admin/commissions
+
+/admin/payments
+
+/admin/settlements
+
+/admin/refunds
+
+/admin/settings
+
+/admin/reports
+
+
+
+Frontend routes must be protected by permissions.
+
+Server-side authorization remains mandatory.
+
+66\. FRONTEND APPLICATION RULES
+
+Vue must never contain business-critical constants such as:
+
+Commission = 7
+
+Delivery radius = 5
+
+Delivery fee = 50
+
+Scheduled delivery = 0
+
+Booking slot = 09:00
+
+
+
+Frontend should retrieve configuration from authorized APIs.
+
+67\. ADMIN DASHBOARD
+
+Show:
+
+Total Shops
+
+Active Shops
+
+Orders
+
+Sales
+
+Platform Revenue
+
+Commission
+
+Pending Settlements
+
+Active Deliveries
+
+Drivers
+
+Customers
+
+Payments
+
+Refunds
+
+Filters:
+
+Shop
+
+Company
+
+Date
+
+Order status
+
+Payment status
+
+Settlement status
+
+Delivery status
+
+68\. SHOP OWNER DASHBOARD
+
+Show:
+
+Today's Orders
+
+Revenue
+
+Pending Orders
+
+Preparing
+
+Ready
+
+Active Deliveries
+
+Scheduled Orders
+
+Delivery Batches
+
+Drivers
+
+Inventory Alerts
+
+Settlements
+
+Map:
+
+Active Drivers
+
+Active Deliveries
+
+Status
+
+69\. REPORTING
+
+Support configurable reports for:
+
+Sales
+
+Orders
+
+Inventory
+
+Delivery performance
+
+Driver performance
+
+Commission
+
+Payments
+
+Refunds
+
+Settlements
+
+COD
+
+Failed deliveries
+
+Reports must enforce permissions.
+
+70\. IMPORT / EXPORT
+
+Where appropriate, support:
+
+Product import
+
+Inventory import
+
+Customer import
+
+Export reports
+
+Settlement export
+
+Order export
+
+Use secure server-side processing.
+
+71\. SECURITY
+
+Implement:
+
+Authentication
+
+Role permissions
+
+Company permissions
+
+Shop permissions
+
+Document permissions
+
+Server-side validation
+
+API authorization
+
+Customer data isolation
+
+Driver isolation
+
+Payment security
+
+Webhook verification
+
+Realtime authorization
+
+Rate limiting where appropriate
+
+Audit logs
+
+Input validation
+
+CSRF/security controls according to Frappe architecture
+
+Secure secret management
+
+Never rely only on Vue route guards.
+
+72\. AUDIT LOG
+
+Record important actions:
+
+Order created
+
+Order changed
+
+Order cancelled
+
+Driver assigned
+
+Driver reassigned
+
+Delivery started
+
+Delivery completed
+
+Pricing changed
+
+Commission changed
+
+Shop capability changed
+
+Slot created
+
+Slot edited
+
+Slot disabled
+
+Refund created
+
+Settlement created
+
+Settlement paid
+
+Payment status changed
+
+Use Frappe/ERPNext audit functionality where appropriate.
+
+Create custom audit records only when standard functionality is insufficient.
+
+73\. PRIVACY AND DATA RETENTION
+
+Protect:
+
+Customer addresses
+
+Phone numbers
+
+Driver information
+
+GPS history
+
+Payment information
+
+Order information
+
+Do not store raw card credentials.
+
+Define retention policies for:
+
+GPS data
+
+Notifications
+
+Audit records
+
+Customer information
+
+Delivery history
+
+Sensitive information must be protected at rest and in transit.
+
+74\. PAYMENT SECURITY
+
+Never store raw card data.
+
+Payment credentials must remain with the appropriate payment provider.
+
+Store only necessary identifiers such as:
+
+Provider transaction ID
+
+Payment reference
+
+Payment status
+
+Amount
+
+Currency
+
+Provider response metadata where safe
+
+Secrets must never be exposed to Vue.
+
+75\. PROVIDER ABSTRACTIONS
+
+External providers must use adapters.
+
+Payment
+
+PaymentService
+
+    ↓
+
+PaymentProviderAdapter
+
+    ↓
+
+Provider
+
+Maps
+
+MapsService
+
+    ↓
+
+MapsProviderAdapter
+
+    ↓
+
+Provider
+
+Notifications
+
+NotificationService
+
+    ↓
+
+NotificationProviderAdapter
+
+    ↓
+
+Provider
+
+
+
+Core business logic must remain provider-independent.
+
+76\. ERROR HANDLING
+
+Every important operation must handle:
+
+Validation failure
+
+Authorization failure
+
+Timeout
+
+Provider failure
+
+Duplicate request
+
+Network failure
+
+Database failure
+
+Background job failure
+
+Errors must be:
+
+Logged appropriately
+
+Safe for users
+
+Traceable
+
+Recoverable where possible
+
+Never expose sensitive internal stack traces to customers.
+
+77\. OBSERVABILITY
+
+Production environment must support:
+
+Structured logs
+
+Error monitoring
+
+API monitoring
+
+Background job monitoring
+
+Payment failure monitoring
+
+Webhook failure monitoring
+
+Settlement failure monitoring
+
+Realtime monitoring
+
+Database monitoring
+
+Alerting
+
+Never log:
+
+Passwords
+
+Payment credentials
+
+API secrets
+
+Authentication tokens
+
+Sensitive personal information unnecessarily
+
+78\. BACKUPS AND DISASTER RECOVERY
+
+Support:
+
+Automated database backups
+
+Backup retention
+
+Off-site backups
+
+Backup encryption
+
+Restore testing
+
+Disaster recovery documentation
+
+Recovery procedures
+
+RPO target
+
+RTO target
+
+A backup is not considered production-ready until restoration has been tested.
+
+79\. CLOUD DEPLOYMENT
+
+Prepare for production deployment.
+
+Include:
+
+Production configuration
+
+Environment variables
+
+Database
+
+Redis
+
+Workers
+
+Realtime/WebSockets
+
+HTTPS
+
+Static assets
+
+Backups
+
+Logging
+
+Monitoring
+
+Database migrations
+
+Deployment documentation
+
+Never store secrets in source code.
+
+Use environment variables or secure secret management for:
+
+Database credentials
+
+Payment credentials
+
+Maps credentials
+
+Webhook secrets
+
+Notification credentials
+
+Encryption secrets
+
+80\. ENVIRONMENT SEPARATION
+
+Support:
+
+Development
+
+Staging
+
+Production
+
+
+
+Provider credentials and configuration must be environment-specific.
+
+Never use production payment credentials in development.
+
+81\. DATABASE TRANSACTIONS
+
+Financial and inventory operations must use appropriate database transactions.
+
+Operations such as:
+
+Order creation
+
+Inventory reservation
+
+Payment state updates
+
+Refund
+
+Settlement
+
+Commission calculation
+
+must avoid partially completed states.
+
+Design recovery paths for external provider failures.
+
+82\. CONCURRENCY
+
+Protect against concurrent:
+
+Checkout
+
+Stock purchase
+
+Payment confirmation
+
+Refund
+
+Settlement
+
+Driver assignment
+
+Use appropriate:
+
+Database transactions
+
+Locks
+
+Unique constraints
+
+Idempotency
+
+Atomic updates
+
+83\. ORDER/PAYMENT/INVENTORY CONSISTENCY
+
+Design explicit relationships among:
+
+Order
+
+Payment
+
+Inventory
+
+Invoice
+
+Settlement
+
+Refund
+
+Delivery
+
+
+
+Do not allow:
+
+Payment = successful
+
+Order = nonexistent
+
+
+
+or:
+
+Settlement = paid
+
+Payment = unknown
+
+
+
+without a documented reconciliation/recovery mechanism.
+
+84\. HISTORICAL DATA IMMUTABILITY
+
+Historical financial and order values must not change because configuration changes later.
+
+Store snapshots where required:
+
+Applied price
+
+Applied discount
+
+Applied tax
+
+Applied commission
+
+Applied delivery fee
+
+Applied payment fee
+
+Delivery address
+
+Applied pricing rule
+
+Applied commission rule
+
+85\. PERFORMANCE
+
+The platform should be designed for growth.
+
+Avoid:
+
+Loading huge datasets
+
+Excessive realtime updates
+
+Synchronous heavy operations
+
+Unindexed queries
+
+Duplicate provider calls
+
+Repeated expensive calculations
+
+Use:
+
+Caching where appropriate
+
+Redis
+
+Background jobs
+
+Pagination
+
+Database indexes
+
+Efficient queries
+
+86\. TESTING
+
+Create automated tests for permissions.
+
+Examples:
+
+Shop A cannot access Shop B
+
+Driver cannot access another driver's delivery
+
+Customer cannot access another customer's order
+
+Shop owner cannot access platform financial data
+
+Admin can access authorized records
+
+87\. DELIVERY TESTS
+
+Test:
+
+Normal delivery
+
+Scheduled delivery
+
+Delivery fee
+
+Free scheduled delivery
+
+Radius
+
+Serviceability
+
+Slot capacity
+
+Booking period
+
+Delivery start time
+
+Batch creation
+
+Driver assignment
+
+Driver reassignment
+
+Failed delivery
+
+Route generation
+
+88\. PAYMENT TESTS
+
+Test:
+
+Payment success
+
+Payment failure
+
+Duplicate webhook
+
+Late webhook
+
+Refund
+
+Partial refund
+
+Commission
+
+Payment fee
+
+Settlement
+
+Duplicate settlement
+
+Provider timeout
+
+Idempotency
+
+Payment/order recovery
+
+Use provider sandbox/test environments.
+
+89\. ACCOUNTING TESTS
+
+Test:
+
+Correct Company
+
+Correct customer
+
+Correct Sales Order
+
+Correct Sales Invoice
+
+Correct Payment Entry
+
+Correct tax
+
+Correct commission
+
+Correct refund
+
+Correct settlement
+
+Correct accounting entries
+
+90\. INVENTORY TESTS
+
+Test:
+
+Stock availability
+
+Concurrent checkout
+
+Reservation
+
+Reservation expiry
+
+Failed payment release
+
+Successful order stock deduction
+
+Cancellation
+
+Refund
+
+Batch/expiry
+
+Warehouse isolation
+
+91\. REALTIME TESTS
+
+Test:
+
+Driver location received
+
+Authorized shop receives location
+
+Authorized customer receives location
+
+Unauthorized user receives nothing
+
+Driver cannot subscribe to another shop
+
+Realtime disconnect/reconnect
+
+92\. DEMO DATA
+
+Create demo shops:
+
+Fish World
+
+Burger House
+
+Sharma Grocery
+
+
+
+Demo users:
+
+Platform Admin
+
+Fish World Owner
+
+Burger House Owner
+
+Fish World Driver
+
+Burger House Driver
+
+Customer
+
+
+
+Fish products:
+
+Pomfret
+
+Rohu
+
+Surmai
+
+Prawns
+
+
+
+Other products:
+
+Burger
+
+Pizza
+
+Garlic Bread
+
+Grocery Items
+
+
+
+Create sample delivery slots and pricing through configuration.
+
+Do not hard-code demo business rules into production logic.
+
+93\. MVP DEVELOPMENT PHASES
+
+Phase 1 — Authentication
+
+Implement:
+
+Admin
+
+Shop Owner
+
+Driver
+
+Customer
+
+Login
+
+Permissions
+
+Phase 2 — Multi-Shop
+
+Implement:
+
+Companies
+
+Shops
+
+Users
+
+Tenant isolation
+
+Permissions
+
+Phase 3 — Products and Inventory
+
+Implement:
+
+ERPNext Items
+
+Categories
+
+Warehouses
+
+Stock
+
+Inventory validation
+
+Reservation foundation
+
+Phase 4 — Customer Ordering
+
+Implement:
+
+Shops
+
+Products
+
+Address
+
+Serviceability
+
+Cart
+
+Checkout
+
+Orders
+
+Phase 5 — Payments
+
+Implement:
+
+Payment abstraction
+
+One initial provider adapter
+
+Payment confirmation
+
+Webhooks
+
+Idempotency
+
+Refund foundation
+
+Phase 6 — Normal Delivery
+
+Implement:
+
+Drivers
+
+Assignment
+
+Delivery
+
+Status workflow
+
+Driver mobile interface
+
+Phase 7 — Delivery Configuration
+
+Implement:
+
+Radius
+
+Pricing
+
+Shop capabilities
+
+Operating hours
+
+Preparation time
+
+Phase 8 — Scheduled Delivery
+
+Implement:
+
+Dynamic slots
+
+Slot capacity
+
+Scheduled orders
+
+Batches
+
+Driver assignment
+
+Phase 9 — Routing
+
+Implement:
+
+Maps abstraction
+
+Distance
+
+Route
+
+ETA
+
+Navigation
+
+Phase 10 — Realtime Tracking
+
+Implement:
+
+GPS
+
+WebSockets
+
+Customer tracking
+
+Shop tracking
+
+Permission-aware channels
+
+Phase 11 — Marketplace Settlement
+
+Implement:
+
+Commission
+
+Payment fees
+
+Refunds
+
+Settlement
+
+Reconciliation
+
+Phase 12 — ERPNext Accounting
+
+Implement:
+
+Sales
+
+Invoices
+
+Payments
+
+Tax
+
+Commission accounting
+
+Settlement accounting
+
+Reports
+
+94\. IMPLEMENTATION ORDER
+
+Do not attempt to implement every feature simultaneously.
+
+For each phase:
+
+Database/DocTypes
+
+      ↓
+
+Backend services
+
+      ↓
+
+APIs
+
+      ↓
+
+Permissions
+
+      ↓
+
+Frontend
+
+      ↓
+
+Realtime/background jobs
+
+      ↓
+
+Tests
+
+      ↓
+
+Documentation
+
+
+
+Do not mark a feature complete simply because the UI works.
+
+95\. DEFINITION OF DONE
+
+Every feature must include:
+
+Database/DocType design
+
+Backend implementation
+
+API
+
+Server-side authorization
+
+Validation
+
+Frontend implementation
+
+Error handling
+
+Loading state
+
+Empty state
+
+Permission handling
+
+Audit logging where appropriate
+
+Automated tests
+
+Documentation
+
+Configuration support
+
+Migration support where required
+
+Financial, inventory, permission and delivery features must have backend/API tests.
+
+96\. PROHIBITED IMPLEMENTATION SHORTCUTS
+
+Do not:
+
+Trust frontend prices
+
+Trust frontend totals
+
+Trust frontend Shop IDs
+
+Trust frontend Company IDs
+
+Trust frontend driver IDs
+
+Trust frontend payment success
+
+Trust frontend permissions
+
+Store payment secrets in Vue
+
+Store card credentials
+
+Hard-code commission
+
+Hard-code delivery fees
+
+Hard-code delivery radius
+
+Hard-code time slots
+
+Hard-code shop-specific behavior
+
+Hard-code payment providers
+
+Hard-code map providers
+
+Hard-code tax rates
+
+Create duplicate ERPNext accounting unnecessarily
+
+Create separate ERPNext installations per shop
+
+Allow cross-shop API access
+
+Expose GPS publicly
+
+Modify historical financial transactions to correct them
+
+Process financial operations without idempotency
+
+Perform heavy operations synchronously when background processing is appropriate
+
+Use frontend route guards as the only security mechanism
+
+97\. CUSTOM APP / ERPNext COMPATIBILITY RULES
+
+The custom app must coexist safely with Frappe and ERPNext.
+
+Before installation:
+
+Detect existing DocTypes.
+
+Detect existing fields.
+
+Detect naming collisions.
+
+Detect route collisions.
+
+Detect Python module collisions.
+
+Detect API endpoint collisions.
+
+Detect hooks conflicts.
+
+Detect JavaScript bundle conflicts.
+
+Detect CSS/global style conflicts.
+
+Do not override standard ERPNext behavior unless explicitly required.
+
+If overriding is necessary:
+
+Document why
+
+Use supported Frappe extension mechanisms
+
+Avoid monkey patching where possible
+
+Maintain upgrade compatibility
+
+Add regression tests
+
+The custom app must be designed so ERPNext can be upgraded with minimal conflict.
+
+98\. CUSTOM FIELD NAMING
+
+Custom fields added to standard ERPNext DocTypes must use a unique field prefix.
+
+Example:
+
+lc\_shop
+
+lc\_marketplace\_order
+
+lc\_delivery\_method
+
+lc\_commission\_amount
+
+lc\_settlement\_status
+
+
+
+Do not create generic custom fields such as:
+
+shop
+
+status
+
+payment
+
+delivery
+
+commission
+
+
+
+when there is a realistic collision risk.
+
+99\. CUSTOM MODULE NAMING
+
+Use a unique Python/package namespace.
+
+Example:
+
+local\_commerce/
+
+    api/
+
+    services/
+
+    payment/
+
+    delivery/
+
+    marketplace/
+
+    accounting/
+
+    inventory/
+
+    notifications/
+
+    routing/
+
+    permissions/
+
+    tests/
+
+
+
+Do not use generic top-level module names that could conflict with Frappe/ERPNext or another installed application.
+
+100\. CUSTOM API NAMING
+
+Use namespaced API methods.
+
+Example:
+
+local\_commerce.api.checkout.create\_order
+
+local\_commerce.api.payment.create\_payment
+
+local\_commerce.api.delivery.assign\_driver
+
+local\_commerce.api.delivery.update\_location
+
+local\_commerce.api.settlement.get\_summary
+
+
+
+Avoid generic endpoints such as:
+
+/api/order
+
+/api/payment
+
+/api/shop
+
+
+
+unless implemented through a safe namespaced API architecture.
+
+101\. CUSTOM ROUTE NAMING
+
+Frontend routes should use a clear namespace.
+
+Example:
+
+/admin/...
+
+/shop/...
+
+/delivery/...
+
+
+
+Backend API routes should remain namespaced to the application.
+
+Do not replace or shadow standard Frappe/ERPNext routes.
+
+102\. MIGRATIONS
+
+All schema changes must be migration-safe.
+
+Never manually modify production database schema outside the supported Frappe migration mechanism.
+
+Provide:
+
+Installation migration
+
+Upgrade migration
+
+Data migration where required
+
+Backward-compatible deployment strategy where appropriate
+
+103\. ERPNext UPGRADE COMPATIBILITY
+
+The custom application must minimize modifications to ERPNext core.
+
+Do not directly edit ERPNext source files.
+
+Use:
+
+Custom apps
+
+Hooks
+
+DocType customization
+
+Server scripts only where appropriate
+
+Extension points
+
+Public APIs
+
+Standard Frappe mechanisms
+
+The goal is to allow future ERPNext/Frappe upgrades without rebuilding the marketplace application.
+
+104\. DOCUMENTATION
+
+Provide documentation for:
+
+Architecture
+
+Installation
+
+Configuration
+
+Environment variables
+
+DocTypes
+
+Permissions
+
+API
+
+Payment providers
+
+Maps providers
+
+Notifications
+
+Deployment
+
+Database migrations
+
+Backups
+
+Monitoring
+
+Testing
+
+Troubleshooting
+
+ERPNext integration
+
+Marketplace settlement
+
+105\. FINAL PRODUCT ARCHITECTURE
+
+The final system should provide:
+
+                    PLATFORM ADMIN
+
+                          |
+
+             +------------+------------+
+
+             |                         |
+
+       SHOP CONFIGURATION        PLATFORM CONFIG
+
+             |                         |
+
+             v                         v
+
+        +----------+             +-----------+
+
+        |   SHOP   |             | SERVICES  |
+
+        +----------+             +-----------+
+
+             |
+
+     +-------+--------+
+
+     |       |        |
+
+ Products Inventory Drivers
+
+     |       |        |
+
+     +-------+--------+
+
+             |
+
+          ORDERS
+
+             |
+
+     +-------+--------+
+
+     |                |
+
+ Normal Delivery   Scheduled
+
+     |                |
+
+     |             Slots
+
+     |                |
+
+     |             Batches
+
+     |                |
+
+     +-------+--------+
+
+             |
+
+          DRIVER
+
+             |
+
+          ROUTING
+
+             |
+
+       LIVE TRACKING
+
+             |
+
+          CUSTOMER
+
+             |
+
+          PAYMENT
+
+             |
+
+    MARKETPLACE PAYMENT
+
+             |
+
+      +------+------+
+
+      |             |
+
+ SHOP SETTLEMENT  PLATFORM
+
+      |             |
+
+      +------+------+
+
+             |
+
+          ERPNext
+
+             |
+
+     +-------+--------+
+
+     |       |        |
+
+ Inventory Sales Accounting
+
+106\. FINAL BUSINESS REQUIREMENT
+
+The completed platform must allow:
+
+ADMIN
+
+Create/manage shops
+
+Configure shop capabilities
+
+Configure delivery radius
+
+Configure delivery pricing
+
+Configure commissions
+
+Configure payment providers
+
+Configure maps providers
+
+Configure notification providers
+
+Manage payments
+
+Manage refunds
+
+Manage settlements
+
+Manage users
+
+Manage reports
+
+Monitor deliveries
+
+SHOP OWNER
+
+Manage products
+
+Manage stock
+
+Receive orders
+
+Manage customers
+
+Manage drivers
+
+Assign deliveries
+
+Manage scheduled slots
+
+Create delivery batches
+
+Start delivery
+
+Track drivers
+
+View reports
+
+View financial information
+
+View settlements
+
+CUSTOMER
+
+Select address
+
+Browse serviceable shops
+
+Browse products
+
+Add to cart
+
+Checkout
+
+Choose delivery method
+
+Choose scheduled slot
+
+Pay
+
+Track order
+
+Track active delivery
+
+View history
+
+DELIVERY PERSON
+
+Receive assignments
+
+View order
+
+View permitted customer information
+
+Navigate
+
+Follow route
+
+Pick up
+
+Start delivery
+
+Share GPS
+
+Arrive
+
+Complete delivery
+
+Record failed delivery
+
+ERPNext
+
+Company
+
+Customer
+
+Item
+
+Warehouse
+
+Inventory
+
+Sales
+
+Sales Order
+
+Sales Invoice
+
+Payment
+
+Tax
+
+Accounting
+
+Reports
+
+107\. FINAL ARCHITECTURAL RULE
+
+The platform must remain flexible enough to support:
+
+New shops
+
+New business types
+
+New products
+
+New delivery methods
+
+New delivery pricing models
+
+New payment providers
+
+New maps providers
+
+New notification providers
+
+New commission models
+
+New settlement rules
+
+New capabilities
+
+New workflows
+
+New tax configurations
+
+New operational rules
+
+without rewriting the core application.
+
+The initial implementation is for a fish shop, but fish-specific logic must never become the foundation of the architecture.
+
+The final product is a:
+
+General-purpose local commerce + multi-shop delivery + marketplace payment + ERPNext platform.
+
+The custom application must coexist safely with Frappe and ERPNext, avoid naming conflicts, preserve upgrade compatibility, enforce strict tenant isolation, protect financial operations, and keep all business-critical rules configurable.
+
+Production readiness, security, accounting correctness, data isolation, idempotency and maintainability take priority over simply making the UI appear functional.
+
+This version is suitable as the master specification for the actual build. The most important addition is the explicit LC/unique namespace strategy + ERPNext reuse/upgrade rules—that should significantly reduce the risk of a coding agent creating a custom Order, Payment, Delivery, Shop, etc. DocType that collides with Frappe/ERPNext.

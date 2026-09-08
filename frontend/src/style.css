@@ -1,0 +1,30 @@
+#lc-app { --lc-ink: #193c36; --lc-green: #177261; --lc-line: #d9e4dc; color: var(--lc-ink); font: 16px/1.6 system-ui, sans-serif; background: #f6f8f3; border-radius: 16px; }
+#lc-app * { box-sizing: border-box; }
+#lc-app .lc-shell { min-height: 75vh; }
+#lc-app a { color: var(--lc-green); }
+#lc-app .lc-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 32px; border-bottom: 1px solid var(--lc-line); gap: 20px; }
+#lc-app .lc-brand { font-weight: 800; text-decoration: none; font-size: 22px; }
+#lc-app .lc-brand span { margin-left: 12px; font-size: 17px; }
+#lc-app main { padding: 40px 32px; max-width: 1100px; margin: auto; }
+#lc-app h1 { font-size: clamp(32px, 5vw, 48px); margin: 4px 0 10px; letter-spacing: -1.5px; }
+#lc-app h2 { font-size: 23px; } #lc-app h3 { font-size: 21px; margin: 16px 0 4px; }
+#lc-app .lc-eyebrow { font-size: 11px; letter-spacing: 2px; font-weight: 700; }
+#lc-app .lc-muted { color: #53645f; overflow-wrap: anywhere; }
+#lc-app .lc-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px; }
+#lc-app .lc-tags span, #lc-app .lc-status { background: #e4eee5; border-radius: 6px; padding: 4px 9px; font-size: 12px; }
+#lc-app .lc-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+#lc-app .lc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
+#lc-app button { cursor: pointer; font: inherit; color: inherit; background: white; border: 1px solid var(--lc-line); border-radius: 8px; padding: 8px 14px; }
+#lc-app button:disabled { opacity: .5; cursor: default; }
+#lc-app :focus-visible { outline: 3px solid #267c6f; outline-offset: 3px; }
+#lc-app .lc-card { padding: 24px; text-align: left; box-shadow: 0 3px 8px #193c3605; }
+#lc-app .lc-card-link { display: block; margin-top: 26px; color: var(--lc-green); font-size: 14px; font-weight: 600; }
+#lc-app .lc-pagination { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 24px 0; }
+#lc-app .lc-empty, #lc-app .lc-notice { padding: 24px; background: white; border: 1px solid var(--lc-line); border-radius: 10px; }
+#lc-app .lc-notice { border-color: #b64f37; }
+#lc-app .lc-form { max-width: 620px; padding-top: 20px; border-top: 1px solid var(--lc-line); }
+#lc-app label { display: block; margin-bottom: 16px; }
+#lc-app input, #lc-app select, #lc-app textarea { display: block; width: 100%; font: inherit; padding: 10px; border: 1px solid var(--lc-line); border-radius: 6px; margin-top: 5px; }
+#lc-app .lc-primary { background: var(--lc-green); color: white; }
+#lc-app footer { padding: 24px 32px; color: #53645f; font-size: 12px; border-top: 1px solid var(--lc-line); }
+@media (max-width: 500px) { #lc-app main, #lc-app .lc-header { padding: 22px 18px; } #lc-app .lc-section-heading { align-items: start; flex-direction: column; } }

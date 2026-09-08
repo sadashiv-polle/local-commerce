@@ -1,0 +1,15 @@
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+.ruff_cache/
+.pytest_cache/
+dist/
+*.egg-info/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+sites/
+local_commerce/public/frontend/

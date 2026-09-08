@@ -1,0 +1,14 @@
+let csrfToken = ''
+export function setCsrfToken(token) { csrfToken = token }
+export async function call(method, args = {}, mutate = false) {
+  const path = `/api/method/local_commerce.api.${method}`
+  const response = await fetch(mutate ? path : `${path}?${new URLSearchParams(args)}`, {
+    method: mutate ? 'POST' : 'GET', credentials: 'same-origin',
+    headers: mutate ? { 'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': csrfToken } : {},
+    ...(mutate ? { body: JSON.stringify(args) } : {}),
+  })
+  if (response.status === 401) { window.location.assign('/login?redirect-to=/local-commerce'); throw new Error('Please sign in again.') }
+  if (response.status === 403) throw new Error('You do not have access to this operation.')
+  if (!response.ok) throw new Error('The request could not be completed. Please retry or contact your administrator.')
+  return (await response.json()).message
+}
