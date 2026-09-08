@@ -30,3 +30,18 @@ The sandbox blocked initial npm/Python registry access. Dependency installation 
 - Browser/HTTP authentication, session expiry, CSRF and Frappe resource endpoint tests.
 
 The nine committed Frappe integration tests have not run. Local policy tests do not prove the complete permission engine or database lifecycle. No production deployment, provider sandbox test, accounting reconciliation, backup restore or visual browser verification has been performed. Production readiness and the full master specification remain outstanding.
+
+## Server installation follow-up — Role fixture import
+
+The user supplied a Frappe/ERPNext 15.109.0 installation traceback: DocType sync
+completed, then fixture import failed with `KeyError: 'name'`. Every Role fixture
+now includes its explicit document `name`, matching `role_name`. A regression test
+checks the import identifiers, uniqueness and agreement with permission roles.
+All 10 local Python tests and Ruff lint/format checks pass after the fix.
+
+Frappe v15 registers the app in installed_apps before importing fixtures. For this
+failure, first confirm `bench --site mysite list-apps` includes local_commerce,
+then pull the fix and run `bench --site mysite migrate` to synchronize fixtures.
+Do not force-install, uninstall, or remove existing DocTypes to recover. If the
+app is absent from list-apps, inspect the site state before retrying installation.
+The recovery migration has not yet been verified on the user's server.
