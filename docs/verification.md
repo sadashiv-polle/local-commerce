@@ -45,3 +45,14 @@ then pull the fix and run `bench --site mysite migrate` to synchronize fixtures.
 Do not force-install, uninstall, or remove existing DocTypes to recover. If the
 app is absent from list-apps, inspect the site state before retrying installation.
 The recovery migration has not yet been verified on the user's server.
+
+## Server follow-up — blank workspace page
+
+Corrected `www/local-commerce.py` to `www/local_commerce.py`: Frappe v15's
+TemplatePage replaces hyphens with underscores when discovering Python page
+controllers. The old filename left the template without its asset URLs or page
+session check. The public route remains `/local-commerce`.
+Added local controller-discovery regression coverage and a Bench integration
+test exercising TemplatePage's actual discovery. All 11 local tests and Ruff
+checks pass; the new Bench test has not run here. Pull the fix and clear the
+site website cache while the development Bench is running, then reload the page.
