@@ -77,3 +77,13 @@ These tests require Frappe/ERPNext and have not run locally. Existing 11 local
 Python tests and 3 client tests pass; Ruff, Vue lint and production build pass.
 Server migration and API verification are still required before relying on this
 feature in production.
+
+## Cross-company defaults during owner item creation
+
+Server feedback showed an inherited Warehouse from another Company blocking Item
+validation. Added an Item before_validate hook limited to the authorized product
+creation context. It clears only cross-company Warehouse, Account and Cost Center
+defaults, preserving valid values and ERPNext validation. No global defaults are
+changed and no arbitrary Warehouse is selected. Fourteen local Python tests and
+Ruff pass, including three new default-filter tests. Added a Bench integration
+regression with a foreign user warehouse default; it remains unrun locally.

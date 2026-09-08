@@ -40,6 +40,7 @@ has_permission = {
 
 doc_events = {
     "Item": {
+        "before_validate": "local_commerce.services.products.scope_creation_defaults",
         "validate": "local_commerce.services.products.validate_item",
         "on_trash": "local_commerce.services.products.protect_item",
         "before_rename": "local_commerce.services.products.protect_item",

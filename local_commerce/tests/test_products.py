@@ -77,3 +77,27 @@ class TestProducts(FrappeTestCase):
         with self.assertRaises(frappe.ValidationError):
             create_item(self.a.name, "Test", "nonexistent-category", self.uom)
         self.assertEqual(list_items(self.a.name), [])
+
+    def test_foreign_user_warehouse_default_does_not_block_creation(self):
+        warehouse = frappe.get_doc(
+            {
+                "doctype": "Warehouse",
+                "warehouse_name": "LC " + frappe.generate_hash(length=8),
+                "company": self.b.company,
+                "is_group": 0,
+            }
+        ).insert()
+        frappe.defaults.set_user_default("default_warehouse", warehouse.name, user=self.owner.name)
+        try:
+            frappe.set_user(self.owner.name)
+            item = frappe.get_doc("Item", self.create(self.a.name)["name"])
+            row = item.item_defaults[0]
+            self.assertEqual(row.company, self.a.company)
+            if row.default_warehouse:
+                self.assertEqual(
+                    frappe.db.get_value("Warehouse", row.default_warehouse, "company"),
+                    self.a.company,
+                )
+        finally:
+            frappe.set_user("Administrator")
+            frappe.defaults.clear_default("default_warehouse", user=self.owner.name)

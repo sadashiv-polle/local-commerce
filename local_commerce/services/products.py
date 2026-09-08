@@ -122,3 +122,27 @@ def create_item(shop, item_name, item_group, stock_uom):
     finally:
         _item_creation.reset(token)
     return {key: doc.get(key) for key in ("name", "item_name", "item_group", "stock_uom")}
+
+
+def scope_creation_defaults(doc, method=None):
+    """Discard inherited cross-company defaults before ERPNext validates them.
+
+    Only applies inside our authorized creation service. Keep valid defaults and
+    leave invalid optional fields unset; never choose an arbitrary warehouse.
+    """
+    if not _item_creation.get() or not doc.is_new():
+        return
+    company = frappe.db.get_value("LC Shop", doc.lc_shop, "company")
+    for row in doc.item_defaults:
+        if row.company != company:
+            frappe.throw("Item defaults must belong to the shop Company", frappe.PermissionError)
+        for doctype, field in (
+            ("Warehouse", "default_warehouse"),
+            ("Cost Center", "buying_cost_center"),
+            ("Cost Center", "selling_cost_center"),
+            ("Account", "expense_account"),
+            ("Account", "income_account"),
+        ):
+            value = row.get(field)
+            if value and frappe.db.get_value(doctype, value, "company") != company:
+                row.set(field, None)
