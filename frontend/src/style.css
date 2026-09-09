@@ -174,3 +174,28 @@ html { scroll-behavior: smooth; }
   #lc-app .owner-page:has(.workspace-back) .owner-sidebar > p { display: none; }
   #lc-app .workspace-heading { align-items: flex-start; }
 }
+
+/* Keep shop content within the viewport even when inventory contains long names. */
+#lc-app .owner-page { grid-template-columns: 235px minmax(0, 1fr); }
+#lc-app .products-panel, #lc-app .inventory-table-wrap { min-width: 0; max-width: 100%; }
+#lc-app .inventory-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#lc-app .inventory-metrics > div, #lc-app .inventory-toolbar label,
+#lc-app .workspace-heading > div, #lc-app .dialog-heading > div { min-width: 0; }
+#lc-app .warehouse-caption { flex-wrap: wrap; overflow-wrap: anywhere; }
+#lc-app .lc-card, #lc-app .inventory-metrics, #lc-app .lc-notice,
+#lc-app .history-row, #lc-app .owner-sidebar, #lc-app .workspace-heading { overflow-wrap: anywhere; }
+#lc-app .lc-grid { grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); }
+#lc-app input, #lc-app select, #lc-app textarea { min-width: 0; max-width: 100%; }
+#lc-app a.lc-card { background: white; border: 1px solid var(--lc-line); }
+@media (max-width: 900px) {
+  #lc-app .owner-page { grid-template-columns: 180px minmax(0, 1fr); }
+}
+@media (max-width: 800px) {
+  #lc-app .inventory-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  #lc-app .owner-page { grid-template-columns: minmax(0, 1fr); }
+  #lc-app .form-columns { grid-template-columns: minmax(0, 1fr); }
+  #lc-app .inventory-metrics > div { padding: 16px; }
+  #lc-app .inventory-toolbar input, #lc-app .inventory-toolbar select { font-size: 16px; }
+}
