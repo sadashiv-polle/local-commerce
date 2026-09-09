@@ -17,11 +17,11 @@ const browse = ref(null)
       <div class="hero-art" aria-hidden="true"><span class="art-label">FRESH · LOCAL · EVERYDAY</span><div class="produce">🥬<span>🍊</span>🥖</div><div class="market-bag">local<span>good things inside.</span></div><span class="art-sticker">A little<br>closer.</span></div>
     </section>
     <section ref="browse" class="browse-section">
-      <div class="section-title"><h2>Shops accepting delivery requests</h2><RouterLink to="/orders">My orders →</RouterLink></div>
+      <div class="section-title"><h2>Explore local shops</h2><RouterLink to="/orders">My orders →</RouterLink></div>
       <div>
         <p v-if="error" role="alert" class="lc-notice">{{ error }}</p><p v-if="loading" role="status">Loading shops…</p>
         <div class="lc-grid"><RouterLink v-for="shop in shops" :key="shop.name" class="lc-card" :to="{ name: 'customer-shop', params: { shop: shop.name } }"><h3>{{ shop.shop_name }}</h3><p>{{ shop.description }}</p><span class="lc-card-link">Browse products →</span></RouterLink></div>
-        <p v-if="!loading && !shops.length" class="lc-empty">No shops are accepting delivery requests yet.</p>
+        <p v-if="!loading && !shops.length" class="lc-empty">No active shops are available yet.</p>
         <div class="lc-pagination"><button :disabled="!start || loading" @click="load(-20)">Previous</button><button :disabled="shops.length < 20 || loading" @click="load(20)">Next</button><button :disabled="loading" @click="load()">Refresh</button></div>
       </div>
     </section>

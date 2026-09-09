@@ -51,18 +51,19 @@ def validate_delivery(doc, method=None):
         company_link("Account", doc.delivery_account, doc.company, {"is_group": 0, "disabled": 0})
 
 
-def public_shop(name):
+def public_shop(name, browsing=False):
     doc = frappe.get_doc("LC Shop", name)
-    if doc.status != "Active" or not doc.delivery_enabled:
+    if doc.status != "Active" or (not browsing and not doc.delivery_enabled):
         reject("This shop is not accepting delivery requests")
-    validate_delivery(doc)
+    if not browsing:
+        validate_delivery(doc)
     return doc
 
 
 def shops(start=0):
     return frappe.get_all(
         "LC Shop",
-        filters={"status": "Active", "delivery_enabled": 1},
+        filters={"status": "Active"},
         fields=["name", "shop_name", "description"],
         start=offset(start),
         limit_page_length=20,
@@ -96,23 +97,25 @@ def product_data(shop, item, browsing=False):
         or (price.valid_from and getdate(price.valid_from) > today)
         or (price.valid_upto and getdate(price.valid_upto) < today)
     ):
-        reject("A product has no current selling price")
+        if not browsing:
+            reject("A product has no current selling price")
+        price = None
     currency = frappe.db.get_value("Company", shop.company, "default_currency")
-    if price.currency != currency:
+    if price and price.currency != currency:
         reject("Product currency does not match this shop")
     return {
         "item": item.name,
         "item_name": item.item_name,
         "uom": item.stock_uom,
         "description": item.lc_description or "",
-        "rate": float(checked_number(price.price_list_rate, "Price")),
+        "rate": float(checked_number(price.price_list_rate, "Price")) if price else None,
         "currency": currency,
         "available": 0 if item.lc_sold_out else balance(item.name, shop.warehouse)["available"],
     }
 
 
 def catalog(shop, start=0):
-    doc = public_shop(shop)
+    doc = public_shop(shop, browsing=True)
     names = frappe.get_all(
         "Item",
         filters={
@@ -131,16 +134,12 @@ def catalog(shop, start=0):
     products = []
     for name in names:
         item = frappe.get_doc("Item", name)
-        price = get_price(doc, item)
-        if not price or item.variant_of:
-            continue
-        if (price.valid_from and getdate(price.valid_from) > getdate(nowdate())) or (
-            price.valid_upto and getdate(price.valid_upto) < getdate(nowdate())
-        ):
+        if item.variant_of:
             continue
         products.append(product_data(doc, item, browsing=True))
     return {
         "shop_name": doc.shop_name,
+        "accepting_orders": bool(doc.delivery_enabled),
         "items": products,
         "has_more": len(names) == 20,
         "delivery_fee": doc.delivery_fee or 0,

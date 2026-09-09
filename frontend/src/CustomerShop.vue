@@ -10,7 +10,7 @@ const cart = ref({}), pending = ref(null), checkout = ref(false)
 const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '' })
 const storageKey = computed(() => `lc-delivery:${session.value.user}:${route.params.shop}`)
 const subtotal = computed(() => Object.values(cart.value).reduce((sum, row) => sum + row.rate * Number(row.quantity), 0))
-function money(value) { return new Intl.NumberFormat(undefined, { style: 'currency', currency: catalog.value.currency }).format(value) }
+function money(value) { if (value == null) return 'Price coming soon'; return new Intl.NumberFormat(undefined, { style: 'currency', currency: catalog.value.currency }).format(value) }
 async function load(delta = 0) {
   loading.value = true; error.value = ''; start.value = Math.max(0, start.value + delta)
   try { catalog.value = await call('orders.catalog', { shop: route.params.shop, start: start.value }) }
@@ -59,18 +59,18 @@ watch(cart, value => {
     <RouterLink to="/store">← All shops</RouterLink> · <RouterLink to="/orders">My orders</RouterLink>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p><p v-if="loading" role="status">Loading products…</p>
     <template v-if="catalog">
-      <h1>{{ catalog.shop_name }}</h1><p>Delivery requests · Shop confirmation required</p>
-      <p class="muted">Delivery postal codes: {{ catalog.postal_codes }} · Delivery fee: {{ money(catalog.delivery_fee) }}</p>
+      <h1>{{ catalog.shop_name }}</h1><p>{{ catalog.accepting_orders ? 'Delivery requests · Shop confirmation required' : 'Browse our products · Ordering opens soon' }}</p>
+      <p v-if="catalog.accepting_orders" class="muted">Delivery postal codes: {{ catalog.postal_codes }} · Delivery fee: {{ money(catalog.delivery_fee) }}</p>
       <p v-if="pending" class="lc-notice">Your last request is not confirmed. Retry it below before starting another.</p>
       <fieldset :disabled="busy || !!pending">
         <div class="lc-grid product-grid">
           <article v-for="item in catalog.items" :key="item.item" class="lc-card">
             <h3>{{ item.item_name }}</h3><p>{{ item.description }}</p><strong>{{ money(item.rate) }} / {{ item.uom }}</strong><p>{{ item.available }} {{ item.uom }} available</p>
             <label>Quantity<input v-model="quantities[item.item]" type="number" min="0.000001" step="0.000001" :max="item.available" placeholder="1"></label>
-            <button :disabled="item.available <= 0" @click="add(item)">{{ item.available > 0 ? 'Add to cart' : 'Sold out' }}</button>
+            <button :disabled="item.available <= 0 || item.rate == null" @click="add(item)">{{ item.rate == null ? 'Price coming soon' : item.available > 0 ? 'Add to cart' : 'Sold out' }}</button>
           </article>
         </div>
-        <p v-if="!catalog.items.length" class="lc-empty">No priced products on this page.</p>
+        <p v-if="!catalog.items.length" class="lc-empty">No products on this page.</p>
         <div class="lc-pagination"><button :disabled="!start || loading" @click="load(-20)">Previous</button><button :disabled="!catalog.has_more || loading" @click="load(20)">Next</button></div>
       </fieldset>
       <AuthChoices v-if="checkout && session.user === 'Guest'" />
@@ -85,7 +85,8 @@ watch(cart, value => {
             <div class="form-columns"><label>City<input v-model="address.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="address.postal_code" required maxlength="20" autocomplete="postal-code"></label></div>
           </template>
         </fieldset>
-        <button class="lc-primary" :disabled="busy">{{ busy ? 'Sending…' : pending ? 'Retry same request' : session.user === 'Guest' ? 'Order / Checkout' : 'Send delivery request' }}</button>
+        <p v-if="!catalog.accepting_orders" class="muted">Your cart is saved. This shop is not accepting orders yet.</p>
+        <button class="lc-primary" :disabled="busy || (!catalog.accepting_orders && !pending)">{{ busy ? 'Sending…' : pending ? 'Retry same request' : session.user === 'Guest' ? 'Order / Checkout' : 'Send delivery request' }}</button>
       </form>
     </template>
   </div>

@@ -131,3 +131,16 @@ class TestDeliveryOrders(FrappeTestCase):
         doc.status = "Ready"
         with self.assertRaises(frappe.PermissionError):
             doc.save(ignore_permissions=True)
+
+    def test_guest_browses_without_delivery_but_checkout_stays_blocked(self):
+        frappe.set_user("Administrator")
+        self.shop.reload()
+        self.shop.delivery_enabled = 0
+        self.shop.save()
+        frappe.set_user("Guest")
+        catalog = orders.catalog(self.shop.name)
+        self.assertFalse(catalog["accepting_orders"])
+        self.assertIn(self.item, [row["item"] for row in catalog["items"]])
+        frappe.set_user(self.customer.name)
+        with self.assertRaises(frappe.ValidationError):
+            self.place()
