@@ -215,3 +215,11 @@ html { scroll-behavior: smooth; }
   #lc-app .product-letter { flex-shrink: 0; }
   #lc-app .inventory-table td:last-child button { width: 100%; }
 }
+
+#lc-app .orders-page { min-width: 0; padding: 20px 0; }
+#lc-app main > .orders-page { max-width: 1000px; margin: auto; padding: 24px; }
+#lc-app .order-card { padding: 24px; margin: 20px 0; background: white; border: 1px solid var(--lc-line); border-radius: 16px; overflow-wrap: anywhere; }
+#lc-app .order-card ul { padding-left: 20px; }
+#lc-app .order-card li { margin-bottom: 10px; }
+#lc-app .order-actions { display: grid; gap: 16px; margin-top: 20px; }
+#lc-app summary { cursor: pointer; padding: 8px 0; }

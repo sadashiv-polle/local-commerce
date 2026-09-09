@@ -16,7 +16,13 @@
     "warehouse",
     "stock_adjustment_account",
     "cost_center",
-    "selling_price_list"
+    "selling_price_list",
+    "delivery_section",
+    "delivery_enabled",
+    "delivery_postcodes",
+    "delivery_fee",
+    "delivery_account",
+    "order_tax_template"
   ],
   "fields": [
     {
@@ -94,6 +100,42 @@
       "options": "Price List",
       "read_only": 1,
       "unique": 1
+    },
+    {
+      "fieldname": "delivery_section",
+      "label": "Customer delivery requests",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "delivery_enabled",
+      "label": "Enable Delivery Requests",
+      "fieldtype": "Check",
+      "default": "0"
+    },
+    {
+      "fieldname": "delivery_postcodes",
+      "label": "Delivery Postal Codes",
+      "fieldtype": "Small Text",
+      "description": "One postal code per line. Exact matches only."
+    },
+    {
+      "fieldname": "delivery_fee",
+      "label": "Delivery Fee",
+      "fieldtype": "Currency",
+      "default": "0"
+    },
+    {
+      "fieldname": "delivery_account",
+      "label": "Delivery Charge Account",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "order_tax_template",
+      "label": "Order Tax Template",
+      "fieldtype": "Link",
+      "options": "Sales Taxes and Charges Template",
+      "description": "ERPNext calculates taxes. Required when enabling delivery; use an explicitly configured zero-tax template if applicable."
     }
   ],
   "permissions": [

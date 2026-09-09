@@ -3,6 +3,7 @@ import { computed, inject, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { call } from './api.js'
 import Products from './Products.vue'
+import Orders from './Orders.vue'
 const session = inject('session'), route = useRoute()
 const shop = ref(null), loading = ref(false), error = ref(''), saved = ref(''), saving = ref(false)
 const tab = ref('inventory')
@@ -38,6 +39,7 @@ watch(() => route.params.shop, load, { immediate: true })
       <strong>{{ shop?.shop_name || 'Your shop' }}</strong>
       <p>Everything you need to manage this shop, in one place.</p>
       <nav v-if="shop" class="workspace-nav" aria-label="Shop sections">
+        <button :class="{ 'sidebar-active': tab === 'orders' }" :aria-current="tab === 'orders' ? 'page' : undefined" @click="tab = 'orders'">Orders</button>
         <button :class="{ 'sidebar-active': tab === 'inventory' }" :aria-current="tab === 'inventory' ? 'page' : undefined" @click="tab = 'inventory'">Products &amp; stock</button>
         <button :class="{ 'sidebar-active': tab === 'settings' }" :aria-current="tab === 'settings' ? 'page' : undefined" @click="tab = 'settings'">Shop settings</button>
       </nav>
@@ -48,6 +50,7 @@ watch(() => route.params.shop, load, { immediate: true })
       <div v-if="error" class="lc-notice" role="alert">{{ error }} <button v-if="!shop" @click="load">Retry</button></div>
       <template v-if="shop">
         <header class="workspace-heading"><div><span class="eyebrow">YOUR SHOP</span><h1>{{ shop.shop_name }}</h1><p class="muted">{{ shop.company }}</p></div><span class="status-pill">{{ shop.status }}</span></header>
+        <Orders v-if="tab === 'orders'" :shop="shop.name" :editable="canEdit" />
         <Products v-show="tab === 'inventory'" :key="shop.name" :shop="shop.name" :editable="canEdit" />
         <form v-show="tab === 'settings'" class="lc-form" @submit.prevent="save">
           <h2>Shop settings</h2><p class="muted">Keep your shop details and availability up to date.</p>

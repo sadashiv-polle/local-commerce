@@ -17,11 +17,11 @@ labelled complete without end-to-end Bench verification.
 | Inventory | Warehouse mapping, stock additions/removals, history | Company-checked setup; Material Receipt/Issue; keyed audit and history | Implemented but incomplete | Bench posting/concurrency verification; batch/serial, multiwarehouse, reconciliation UI | services/owner.py; LC Stock Operation; Products.vue | Pure checks pass; 11 integration tests unrun |
 | Availability | Sold out, archive, low stock | Manual sold-out flag, archive/restore, stock-aware status and thresholds | Implemented but incomplete | Browser and Bench verification; customer publication | owner_rules.py; Products.vue | Pure status tests pass |
 | Reservations | Checkout holds, expiry, concurrency | None | Missing | Reservation service/jobs | Not yet implemented | None |
-| Customer catalog | Discovery, search, product detail, prices | Opening-soon Vue page | Frontend only | Real published catalog | Store.vue | Build only |
+| Customer catalog | Discovery, search, product detail, prices | Opt-in shops and paginated priced products | Implemented but incomplete | Search, media, browser and Bench verification | Store.vue; CustomerShop.vue; services/orders.py | Build passes; integration unrun |
 | Addresses | Customer-owned addresses and snapshots | None | Missing | Standard Address integration and snapshots | Not yet implemented | None |
 | Serviceability | Radius, zones, postal codes | None | Missing | Configuration and server validation | Not yet implemented | None |
 | Cart/checkout | Server totals, stock checks, idempotency | None | Missing | Complete checkout vertical workflow | Not yet implemented | None |
-| Orders | State machine, Sales Order, history | None | Missing | States, transitions and authorization | Not yet implemented | None |
+| Orders | State machine, Sales Order, history | Delivery request → owner accept/prepare/ready/cancel; ERP Sales Order | Implemented but incomplete | Dispatch, completion, paid checkout, Bench verification | services/orders.py; LC Order; Orders.vue | 7 pure tests pass; 5 integration tests unrun |
 | Delivery | Normal, scheduled, slots and pricing | None | Missing | Configured rules, slot locking | Not yet implemented | None |
 | Routing | Batches, provider abstraction, ETA | None | Missing | Adapter, heuristic, retries | Not yet implemented | None |
 | Drivers | Assignments, capacity, GPS, proof, failures | Role/membership only | Implemented but incomplete | All delivery operations | LC Shop Member | Policy tests only |
@@ -68,3 +68,16 @@ Next dependency: run the actual owner stock/pricing tests and resolve site
 configuration failures before enabling checkout/reservations or implementing the
 remaining owner order/customer/delivery/settlement workflows. Local verification
 cannot certify financial postings or concurrent stock behavior.
+
+
+## Delivery request milestone
+
+Added an opt-in customer delivery catalogue, cart/address request and owner Orders
+inbox, backed by draft/accepted ERPNext Sales Orders. See `docs/delivery-orders.md`
+for setup and exact limitations. Postal-code matching, address snapshots, scoped
+customer records, server prices and keyed retries implemented. This is not a paid
+checkout: stock is checked/reserved at owner acceptance, not held during request.
+No driver dispatch, payment, invoice, delivered state or expiry jobs are implemented.
+Local verification: 29 Python tests, 5 frontend tests, Ruff, Vue lint and production
+build pass. Five new Bench integration tests are added but unrun. No database or
+browser verification claim is made. Delivery fee taxation remains incomplete.

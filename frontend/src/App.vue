@@ -21,7 +21,7 @@ onMounted(load)
   <div class="commerce-app" :class="{ 'owner-view': ownerView }">
     <header class="topbar">
       <RouterLink class="brand" to="/store">local<span>●</span><small>{{ ownerView ? 'BUSINESS' : 'YOUR NEIGHBOURHOOD, TOGETHER' }}</small></RouterLink>
-      <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : 'Customer shopping opens soon' }}</small></div></div>
+      <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : 'Delivery from your local shops' }}</small></div></div>
       <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><a class="account" href="/me"><span aria-hidden="true">{{ session?.user?.slice(0, 1).toUpperCase() || '○' }}</span><span>Account</span></a></nav>
     </header>
     <main>

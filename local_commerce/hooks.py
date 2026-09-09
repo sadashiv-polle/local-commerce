@@ -68,3 +68,22 @@ for _doctype in (
         "before_rename": "local_commerce.services.owner.restricted_write",
     }
 doc_events["Stock Entry"]["before_cancel"] = "local_commerce.services.owner.immutable_stock_entry"
+
+permission_query_conditions["LC Order"] = "local_commerce.services.orders.query"
+has_permission["LC Order"] = "local_commerce.services.orders.permission"
+doc_events["LC Shop"]["validate"] = [
+    "local_commerce.services.owner.validate_configuration",
+    "local_commerce.services.orders.validate_delivery",
+]
+for _doctype in ("Sales Order", "Customer", "Address"):
+    permission_query_conditions[_doctype] = "local_commerce.services.owner.restricted_query"
+    has_permission[_doctype] = "local_commerce.services.owner.restricted_permission"
+    doc_events[_doctype] = {
+        event: "local_commerce.services.owner.restricted_write"
+        for event in ("validate", "on_trash", "before_rename")
+    }
+for _event in ("validate", "before_submit", "before_cancel", "on_trash"):
+    doc_events["Sales Order"][_event] = [
+        "local_commerce.services.owner.restricted_write",
+        "local_commerce.services.orders.protect_sales_order",
+    ]

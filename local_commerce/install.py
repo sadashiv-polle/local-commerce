@@ -9,7 +9,7 @@ def before_install():
     if frappe.__version__.split(".")[0] != "15" or erpnext.__version__.split(".")[0] != "15":
         frappe.throw("Local Commerce requires Frappe 15 and ERPNext 15")
     before_migrate()
-    for name in ("LC Shop", "LC Shop Member", "LC Stock Operation"):
+    for name in ("LC Shop", "LC Shop Member", "LC Stock Operation", "LC Order"):
         if frappe.db.exists("DocType", name):
             frappe.throw(f"DocType collision: {name}; inspect ownership before installing")
     if frappe.db.exists("Web Page", {"route": "local-commerce"}):
@@ -96,15 +96,43 @@ def after_migrate():
             ],
         }
     )
+    create_custom_fields(
+        {
+            "Sales Order": [
+                {
+                    "fieldname": "lc_order",
+                    "label": "Local Commerce Order",
+                    "fieldtype": "Link",
+                    "options": "LC Order",
+                    "read_only": 1,
+                    "no_copy": 1,
+                    "unique": 1,
+                }
+            ],
+            "Customer": [
+                {
+                    "fieldname": "lc_customer_key",
+                    "label": "LC Customer Key",
+                    "fieldtype": "Data",
+                    "read_only": 1,
+                    "hidden": 1,
+                    "unique": 1,
+                    "no_copy": 1,
+                }
+            ],
+        }
+    )
     frappe.db.add_unique("LC Shop Member", ["shop", "user"], "lc_shop_member_unique")
 
 
 def before_migrate():
-    for name in ("LC Shop", "LC Shop Member", "LC Stock Operation"):
+    for name in ("LC Shop", "LC Shop Member", "LC Stock Operation", "LC Order"):
         module = frappe.db.get_value("DocType", name, "module")
         if module and module != "Local Commerce":
             frappe.throw(f"DocType collision: {name} belongs to {module}")
     for doctype, field, fieldtype, options in (
+        ("Sales Order", "lc_order", "Link", "LC Order"),
+        ("Customer", "lc_customer_key", "Data", None),
         ("Item", "lc_shop", "Link", "LC Shop"),
         ("Item", "lc_creation_key", "Data", None),
         ("Item", "lc_description", "Small Text", None),
