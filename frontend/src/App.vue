@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
 const session = ref(null), error = ref('')
 const route = useRoute(), router = useRouter()
-const ownerView = computed(() => route.path === '/shop')
+const ownerView = computed(() => route.path === '/shop' || route.path.startsWith('/shop/'))
 const canManage = computed(() => session.value && (session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role))))
 provide('session', session)
 async function load() {
