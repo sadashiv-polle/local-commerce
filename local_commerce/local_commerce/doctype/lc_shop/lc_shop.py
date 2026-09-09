@@ -7,6 +7,9 @@ from local_commerce.permissions.scope import identity, require_shop
 
 class LCShop(Document):
     def before_insert(self):
+        # Frappe can seed this read-only link from global/user defaults.
+        # Only inventory setup may assign a dedicated shop price list.
+        self.selling_price_list = None
         if self.company:
             return
         user, roles = identity()

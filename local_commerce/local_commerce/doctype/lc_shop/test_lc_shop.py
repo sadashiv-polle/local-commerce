@@ -77,7 +77,10 @@ class TestShopCompanyCreation(FrappeTestCase):
     def test_platform_creates_company_without_company_role(self):
         user = create_user("LC Platform Administrator")
         frappe.set_user(user.name)
-        shop = self.new_shop().insert()
+        shop = self.new_shop()
+        shop.selling_price_list = "Standard Selling"
+        shop.insert()
+        self.assertFalse(shop.selling_price_list)
         self.assertEqual(shop.company, shop.shop_name)
         company = frappe.get_doc("Company", shop.company)
         self.assertEqual(company.country, "United States")
@@ -119,3 +122,14 @@ class TestShopCompanyCreation(FrappeTestCase):
         with patch.object(frappe.db, "get_single_value", side_effect=defaults):
             shop.insert()
         self.assertEqual(shop.company, shop.shop_name)
+
+    def test_existing_company_ignores_inherited_price_list(self):
+        from local_commerce.tests.helpers import create_company
+
+        company = create_company()
+        shop = self.new_shop()
+        shop.company = company.name
+        shop.selling_price_list = "Standard Selling"
+        shop.insert()
+        self.assertFalse(shop.selling_price_list)
+        self.assertFalse(frappe.db.get_value("LC Shop", shop.name, "selling_price_list"))
