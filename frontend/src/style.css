@@ -250,3 +250,14 @@ html { scroll-behavior: smooth; }
 #lc-app button.logout-confirm { background: #176547; color: white; border-color: #176547; }
 #lc-app button.logout-confirm:hover { background: #104d35; }
 @media(max-width: 400px) { #lc-app .logout-dialog { padding: 24px; } #lc-app .logout-actions { flex-direction: column-reverse; } }
+
+/* Public-store overflow found during live narrow-screen verification. */
+#lc-app .store-page, #lc-app .store-hero > div, #lc-app .topbar nav { min-width: 0; }
+#lc-app .store-hero h1 { overflow-wrap: anywhere; }
+@media(max-width: 600px) {
+  #lc-app .store-hero { grid-template-columns: minmax(0, 1fr); }
+  #lc-app .topbar { flex-wrap: wrap; }
+  #lc-app .topbar nav { max-width: 100%; }
+  #lc-app .store-hero .primary { max-width: 100%; white-space: normal; }
+  #lc-app .section-title { flex-wrap: wrap; }
+}
