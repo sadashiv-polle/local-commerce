@@ -236,3 +236,17 @@ html { scroll-behavior: smooth; }
 #lc-app .login-submit { display: block; width: 100%; margin-top: 24px; }
 #lc-app .login-text-button { border: 0; background: transparent; padding-left: 0; margin-top: 12px; }
 @media(max-width: 700px) { #lc-app .login-page { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 24px 18px; } #lc-app .login-intro { padding: 24px; } #lc-app .login-intro h1 { font-size: 34px; } #lc-app .login-form { margin: 0; padding: 24px; } }
+
+
+#lc-app .logout-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 9px 16px; border: 1px solid #d7e3d8; border-radius: 12px; background: #f0f5ec; color: #24533b; font-weight: 650; white-space: nowrap; }
+#lc-app .logout-button:hover { background: #e3eddd; border-color: #a9c6ae; }
+#lc-app .logout-dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; padding: 32px; border: 1px solid #e0e8dc; border-radius: 22px; color: var(--lc-ink); background: #fff; box-shadow: 0 24px 90px #152c2940; }
+#lc-app .logout-dialog::backdrop { background: #18352c80; backdrop-filter: blur(4px); }
+#lc-app .logout-symbol { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 22px; border-radius: 16px; background: #edf4e8; color: #176547; font-size: 28px; }
+#lc-app .logout-dialog h2 { margin: 10px 0; font-size: 27px; }
+#lc-app .logout-dialog > p { color: #647362; }
+#lc-app .logout-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+#lc-app .logout-actions button { flex: 1; min-height: 46px; border-radius: 11px; white-space: nowrap; }
+#lc-app button.logout-confirm { background: #176547; color: white; border-color: #176547; }
+#lc-app button.logout-confirm:hover { background: #104d35; }
+@media(max-width: 400px) { #lc-app .logout-dialog { padding: 24px; } #lc-app .logout-actions { flex-direction: column-reverse; } }
