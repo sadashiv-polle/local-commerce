@@ -131,3 +131,16 @@ rejection, warehouse isolation, staff and revoked-owner denial, pricing,
 availability, archive behavior and raw resource denial. They have not run in the
 local workspace, which has no Bench. Run the whole app suite and fresh install
 checks before considering the workflow verified end to end.
+
+
+### Automatic Company creation
+
+When a platform administrator saves a new LC Shop with Company empty, the app creates
+an ERPNext Company using the trimmed Shop Name. Country and currency can be supplied
+on the form or inherited from Global Defaults. ERPNext creates the standard chart of
+accounts and warehouses. The generated Company abbreviation is unique.
+Select an existing Company explicitly to reuse it; a matching name is never silently
+linked. Existing shops and later shop display-name edits do not rename Companies.
+Company and shop creation share the request transaction. Run the LC Shop Bench tests
+to verify provisioning with your ERPNext installation; these integration tests cannot
+run in the standalone local workspace.

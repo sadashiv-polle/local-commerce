@@ -8,6 +8,8 @@
   "field_order": [
     "shop_name",
     "company",
+    "company_country",
+    "company_currency",
     "status",
     "description",
     "inventory_section",
@@ -29,8 +31,24 @@
       "label": "Company",
       "fieldtype": "Link",
       "options": "Company",
-      "reqd": 1,
-      "unique": 1
+      "unique": 1,
+      "description": "Leave blank to create a Company with the Shop Name when saving. Select an existing Company only to link it explicitly."
+    },
+    {
+      "fieldname": "company_country",
+      "label": "New Company Country",
+      "fieldtype": "Link",
+      "options": "Country",
+      "depends_on": "eval:doc.__islocal && !doc.company",
+      "description": "Uses the site country if left blank."
+    },
+    {
+      "fieldname": "company_currency",
+      "label": "New Company Currency",
+      "fieldtype": "Link",
+      "options": "Currency",
+      "depends_on": "eval:doc.__islocal && !doc.company",
+      "description": "Uses the site currency if left blank."
     },
     {
       "fieldname": "status",
