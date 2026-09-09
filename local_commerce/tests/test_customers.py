@@ -92,3 +92,22 @@ class TestCustomerAccounts(FrappeTestCase):
         with self.assertRaises(frappe.ValidationError):
             customers.ensure_customer()
         self.assertEqual(frappe.db.count("Customer"), count)
+
+    def test_new_customer_uses_individual_without_selling_defaults(self):
+        from unittest.mock import patch
+
+        original = frappe.db.get_single_value
+
+        def missing_defaults(doctype, field, *args, **kwargs):
+            if doctype == "Selling Settings" and field in {"customer_group", "territory"}:
+                return None
+            return original(doctype, field, *args, **kwargs)
+
+        frappe.set_user(self.user.name)
+        with patch.object(frappe.db, "get_single_value", side_effect=missing_defaults):
+            result = customers.ensure_customer()
+        customer = frappe.get_doc("Customer", result["name"])
+        self.assertEqual(customer.customer_group, "Individual")
+        self.assertEqual(customer.customer_type, "Individual")
+        self.assertTrue(frappe.db.exists("Territory", customer.territory))
+        self.assertFalse(frappe.db.get_value("Customer Group", "Individual", "is_group"))

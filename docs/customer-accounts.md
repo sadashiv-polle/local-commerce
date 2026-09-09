@@ -43,7 +43,10 @@ Resolution is serialized using the User row and follows:
 3. A unique authenticated email match against Customer email or linked Contact email.
    Automatic email claims are limited to Individual customers without another login.
 4. A historical Customer from the prior LC per-shop implementation, if available.
-5. A new Individual Customer using Selling Settings defaults.
+5. A new Individual Customer in the Individual customer group. The group is created
+   automatically under the existing root if missing. Territory uses the configured
+   Selling Settings value, or the existing root territory when unset. Global defaults
+   and existing customer classifications are unchanged.
 
 Multiple email matches, disabled customers, corporate/shared customer claims and
 conflicting logins stop without creating another Customer. These exceptional data

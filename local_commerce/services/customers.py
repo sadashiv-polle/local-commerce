@@ -82,10 +82,7 @@ def ensure_customer():
                 reject("This Customer is already linked to another login. Contact support.")
             customer = frappe.get_doc("Customer", name)
         else:
-            group = frappe.db.get_single_value("Selling Settings", "customer_group")
-            territory = frappe.db.get_single_value("Selling Settings", "territory")
-            if not group or not territory:
-                reject("Set default Customer Group and Territory in Selling Settings")
+            group, territory = new_customer_defaults()
             customer = frappe.get_doc(
                 {
                     "doctype": "Customer",
@@ -154,3 +151,44 @@ def query(user=None):
     if is_platform(user, roles):
         return ""
     return "1=0" if user == "Guest" else "`tabLC Customer Account`.`user`=" + frappe.db.escape(user)
+
+
+def new_customer_defaults():
+    """Provision only the app's new-customer classification; keep global defaults intact."""
+    roots = frappe.db.sql(
+        """select name from `tabCustomer Group`
+        where is_group=1 and coalesce(parent_customer_group, '')=''
+        order by name limit 2 for update"""
+    )
+    if len(roots) != 1:
+        reject("Customer Group tree needs a single root before accounts can be created")
+    # Lock the tree root before checking/creating the shared group. Concurrent
+    # signups for different Users must not both try to create Individual.
+    existing = frappe.db.sql(
+        "select name, is_group from `tabCustomer Group` where name=%s for update",
+        ("Individual",),
+        as_dict=True,
+    )
+    if existing and existing[0].is_group:
+        reject("Individual exists as a parent Customer Group; it must be a non-group entry")
+    if not existing:
+        frappe.get_doc(
+            {
+                "doctype": "Customer Group",
+                "customer_group_name": "Individual",
+                "parent_customer_group": roots[0][0],
+                "is_group": 0,
+            }
+        ).insert(ignore_permissions=True)
+    territory = frappe.db.get_single_value("Selling Settings", "territory")
+    if not territory:
+        roots = frappe.db.sql(
+            """select name from `tabTerritory` where is_group=1
+            and coalesce(parent_territory, '')='' order by name limit 2"""
+        )
+        if len(roots) != 1:
+            reject("Territory tree needs a single root or a configured default Territory")
+        territory = roots[0][0]
+    if not frappe.db.exists("Territory", territory):
+        reject("The configured default Territory does not exist")
+    return "Individual", territory
