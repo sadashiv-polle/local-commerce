@@ -199,3 +199,19 @@ html { scroll-behavior: smooth; }
   #lc-app .inventory-metrics > div { padding: 16px; }
   #lc-app .inventory-toolbar input, #lc-app .inventory-toolbar select { font-size: 16px; }
 }
+
+
+/* Mobile inventory uses cards, avoiding wide table layout in Safari. */
+@media (max-width: 600px) {
+  #lc-app .inventory-table-wrap { overflow: visible; border: 0; background: transparent; }
+  #lc-app .inventory-table, #lc-app .inventory-table tbody { display: block; width: 100%; }
+  #lc-app .inventory-table { white-space: normal; }
+  #lc-app .inventory-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  #lc-app .inventory-table tr { display: block; margin-bottom: 16px; border: 1px solid var(--lc-line); border-radius: 14px; background: white; padding: 6px 16px; }
+  #lc-app .inventory-table td { display: block; padding: 12px 0; overflow-wrap: anywhere; }
+  #lc-app .inventory-table td:first-child { border-top: 0; }
+  #lc-app .inventory-table td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; color: #728071; margin-bottom: 5px; }
+  #lc-app .product-identity > div { min-width: 0; }
+  #lc-app .product-letter { flex-shrink: 0; }
+  #lc-app .inventory-table td:last-child button { width: 100%; }
+}
