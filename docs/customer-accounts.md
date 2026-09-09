@@ -14,14 +14,18 @@ from localStorage are display-only and revalidated by the server at order creati
 
 ## Signup and verification
 
-The Create Account form calls Frappe's native signup flow through a rate-limited
-POST endpoint. Frappe sends the password setup/verification email and authenticates
-the user after successful password setup. Then the Vue app calls a POST to resolve
-the Customer. It does not link an existing business record merely because a guest
-typed someone else's email or phone. Store signup needs outgoing email configured
-and native signup enabled. No custom password database or password handling is added.
+The Create Account form collects name, email, password and confirmation. It sends
+an email code without creating a User. The password stays in component memory,
+never browser storage. The customer enters the code to complete registration.
+Codes expire after ten minutes and five attempts, and both endpoints are rate
+limited. Verification uses a Redis lock and constant-time hash comparison.
 
-Customer linking occurs after authentication, so an unverified signup cannot claim
+After verification, native User insertion enforces the password policy, Customer
+linking runs, and native login establishes the session. Existing Users are never
+overwritten: they must use Login/Forgot password. A failed email send creates no
+User. Native signup must be enabled and a default outgoing Email Account configured.
+
+Customer linking occurs after email verification or existing-account authentication, so unverified signup cannot claim
 an existing Customer or see its history. Existing users use normal Frappe login
 (including its configured authentication controls). Customer identity is derived
 from the session, never selected by the customer or supplied by a request argument.
@@ -87,3 +91,9 @@ trace is not the cause of the signup rejection.
 
 Custom login unit tests, frontend lint/build and Python lint pass locally. Actual
 login, OTP delivery and reset emails require server verification.
+
+
+Logout uses a POST to the native session logout handler, then reloads the public
+store. Guest cart data remains saved; authenticated views are discarded on reload.
+Two registration integration tests cover email failure and exhausted code attempts;
+these need a Bench/Redis test site and have not been run locally.

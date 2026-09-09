@@ -3,7 +3,7 @@ import { computed, onMounted, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
 import { loginUrl } from './cart.js'
-const session = ref(null), error = ref('')
+const session = ref(null), error = ref(''), loggingOut = ref(false), logoutError = ref('')
 const route = useRoute(), router = useRouter()
 const ownerView = computed(() => route.path === '/shop' || route.path.startsWith('/shop/'))
 const canManage = computed(() => session.value && (session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role))))
@@ -19,6 +19,15 @@ async function load() {
     if (route.path === '/') await router.replace(canManage.value ? '/shop' : '/store')
   } catch (e) { error.value = e.message }
 }
+async function logout() {
+  loggingOut.value = true; logoutError.value = ''
+  try {
+    await call('session.logout', {}, true)
+    window.location.assign('/local-commerce#/store')
+    window.location.reload()
+  } catch { logoutError.value = 'Could not log out. Please retry.' }
+  finally { loggingOut.value = false }
+}
 onMounted(load)
 </script>
 
@@ -27,9 +36,10 @@ onMounted(load)
     <header class="topbar">
       <RouterLink class="brand" to="/store">local<span>●</span><small>{{ ownerView ? 'BUSINESS' : 'YOUR NEIGHBOURHOOD, TOGETHER' }}</small></RouterLink>
       <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : 'Delivery from your local shops' }}</small></div></div>
-      <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><RouterLink v-else-if="session" class="account" to="/account"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink></nav>
+      <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><RouterLink v-else-if="session" class="account" to="/account"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink><button v-if="session && session.user !== 'Guest'" :disabled="loggingOut" @click="logout">{{ loggingOut ? 'Logging out…' : 'Logout' }}</button></nav>
     </header>
     <main>
+      <p v-if="logoutError" class="lc-notice" role="alert">{{ logoutError }}</p>
       <div v-if="error" class="page-state" role="alert"><h1>Let's try that again.</h1><p>{{ error }}</p><button @click="load">Retry</button></div>
       <div v-else-if="!session" class="page-state" role="status"><span class="brand">local<span>●</span></span><p>Opening your neighbourhood…</p></div>
       <RouterView v-else />
