@@ -21,8 +21,8 @@ test('invalid saved quantities and malformed records are excluded', () => {
 })
 test('login URL preserves checkout route in encoded redirect', () => {
   const path = '/store/shop%20one?checkout=1'
-  assert.equal(new URL(loginUrl(path), 'https://example.test').searchParams.get('redirect-to'), '/local-commerce#' + path)
-  assert.equal(new URL(loginUrl('//evil.test'), 'https://example.test').searchParams.get('redirect-to'), '/local-commerce#/store')
+  assert.equal(new URLSearchParams(loginUrl(path).split('?')[1]).get('next'), path)
+  assert.equal(new URLSearchParams(loginUrl('//evil.test').split('?')[1]).get('next'), '/store')
 })
 test('storage failures propagate instead of pretending a cart was saved', () => {
   assert.throws(() => writeCart({ setItem() { throw new Error('blocked') } }, 'a', cart), /blocked/)

@@ -19,7 +19,12 @@ def account(start=0):
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 @rate_limit(limit=5, seconds=3600)
 def signup(email, full_name, redirect_to="/local-commerce#/account"):
-    from frappe.core.doctype.user.user import sign_up
+    from frappe.core.doctype.user.user import is_signup_disabled, sign_up
+
+    if is_signup_disabled():
+        reject(
+            "Signup is disabled. The store administrator must enable it in Website Settings."
+        )
 
     email = validate_email_address(str(email).strip().lower(), throw=True)
     full_name = str(full_name).strip()
@@ -40,4 +45,15 @@ def signup(email, full_name, redirect_to="/local-commerce#/account"):
             "Check your email to verify your new account and set a password. "
             "Already registered? Use Login or Forgot Password."
         )
+    }
+
+
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+@rate_limit(limit=5, seconds=3600)
+def forgot_password(email):
+    from frappe.core.doctype.user.user import reset_password
+
+    reset_password(str(email).strip())
+    return {
+        "message": "If eligible, this account will receive password reset instructions by email."
     }

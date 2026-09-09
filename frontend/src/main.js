@@ -7,6 +7,7 @@ import Store from './Store.vue'
 import CustomerShop from './CustomerShop.vue'
 import Orders from './Orders.vue'
 import Signup from './Signup.vue'
+import Login from './Login.vue'
 import Account from './Account.vue'
 import './style.css'
 const router = createRouter({ history: createWebHashHistory(), scrollBehavior: () => ({ top: 0 }), routes: [
@@ -15,6 +16,7 @@ const router = createRouter({ history: createWebHashHistory(), scrollBehavior: (
   { path: '/store/:shop', name: 'customer-shop', component: CustomerShop },
   { path: '/orders', component: Orders },
   { path: '/signup', component: Signup },
+  { path: '/login', component: Login },
   { path: '/account', component: Account },
   { path: '/shop', component: Shops },
   { path: '/shop/:shop', name: 'shop-workspace', component: ShopWorkspace },

@@ -12,5 +12,5 @@ export function writeCart(storage, shop, cart) { storage.setItem(prefix + shop, 
 export function clearCart(storage, shop) { storage.removeItem(prefix + shop) }
 export function loginUrl(path = '/store') {
   const safe = typeof path === 'string' && path.startsWith('/') && !path.startsWith('//') ? path : '/store'
-  return '/login?redirect-to=' + encodeURIComponent('/local-commerce#' + safe)
+  return '/local-commerce#/login?next=' + encodeURIComponent(safe)
 }

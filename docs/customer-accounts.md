@@ -69,3 +69,21 @@ bench --site TEST_SITE run-tests --module local_commerce.tests.test_orders
 
 Email delivery, password setup/login, real browser cart return, concurrent linking,
 public HTTP routing and ERPNext database integration have not been verified locally.
+
+## Custom login
+
+App login links now open `/local-commerce#/login`, preserving the intended next
+route and cart. The Vue page uses native `/api/method/login`, supports existing
+OTP challenges and password-reset requests, and reloads authenticated session/CSRF
+after success. Passwords and OTPs are never saved to browser storage. Password
+setup links still use Frappe's native verified reset flow. External SSO/LDAP buttons
+are not implemented in this custom page; configured native authentication controls
+are not bypassed.
+
+If signup reports disabled, open Website Settings and uncheck Disable Signup, then
+save. The app does not override this site-wide setting during migration. Outgoing
+email is still required for verification. The HTML parser warning in the reported
+trace is not the cause of the signup rejection.
+
+Custom login unit tests, frontend lint/build and Python lint pass locally. Actual
+login, OTP delivery and reset emails require server verification.

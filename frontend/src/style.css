@@ -228,3 +228,11 @@ html { scroll-behavior: smooth; }
 #lc-app .auth-choices { display: flex; gap: 24px; flex-wrap: wrap; }
 #lc-app .auth-choices > div { display: grid; gap: 12px; }
 @media(max-width: 600px) { #lc-app .topbar nav { flex-wrap: wrap; justify-content: flex-end; } }
+
+#lc-app .login-page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 50px; align-items: center; max-width: 1100px; min-height: 75vh; }
+#lc-app .login-intro { padding: 42px; background: #edf4e8; border-radius: 24px; }
+#lc-app .login-intro h1 { margin: 24px 0; }
+#lc-app .login-form { padding: 32px; }
+#lc-app .login-submit { display: block; width: 100%; margin-top: 24px; }
+#lc-app .login-text-button { border: 0; background: transparent; padding-left: 0; margin-top: 12px; }
+@media(max-width: 700px) { #lc-app .login-page { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 24px 18px; } #lc-app .login-intro { padding: 24px; } #lc-app .login-intro h1 { font-size: 34px; } #lc-app .login-form { margin: 0; padding: 24px; } }
