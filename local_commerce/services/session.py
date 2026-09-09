@@ -8,7 +8,15 @@ from local_commerce.permissions.scope import identity, memberships
 def get_context():
     user, roles = identity()
     if user == "Guest":
-        frappe.throw("Please sign in", frappe.AuthenticationError)
+        return {
+            "user": "Guest",
+            "full_name": "Guest",
+            "roles": [],
+            "platform_admin": False,
+            "memberships": [],
+            "capabilities": [],
+            "csrf_token": get_csrf_token(),
+        }
     platform = is_platform(user, roles)
     member_rows = [
         dict(m) for m in memberships(user) if MEMBER_ROLES.get(m.membership_role) in roles
@@ -28,6 +36,7 @@ def get_context():
         member["company"] = companies.get(member["shop"])
     return {
         "user": user,
+        "full_name": frappe.db.get_value("User", user, "full_name") or user,
         "roles": [r for r in roles if r.startswith("LC ")],
         "platform_admin": platform,
         "memberships": member_rows,

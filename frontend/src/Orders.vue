@@ -1,5 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { inject, ref, watch } from 'vue'
+import AuthChoices from './AuthChoices.vue'
+const session = inject('session')
 import { call } from './api.js'
 const props = defineProps({ shop: { type: String, default: '' }, editable: Boolean })
 const orders = ref([]), start = ref(0), error = ref(''), loading = ref(false), busy = ref(false)
@@ -8,6 +10,7 @@ const next = { Requested: 'Accepted', Accepted: 'Preparing', Preparing: 'Ready' 
 let generation = 0
 function money(value, currency) { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value) }
 async function load(delta = 0) {
+  if (session.value.user === 'Guest') return
   const current = ++generation
   start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
   try {
@@ -25,7 +28,8 @@ async function change(order, target) {
 watch(() => props.shop, () => { start.value = 0; load() }, { immediate: true })
 </script>
 <template>
-  <section class="orders-page">
+  <AuthChoices v-if="session.user === 'Guest'" />
+  <section v-else class="orders-page">
     <div class="inventory-heading"><div><span class="eyebrow">DELIVERY REQUESTS</span><h2>{{ shop ? 'Your orders' : 'My orders' }}</h2><p>Requests need shop confirmation. Payment and driver dispatch are not available here yet.</p></div><button :disabled="loading || busy" @click="load()">Refresh orders</button></div>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
     <p v-if="loading" role="status">Loading orders…</p>

@@ -2,9 +2,11 @@
 import { computed, inject, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call } from './api.js'
+import AuthChoices from './AuthChoices.vue'
+import { readCart, writeCart, clearCart } from './cart.js'
 const route = useRoute(), router = useRouter(), session = inject('session')
 const catalog = ref(null), quantities = ref({}), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
-const cart = ref({}), pending = ref(null)
+const cart = ref({}), pending = ref(null), checkout = ref(false)
 const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '' })
 const storageKey = computed(() => `lc-delivery:${session.value.user}:${route.params.shop}`)
 const subtotal = computed(() => Object.values(cart.value).reduce((sum, row) => sum + row.rate * Number(row.quantity), 0))
@@ -21,6 +23,11 @@ function add(item) {
   cart.value[item.item] = { ...item, quantity }
 }
 async function place() {
+  if (session.value.user === 'Guest') {
+    try { writeCart(localStorage, route.params.shop, cart.value); checkout.value = true }
+    catch { error.value = 'Enable local storage so your cart can be saved through login.' }
+    return
+  }
   busy.value = true; error.value = ''
   try {
     if (!pending.value) {
@@ -30,7 +37,7 @@ async function place() {
       catch { pending.value = null; throw new Error('Enable session storage before sending an order request so retries are safe.') }
     }
     await call('orders.place', pending.value, true)
-    sessionStorage.removeItem(storageKey.value); pending.value = null; cart.value = {}
+    sessionStorage.removeItem(storageKey.value); pending.value = null; clearCart(localStorage, route.params.shop); cart.value = {}
     await router.push('/orders')
   } catch (e) {
     error.value = e.message
@@ -38,10 +45,14 @@ async function place() {
   } finally { busy.value = false }
 }
 watch(() => route.params.shop, () => {
-  start.value = 0; cart.value = {}; quantities.value = {}; pending.value = null
+  start.value = 0; quantities.value = {}; pending.value = null
+  try { cart.value = readCart(localStorage, route.params.shop) } catch { cart.value = {}; error.value = 'Your saved cart could not be read.' }
   try { pending.value = JSON.parse(sessionStorage.getItem(storageKey.value) || 'null') } catch { /* Server validates recovered payloads. */ }
   load()
 }, { immediate: true })
+watch(cart, value => {
+  try { writeCart(localStorage, route.params.shop, value) } catch { error.value = 'Your browser could not save this cart. Enable local storage before logging in.' }
+}, { deep: true })
 </script>
 <template>
   <div class="store-page">
@@ -62,16 +73,19 @@ watch(() => route.params.shop, () => {
         <p v-if="!catalog.items.length" class="lc-empty">No priced products on this page.</p>
         <div class="lc-pagination"><button :disabled="!start || loading" @click="load(-20)">Previous</button><button :disabled="!catalog.has_more || loading" @click="load(20)">Next</button></div>
       </fieldset>
+      <AuthChoices v-if="checkout && session.user === 'Guest'" />
       <form v-if="Object.keys(cart).length || pending" class="inventory-form" @submit.prevent="place">
         <h2>Your delivery request</h2>
         <fieldset :disabled="busy || !!pending">
           <ul><li v-for="item in cart" :key="item.item">{{ item.item_name }} · {{ item.quantity }} {{ item.uom }} <button type="button" @click="delete cart[item.item]">Remove</button></li></ul>
           <p>Products {{ money(subtotal) }} + delivery {{ money(catalog.delivery_fee) }}. ERPNext calculates applicable taxes when the request is saved. This is a request for shop confirmation; no payment is taken.</p>
-          <div class="form-columns"><label>Recipient<input v-model="address.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="address.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div>
-          <label>Street address<input v-model="address.line1" required maxlength="140" autocomplete="address-line1"></label>
-          <div class="form-columns"><label>City<input v-model="address.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="address.postal_code" required maxlength="20" autocomplete="postal-code"></label></div>
+          <template v-if="session.user !== 'Guest'">
+            <div class="form-columns"><label>Recipient<input v-model="address.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="address.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div>
+            <label>Street address<input v-model="address.line1" required maxlength="140" autocomplete="address-line1"></label>
+            <div class="form-columns"><label>City<input v-model="address.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="address.postal_code" required maxlength="20" autocomplete="postal-code"></label></div>
+          </template>
         </fieldset>
-        <button class="lc-primary" :disabled="busy">{{ busy ? 'Sending…' : pending ? 'Retry same request' : 'Send delivery request' }}</button>
+        <button class="lc-primary" :disabled="busy">{{ busy ? 'Sending…' : pending ? 'Retry same request' : session.user === 'Guest' ? 'Order / Checkout' : 'Send delivery request' }}</button>
       </form>
     </template>
   </div>

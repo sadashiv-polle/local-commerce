@@ -87,3 +87,6 @@ for _event in ("validate", "before_submit", "before_cancel", "on_trash"):
         "local_commerce.services.owner.restricted_write",
         "local_commerce.services.orders.protect_sales_order",
     ]
+
+permission_query_conditions["LC Customer Account"] = "local_commerce.services.customers.query"
+has_permission["LC Customer Account"] = "local_commerce.services.customers.permission"

@@ -9,7 +9,13 @@ def before_install():
     if frappe.__version__.split(".")[0] != "15" or erpnext.__version__.split(".")[0] != "15":
         frappe.throw("Local Commerce requires Frappe 15 and ERPNext 15")
     before_migrate()
-    for name in ("LC Shop", "LC Shop Member", "LC Stock Operation", "LC Order"):
+    for name in (
+        "LC Shop",
+        "LC Shop Member",
+        "LC Stock Operation",
+        "LC Order",
+        "LC Customer Account",
+    ):
         if frappe.db.exists("DocType", name):
             frappe.throw(f"DocType collision: {name}; inspect ownership before installing")
     if frappe.db.exists("Web Page", {"route": "local-commerce"}):
@@ -126,7 +132,13 @@ def after_migrate():
 
 
 def before_migrate():
-    for name in ("LC Shop", "LC Shop Member", "LC Stock Operation", "LC Order"):
+    for name in (
+        "LC Shop",
+        "LC Shop Member",
+        "LC Stock Operation",
+        "LC Order",
+        "LC Customer Account",
+    ):
         module = frappe.db.get_value("DocType", name, "module")
         if module and module != "Local Commerce":
             frappe.throw(f"DocType collision: {name} belongs to {module}")

@@ -7,9 +7,6 @@ no_cache = 1
 
 
 def get_context(context):
-    if frappe.session.user == "Guest":
-        frappe.local.flags.redirect_location = "/login?redirect-to=/local-commerce"
-        raise frappe.Redirect
     manifest_path = Path(
         frappe.get_app_path("local_commerce", "public", "frontend", ".vite", "manifest.json")
     )

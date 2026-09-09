@@ -8,7 +8,7 @@ from html import escape
 import frappe
 from frappe.utils import getdate, nowdate
 
-from local_commerce.permissions.policy import can_access_shop, is_platform
+from local_commerce.permissions.policy import can_access_shop
 from local_commerce.permissions.scope import identity, memberships, require_shop, shop_query
 from local_commerce.services import order_rules
 from local_commerce.services.owner import (
@@ -24,10 +24,9 @@ _order_operation = ContextVar("lc_order_operation", default=False)
 
 
 def customer_access():
-    user, roles = identity()
-    if user == "Guest" or not ("LC Customer" in roles or is_platform(user, roles)):
-        frappe.throw("Customer access required", frappe.PermissionError)
-    return user
+    if frappe.session.user == "Guest":
+        frappe.throw("Please sign in to place an order", frappe.AuthenticationError)
+    return frappe.session.user
 
 
 def validate_delivery(doc, method=None):
@@ -61,7 +60,6 @@ def public_shop(name):
 
 
 def shops(start=0):
-    customer_access()
     return frappe.get_all(
         "LC Shop",
         filters={"status": "Active", "delivery_enabled": 1},
@@ -81,8 +79,13 @@ def offset(value):
     return value
 
 
-def product_data(shop, item):
-    if item.lc_shop != shop.name or item.disabled or item.lc_sold_out or not item.is_stock_item:
+def product_data(shop, item, browsing=False):
+    if (
+        item.lc_shop != shop.name
+        or item.disabled
+        or (item.lc_sold_out and not browsing)
+        or not item.is_stock_item
+    ):
         reject("A product is no longer available")
     if item.has_batch_no or item.has_serial_no or item.has_variants or item.variant_of:
         reject("This product cannot be ordered online yet")
@@ -104,19 +107,17 @@ def product_data(shop, item):
         "description": item.lc_description or "",
         "rate": float(checked_number(price.price_list_rate, "Price")),
         "currency": currency,
-        "available": balance(item.name, shop.warehouse)["available"],
+        "available": 0 if item.lc_sold_out else balance(item.name, shop.warehouse)["available"],
     }
 
 
 def catalog(shop, start=0):
-    customer_access()
     doc = public_shop(shop)
     names = frappe.get_all(
         "Item",
         filters={
             "lc_shop": shop,
             "disabled": 0,
-            "lc_sold_out": 0,
             "is_stock_item": 1,
             "has_batch_no": 0,
             "has_serial_no": 0,
@@ -137,7 +138,7 @@ def catalog(shop, start=0):
             price.valid_upto and getdate(price.valid_upto) < getdate(nowdate())
         ):
             continue
-        products.append(product_data(doc, item))
+        products.append(product_data(doc, item, browsing=True))
     return {
         "shop_name": doc.shop_name,
         "items": products,
@@ -149,28 +150,11 @@ def catalog(shop, start=0):
 
 
 def customer_record(user, company):
-    key = hashlib.sha256(f"{user}:{company}".encode()).hexdigest()
-    name = frappe.db.get_value("Customer", {"lc_customer_key": key}, "name")
-    if name:
-        return name
-    group = frappe.db.get_single_value("Selling Settings", "customer_group")
-    territory = frappe.db.get_single_value("Selling Settings", "territory")
-    if not group or not territory:
-        reject("Configure default Customer Group and Territory in Selling Settings")
-    return (
-        frappe.get_doc(
-            {
-                "doctype": "Customer",
-                "customer_name": frappe.db.get_value("User", user, "full_name") or user,
-                "customer_type": "Individual",
-                "customer_group": group,
-                "territory": territory,
-                "lc_customer_key": key,
-            }
-        )
-        .insert(ignore_permissions=True)
-        .name
-    )
+    from local_commerce.services.customers import ensure_customer
+
+    if user != frappe.session.user:
+        frappe.throw("Customer access denied", frappe.PermissionError)
+    return ensure_customer()["name"]
 
 
 def place(shop, items, address, request_key):

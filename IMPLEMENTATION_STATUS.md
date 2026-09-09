@@ -81,3 +81,15 @@ No driver dispatch, payment, invoice, delivered state or expiry jobs are impleme
 Local verification: 29 Python tests, 5 frontend tests, Ruff, Vue lint and production
 build pass. Five new Bench integration tests are added but unrun. No database or
 browser verification claim is made. Delivery fee taxation remains incomplete.
+
+
+## Public browsing and customer identity milestone
+
+Public standalone route and read-only catalog APIs; guest cart saved across login
+and verified signup; native Frappe signup integration; canonical User → Customer
+link with portal-user/email matching and conflict rejection; automatic customer
+creation after authentication; account and paginated history UI. New orders reuse
+one customer across shops. See `docs/customer-accounts.md` for verification and
+compatibility limits. Six Bench integration tests added but unrun. Local checks:
+29 Python tests, 9 frontend tests, lint and production build pass. Signup requires
+configured outgoing email; real verification/login flow remains untested here.

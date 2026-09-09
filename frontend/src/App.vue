@@ -2,6 +2,7 @@
 import { computed, onMounted, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
+import { loginUrl } from './cart.js'
 const session = ref(null), error = ref('')
 const route = useRoute(), router = useRouter()
 const ownerView = computed(() => route.path === '/shop' || route.path.startsWith('/shop/'))
@@ -11,6 +12,10 @@ async function load() {
   error.value = ''
   try {
     session.value = await call('session.context'); setCsrfToken(session.value.csrf_token)
+    if (session.value.user !== 'Guest') {
+      // Account linking is a POST; public browsing remains usable if setup needs attention.
+      try { await call('customers.ensure', {}, true) } catch { /* Account/checkout show actionable errors. */ }
+    }
     if (route.path === '/') await router.replace(canManage.value ? '/shop' : '/store')
   } catch (e) { error.value = e.message }
 }
@@ -22,7 +27,7 @@ onMounted(load)
     <header class="topbar">
       <RouterLink class="brand" to="/store">local<span>●</span><small>{{ ownerView ? 'BUSINESS' : 'YOUR NEIGHBOURHOOD, TOGETHER' }}</small></RouterLink>
       <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : 'Delivery from your local shops' }}</small></div></div>
-      <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><a class="account" href="/me"><span aria-hidden="true">{{ session?.user?.slice(0, 1).toUpperCase() || '○' }}</span><span>Account</span></a></nav>
+      <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><RouterLink v-else-if="session" class="account" to="/account"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink></nav>
     </header>
     <main>
       <div v-if="error" class="page-state" role="alert"><h1>Let's try that again.</h1><p>{{ error }}</p><button @click="load">Retry</button></div>

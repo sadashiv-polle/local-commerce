@@ -223,3 +223,8 @@ html { scroll-behavior: smooth; }
 #lc-app .order-card li { margin-bottom: 10px; }
 #lc-app .order-actions { display: grid; gap: 16px; margin-top: 20px; }
 #lc-app summary { cursor: pointer; padding: 8px 0; }
+
+#lc-app .auth-page { max-width: 720px; }
+#lc-app .auth-choices { display: flex; gap: 24px; flex-wrap: wrap; }
+#lc-app .auth-choices > div { display: grid; gap: 12px; }
+@media(max-width: 600px) { #lc-app .topbar nav { flex-wrap: wrap; justify-content: flex-end; } }

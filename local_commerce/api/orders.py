@@ -3,12 +3,12 @@ import frappe
 from local_commerce.services import orders
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def shops(start=0):
     return orders.shops(start)
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def catalog(shop, start=0):
     return orders.catalog(shop, start)
 

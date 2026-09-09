@@ -7,7 +7,7 @@ export async function call(method, args = {}, mutate = false) {
     headers: mutate ? { 'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': csrfToken } : {},
     ...(mutate ? { body: JSON.stringify(args) } : {}),
   })
-  if (response.status === 401) { window.location.assign('/login?redirect-to=/local-commerce'); throw new Error('Please sign in again.') }
+  if (response.status === 401) { window.location.assign('/login?redirect-to=' + encodeURIComponent('/local-commerce' + window.location.hash)); throw new Error('Please sign in again.') }
   if (!response.ok) {
     let message = response.status === 403 ? 'You do not have access to this operation.' : 'The request could not be completed. Please retry or contact your administrator.'
     try {

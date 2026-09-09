@@ -10,8 +10,8 @@ Complete Inventory setup first. In LC Shop, set Active, configure exact postal
 codes (one per line), and select a company-specific Sales Taxes and Charges
 Template. Set a delivery fee and same-company account if needed, then enable
 Delivery Requests. Configure Customer Group and Territory defaults in Selling
-Settings. Assign LC Customer to customer users. Platform administrators can test
-customer flows too; owner-only users need LC Customer for customer ordering.
+Settings. Customers can sign up publicly and are linked automatically after authentication.
+Existing users can order after login without manual Customer assignment.
 
 The configured tax template is copied to each Sales Order. The delivery fee is an
 additional Actual charge, appended after template taxes; this milestone does not
@@ -21,10 +21,10 @@ rates are hard-coded. Test the shop's tax configuration before accepting orders.
 
 ## Use
 
-Customers open `/local-commerce#/store`, select a shop, add products, provide the
+Visitors can browse and save carts without login. Customers open `/local-commerce#/store`, select a shop, add products, provide the
 recipient, phone, street, city and postal code, and send a delivery request. The
 UI identifies prices as estimates until ERPNext calculates the saved request.
-A company-scoped Customer and a standard shipping Address are created internally;
+A canonical User-linked Customer is resolved automatically and a shipping Address is created internally;
 LC Order preserves the address snapshot. The browser stores an unconfirmed request
 in sessionStorage for retry with the same idempotency key. This contains delivery
 address data and is removed after success or a definitive validation rejection.
