@@ -17,6 +17,11 @@
     "assigned_at",
     "picked_up_at",
     "delivered_at",
+    "payment_method",
+    "payment_status",
+    "sales_invoice",
+    "payment_entry",
+    "collected_at",
     "recipient",
     "phone",
     "address_snapshot",
@@ -95,6 +100,40 @@
     {
       "fieldname": "delivered_at",
       "label": "Delivered At",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    },
+    {
+      "fieldname": "payment_method",
+      "label": "Payment Method",
+      "fieldtype": "Select",
+      "options": "Cash on Delivery",
+      "read_only": 1
+    },
+    {
+      "fieldname": "payment_status",
+      "label": "Payment Status",
+      "fieldtype": "Select",
+      "options": "Pending\nPaid",
+      "read_only": 1
+    },
+    {
+      "fieldname": "sales_invoice",
+      "label": "Sales Invoice",
+      "fieldtype": "Link",
+      "options": "Sales Invoice",
+      "read_only": 1
+    },
+    {
+      "fieldname": "payment_entry",
+      "label": "Payment Entry",
+      "fieldtype": "Link",
+      "options": "Payment Entry",
+      "read_only": 1
+    },
+    {
+      "fieldname": "collected_at",
+      "label": "Collected At",
       "fieldtype": "Datetime",
       "read_only": 1
     },

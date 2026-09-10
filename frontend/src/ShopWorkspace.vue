@@ -6,17 +6,29 @@ import Products from './Products.vue'
 import Orders from './Orders.vue'
 const session = inject('session'), route = useRoute()
 const shop = ref(null), loading = ref(false), error = ref(''), saved = ref(''), saving = ref(false)
+const payment = ref(null), paymentSaved = ref(''), paymentSaving = ref(false)
 const tab = ref('inventory')
 const canEdit = computed(() => shop.value && (session.value.platform_admin || session.value.memberships.some(m => m.shop === shop.value.name && m.membership_role === 'Owner')))
 let request = 0
 async function load() {
   const current = ++request
-  shop.value = null; loading.value = true; error.value = ''; saved.value = ''; tab.value = 'inventory'
+  shop.value = null; payment.value = null; loading.value = true; error.value = ''; saved.value = ''; tab.value = 'inventory'
   try {
     const result = await call('shops.get_shop', { shop: route.params.shop })
-    if (current === request) shop.value = result
+    if (current === request) {
+      shop.value = result
+      if (session.value.platform_admin || session.value.memberships.some(m => m.shop === result.name && m.membership_role === 'Owner')) payment.value = await call('orders.payment_options', { shop: result.name })
+    }
   } catch (e) { if (current === request) error.value = e.message }
   finally { if (current === request) loading.value = false }
+}
+async function savePayment() {
+  paymentSaving.value = true; error.value = ''; paymentSaved.value = ''
+  try {
+    payment.value = await call('orders.configure_cod', { shop: shop.value.name, enabled: payment.value.enabled, cash_account: payment.value.cash_account || '', mode_of_payment: payment.value.mode_of_payment || '' }, true)
+    paymentSaved.value = 'Cash on Delivery settings saved.'
+  } catch (e) { error.value = e.message }
+  finally { paymentSaving.value = false }
 }
 async function save() {
   saving.value = true; error.value = ''; saved.value = ''
@@ -62,6 +74,16 @@ watch(() => route.params.shop, load, { immediate: true })
             <button v-if="canEdit" class="lc-primary">{{ saving ? 'Saving…' : 'Save settings' }}</button>
           </fieldset>
           <p v-if="saved" role="status">{{ saved }}</p>
+        </form>
+        <form v-if="tab === 'settings' && canEdit && payment" class="lc-form payment-settings" @submit.prevent="savePayment">
+          <span class="eyebrow">PAYMENT</span><h2>Cash on Delivery</h2><p class="muted">The rider records payment when confirming delivery. ERPNext creates and pays the Sales Invoice automatically.</p>
+          <fieldset :disabled="paymentSaving" class="workspace-fields">
+            <label class="check-label"><input v-model="payment.enabled" type="checkbox"><span>Enable Cash on Delivery<small>Customers can place an order and pay the rider at delivery.</small></span></label>
+            <label>Cash collection account<select v-model="payment.cash_account" :required="payment.enabled"><option value="">Select cash account</option><option v-for="account in payment.cash_accounts" :key="account" :value="account">{{ account }}</option></select></label>
+            <label>Mode of payment<select v-model="payment.mode_of_payment" :required="payment.enabled"><option value="">Select mode</option><option v-for="mode in payment.modes" :key="mode" :value="mode">{{ mode }}</option></select></label>
+            <button class="lc-primary">{{ paymentSaving ? 'Saving…' : 'Save payment settings' }}</button>
+          </fieldset>
+          <p v-if="paymentSaved" class="success-note" role="status">{{ paymentSaved }}</p>
         </form>
       </template>
     </div>

@@ -21,6 +21,19 @@ class TestDeliveryOrders(FrappeTestCase):
         frappe.set_user("Administrator")
         self.customer = create_user("LC Customer")
         self.stranger = create_user("LC Customer")
+        self.cash_account = frappe.db.get_value(
+            "Account",
+            {
+                "company": self.shop.company,
+                "account_type": "Cash",
+                "is_group": 0,
+                "disabled": 0,
+            },
+            "name",
+        )
+        self.cash_mode = frappe.db.get_value("Mode of Payment", {"name": "Cash"}, "name")
+        self.assertTrue(self.cash_account, "Test Company requires a cash account")
+        self.assertTrue(self.cash_mode, "ERPNext requires the Cash mode of payment")
         template = frappe.get_doc(
             {
                 "doctype": "Sales Taxes and Charges Template",
@@ -43,6 +56,9 @@ class TestDeliveryOrders(FrappeTestCase):
                 "delivery_enabled": 1,
                 "delivery_postcodes": "403001",
                 "order_tax_template": template.name,
+                "cod_enabled": 1,
+                "cod_cash_account": self.cash_account,
+                "cod_mode_of_payment": self.cash_mode,
             }
         )
         self.shop.save()
@@ -170,6 +186,17 @@ class TestDeliveryOrders(FrappeTestCase):
         delivered = orders.delivery_change(order["name"], "Delivered")
         self.assertEqual(delivered["status"], "Delivered")
         self.assertTrue(delivered["delivered_at"])
+        self.assertEqual(delivered["payment_status"], "Paid")
+        self.assertEqual(
+            frappe.db.get_value("Sales Invoice", delivered["sales_invoice"], "docstatus"), 1
+        )
+        self.assertEqual(
+            frappe.db.get_value("Payment Entry", delivered["payment_entry"], "docstatus"), 1
+        )
+        self.assertEqual(
+            frappe.db.get_value("Sales Invoice", delivered["sales_invoice"], "outstanding_amount"),
+            0,
+        )
         self.assertEqual(orders.delivery_assignments(), [])
         self.assertEqual(len(orders.delivery_assignments(view="history")), 1)
         self.assertEqual(orders.delivery_profile()["metrics"]["delivered"], 1)

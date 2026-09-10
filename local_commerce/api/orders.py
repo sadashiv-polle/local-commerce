@@ -14,8 +14,8 @@ def catalog(shop, start=0):
 
 
 @frappe.whitelist(methods=["POST"])
-def place(shop, items, address, request_key):
-    return orders.place(shop, items, address, request_key)
+def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
+    return orders.place(shop, items, address, request_key, payment_method)
 
 
 @frappe.whitelist()
@@ -36,6 +36,16 @@ def change(order, target, reason=""):
 @frappe.whitelist()
 def drivers(shop):
     return orders.drivers(shop)
+
+
+@frappe.whitelist()
+def payment_options(shop):
+    return orders.payment_options(shop)
+
+
+@frappe.whitelist(methods=["POST"])
+def configure_cod(shop, enabled, cash_account="", mode_of_payment=""):
+    return orders.configure_cod(shop, enabled, cash_account, mode_of_payment)
 
 
 @frappe.whitelist(methods=["POST"])

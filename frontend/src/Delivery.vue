@@ -5,6 +5,7 @@ import { call } from './api.js'
 const session = inject('session')
 const profile = ref(null), assignments = ref([]), view = ref('active'), start = ref(0)
 const loading = ref(false), error = ref(''), busyOrder = ref('')
+const paymentDialog = ref(null), collectingOrder = ref(null)
 const allowed = computed(() => session.value.roles.includes('LC Delivery Person') && session.value.memberships.some(member => member.membership_role === 'Driver'))
 const next = { Ready: 'Picked Up', 'Picked Up': 'Out for Delivery', 'Out for Delivery': 'Delivered' }
 const labels = { Ready: 'Confirm pickup', 'Picked Up': 'Start delivery', 'Out for Delivery': 'Confirm delivered' }
@@ -31,6 +32,18 @@ async function advance(order) {
     await refresh()
   } catch (e) { error.value = e.message }
   finally { busyOrder.value = '' }
+}
+function requestAdvance(order) {
+  if (order.status !== 'Out for Delivery') { advance(order); return }
+  collectingOrder.value = order
+  paymentDialog.value.showModal()
+}
+function cancelCollection() { paymentDialog.value.close(); collectingOrder.value = null }
+async function confirmCollection() {
+  const order = collectingOrder.value
+  paymentDialog.value.close()
+  collectingOrder.value = null
+  await advance(order)
 }
 onMounted(refresh)
 </script>
@@ -72,7 +85,7 @@ onMounted(refresh)
             <header><div><span class="eyebrow">{{ order.shop_name }} · {{ order.name }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>
             <div class="delivery-address"><span aria-hidden="true">⌖</span><div><strong>{{ order.address.line1 }}</strong><p>{{ order.address.city }} · {{ order.address.postal_code }}</p><a :href="`tel:${order.phone}`">Call {{ order.phone }}</a></div></div>
             <details><summary>{{ order.items.length }} product{{ order.items.length === 1 ? '' : 's' }} · {{ money(order.total, order.currency) }}</summary><ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }}</li></ul></details>
-            <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="advance(order)">{{ busyOrder === order.name ? 'Updating…' : labels[order.status] }} <span>›</span></button>
+            <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="requestAdvance(order)">{{ busyOrder === order.name ? 'Updating…' : order.status === 'Out for Delivery' ? 'Collect cash & confirm delivered' : labels[order.status] }} <span>›</span></button>
             <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered{{ order.delivered_at ? ` · ${order.delivered_at}` : '' }}</p>
             <p v-else-if="order.status === 'Cancelled'" class="muted">This order was cancelled.</p>
           </article>
@@ -80,5 +93,11 @@ onMounted(refresh)
         <div class="lc-pagination"><button :disabled="!start || loading || busyOrder" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="assignments.length < 20 || loading || busyOrder" @click="load(20)">Next</button></div>
       </div>
     </div>
+    <dialog ref="paymentDialog" class="payment-dialog" aria-labelledby="payment-title">
+      <div class="cash-symbol" aria-hidden="true">₹</div><span class="eyebrow">CASH ON DELIVERY</span><h2 id="payment-title">Confirm cash collection</h2>
+      <p v-if="collectingOrder">Collect <strong>{{ money(collectingOrder.total, collectingOrder.currency) }}</strong> from {{ collectingOrder.recipient }} before completing this delivery.</p>
+      <p class="muted">This submits the ERPNext Sales Invoice and Payment Entry. Check the amount before continuing.</p>
+      <div class="logout-actions"><button @click="cancelCollection">Go back</button><button class="logout-confirm" @click="confirmCollection">Cash received</button></div>
+    </dialog>
   </section>
 </template>

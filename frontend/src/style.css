@@ -285,6 +285,19 @@ html { scroll-behavior: smooth; }
 #lc-app .delivery-tabs button { flex: 1; border: 0; background: transparent; }
 #lc-app .delivery-tabs button[aria-selected=true] { background: white; color: #176547; box-shadow: 0 2px 8px #193c3610; font-weight: 750; }
 #lc-app .delivery-tabs span { display: inline-grid; place-items: center; min-width: 21px; height: 21px; margin-left: 5px; padding: 0 5px; border-radius: 12px; background: #e6eee1; font-size: 10px; }
+#lc-app .payment-settings { margin-top: 22px; }
+#lc-app .checkout-payment { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 12px; margin: 20px 0; padding: 14px; border: 1px solid #dbe7d7; border-radius: 12px; background: #f0f6e9; }
+#lc-app .checkout-payment > span { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; color: white; background: #176547; font-size: 20px; font-weight: 800; }
+#lc-app .checkout-payment small { display: block; color: #738071; }
+#lc-app .checkout-payment b { color: #238457; }
+#lc-app .payment-summary { display: flex; flex-wrap: wrap; gap: 12px; }
+#lc-app .payment-summary > span { display: flex; flex-direction: column; min-width: 150px; padding: 12px 15px; border-radius: 10px; background: #f4f6ef; }
+#lc-app .payment-summary small { color: #7c877b; font-size: 9px; letter-spacing: 1px; }
+#lc-app .payment-summary strong.paid { color: #258257; }
+#lc-app .payment-dialog { width: min(450px, calc(100vw - 28px)); padding: 30px; border: 0; border-radius: 22px; color: var(--lc-ink); box-shadow: 0 28px 100px #102c2550; }
+#lc-app .payment-dialog::backdrop { background: #16342c8c; backdrop-filter: blur(4px); }
+#lc-app .payment-dialog h2 { margin: 8px 0; font-size: 28px; }
+#lc-app .cash-symbol { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 20px; border-radius: 16px; color: white; background: #176547; font-size: 25px; font-weight: 800; }
 @media(max-width: 900px) {
   #lc-app .rider-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
   #lc-app .rider-profile-card { position: static; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 18px; }

@@ -22,7 +22,11 @@
     "delivery_postcodes",
     "delivery_fee",
     "delivery_account",
-    "order_tax_template"
+    "order_tax_template",
+    "payment_section",
+    "cod_enabled",
+    "cod_cash_account",
+    "cod_mode_of_payment"
   ],
   "fields": [
     {
@@ -136,6 +140,30 @@
       "fieldtype": "Link",
       "options": "Sales Taxes and Charges Template",
       "description": "ERPNext calculates taxes. Required when enabling delivery; use an explicitly configured zero-tax template if applicable."
+    },
+    {
+      "fieldname": "payment_section",
+      "label": "Cash on delivery",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "cod_enabled",
+      "label": "Enable Cash on Delivery",
+      "fieldtype": "Check",
+      "default": "0"
+    },
+    {
+      "fieldname": "cod_cash_account",
+      "label": "Cash Collection Account",
+      "fieldtype": "Link",
+      "options": "Account",
+      "description": "Submitted rider collections are posted to this Company cash account."
+    },
+    {
+      "fieldname": "cod_mode_of_payment",
+      "label": "Cash Mode of Payment",
+      "fieldtype": "Link",
+      "options": "Mode of Payment"
     }
   ],
   "permissions": [

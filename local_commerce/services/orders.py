@@ -45,6 +45,17 @@ def is_shop_driver(user, shop):
 
 
 def validate_delivery(doc, method=None):
+    if doc.cod_enabled:
+        company_link(
+            "Account",
+            doc.cod_cash_account,
+            doc.company,
+            {"is_group": 0, "disabled": 0, "account_type": "Cash"},
+        )
+        if not doc.cod_mode_of_payment or not frappe.db.exists(
+            "Mode of Payment", {"name": doc.cod_mode_of_payment, "type": "Cash"}
+        ):
+            reject("Select a valid cash Mode of Payment")
     if not doc.delivery_enabled:
         return
     if not doc.delivery_postcodes or not doc.warehouse or not doc.selling_price_list:
@@ -154,12 +165,18 @@ def catalog(shop, start=0):
         products.append(product_data(doc, item, browsing=True))
     return {
         "shop_name": doc.shop_name,
-        "accepting_orders": bool(doc.delivery_enabled),
+        "accepting_orders": bool(doc.delivery_enabled and doc.cod_enabled),
         "items": products,
         "has_more": len(names) == 20,
         "delivery_fee": doc.delivery_fee or 0,
         "postal_codes": doc.delivery_postcodes,
         "currency": frappe.db.get_value("Company", doc.company, "default_currency"),
+        "payment_methods": ["Cash on Delivery"] if doc.cod_enabled else [],
+        "payment_message": (
+            "Pay the rider when your order arrives"
+            if doc.cod_enabled
+            else "This shop is setting up customer payments"
+        ),
     }
 
 
@@ -171,7 +188,7 @@ def customer_record(user, company):
     return ensure_customer()["name"]
 
 
-def place(shop, items, address, request_key):
+def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
     user = customer_access()
     try:
         rows = order_rules.cart_rows(frappe.parse_json(items))
@@ -181,17 +198,24 @@ def place(shop, items, address, request_key):
     if not isinstance(request_key, str) or not 16 <= len(request_key) <= 100:
         reject("Invalid request key")
     key = hashlib.sha256(f"{user}:{shop}:{request_key}".encode()).hexdigest()
-    digest = hashlib.sha256(json.dumps([rows, address], sort_keys=True).encode()).hexdigest()
+    if payment_method != "Cash on Delivery":
+        reject("Select a supported payment method")
+    digest = hashlib.sha256(
+        json.dumps([rows, address, payment_method], sort_keys=True).encode()
+    ).hexdigest()
+    legacy_digest = hashlib.sha256(json.dumps([rows, address], sort_keys=True).encode()).hexdigest()
     # Same lock order as owner stock operations. One shop's checkout is serialized.
     frappe.db.sql("select name from `tabLC Shop` where name=%s for update", shop)
     previous = frappe.db.get_value(
         "LC Order", {"request_key": key}, ["name", "request_hash"], as_dict=True
     )
     if previous:
-        if previous.request_hash != digest:
+        if previous.request_hash not in {digest, legacy_digest}:
             reject("This request key was already used for another order")
         return detail(previous.name)
     doc = public_shop(shop)
+    if not doc.cod_enabled:
+        reject("Cash on Delivery is not configured for this shop")
     allowed = {p.strip().upper() for p in doc.delivery_postcodes.splitlines() if p.strip()}
     if address["postal_code"] not in allowed:
         reject("This shop does not deliver to that postal code")
@@ -235,6 +259,8 @@ def place(shop, items, address, request_key):
                 "shop": shop,
                 "customer_user": user,
                 "status": "Requested",
+                "payment_method": payment_method,
+                "payment_status": "Pending",
                 "recipient": address["recipient"],
                 "phone": address["phone"],
                 "address_snapshot": json.dumps(address),
@@ -340,6 +366,11 @@ def serialize(doc):
         "assigned_at": str(doc.assigned_at) if doc.assigned_at else None,
         "picked_up_at": str(doc.picked_up_at) if doc.picked_up_at else None,
         "delivered_at": str(doc.delivered_at) if doc.delivered_at else None,
+        "payment_method": doc.payment_method,
+        "payment_status": doc.payment_status,
+        "sales_invoice": doc.sales_invoice,
+        "payment_entry": doc.payment_entry,
+        "collected_at": str(doc.collected_at) if doc.collected_at else None,
         "currency": so.currency,
         "total": so.grand_total,
         "taxes_and_charges": so.total_taxes_and_charges,
@@ -398,6 +429,46 @@ def drivers(shop):
                 {"user": user, "full_name": frappe.db.get_value("User", user, "full_name") or user}
             )
     return result
+
+
+def payment_options(shop):
+    require_shop(shop, "write")
+    doc = frappe.get_doc("LC Shop", shop)
+    return {
+        "enabled": bool(doc.cod_enabled),
+        "cash_account": doc.cod_cash_account,
+        "mode_of_payment": doc.cod_mode_of_payment,
+        "cash_accounts": frappe.get_all(
+            "Account",
+            filters={
+                "company": doc.company,
+                "is_group": 0,
+                "disabled": 0,
+                "account_type": "Cash",
+            },
+            pluck="name",
+            order_by="name asc",
+            limit_page_length=500,
+        ),
+        "modes": frappe.get_all(
+            "Mode of Payment",
+            filters={"type": "Cash"},
+            pluck="name",
+            order_by="name asc",
+            limit_page_length=100,
+        ),
+    }
+
+
+def configure_cod(shop, enabled, cash_account="", mode_of_payment=""):
+    require_shop(shop, "write")
+    doc = frappe.get_doc("LC Shop", shop)
+    doc.cod_enabled = enabled in (True, 1, "1", "true", "True")
+    doc.cod_cash_account = cash_account or None
+    doc.cod_mode_of_payment = mode_of_payment or None
+    validate_delivery(doc)
+    doc.save(ignore_permissions=True)
+    return payment_options(shop)
 
 
 def assign_driver(order, delivery_user):
@@ -500,6 +571,42 @@ def delivery_assignments(start=0, view="active"):
     return [serialize(frappe.get_doc("LC Order", name)) for name in names]
 
 
+def collect_cash_on_delivery(doc):
+    if doc.payment_method != "Cash on Delivery" or doc.payment_status != "Pending":
+        reject("This order is not waiting for a Cash on Delivery payment")
+    shop = frappe.get_doc("LC Shop", doc.shop)
+    validate_delivery(shop)
+    if not shop.cod_enabled:
+        reject("Cash on Delivery is no longer configured; contact the shop")
+    original_user = frappe.session.user
+    try:
+        # ERPNext's helpers perform explicit accounting permission checks. This trusted workflow
+        # has already authorized and locked the assigned rider, so bookkeeping runs as the system.
+        frappe.set_user("Administrator")
+        from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+        from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
+
+        invoice = make_sales_invoice(doc.sales_order, ignore_permissions=True)
+        invoice.lc_order = doc.name
+        invoice.flags.ignore_permissions = True
+        invoice.insert(ignore_permissions=True)
+        invoice.submit()
+        payment = get_payment_entry(
+            "Sales Invoice",
+            invoice.name,
+            bank_account=shop.cod_cash_account,
+            reference_date=nowdate(),
+        )
+        payment.mode_of_payment = shop.cod_mode_of_payment
+        payment.lc_order = doc.name
+        payment.flags.ignore_permissions = True
+        payment.insert(ignore_permissions=True)
+        payment.submit()
+        return invoice.name, payment.name
+    finally:
+        frappe.set_user(original_user)
+
+
 def delivery_change(order, target):
     doc = frappe.get_doc("LC Order", order)
     if doc.delivery_user != frappe.session.user or not is_shop_driver(
@@ -540,6 +647,11 @@ def delivery_change(order, target):
                 or frappe.db.get_value("Delivery Note", doc.delivery_note, "docstatus") != 1
             ):
                 reject("The submitted delivery note is missing; contact the shop")
+            invoice, payment = collect_cash_on_delivery(doc)
+            doc.sales_invoice = invoice
+            doc.payment_entry = payment
+            doc.payment_status = "Paid"
+            doc.collected_at = now_datetime()
             doc.delivered_at = now_datetime()
         previous = doc.status
         doc.status = target
@@ -643,3 +755,11 @@ def protect_delivery_note(doc, method=None, **kwargs):
         doc.get("lc_order") or (previous and previous.get("lc_order"))
     ) and not _order_operation.get():
         frappe.throw("Use the Local Commerce delivery workflow", frappe.PermissionError)
+
+
+def protect_payment_document(doc, method=None, **kwargs):
+    previous = doc.get_doc_before_save()
+    if (
+        doc.get("lc_order") or (previous and previous.get("lc_order"))
+    ) and not _order_operation.get():
+        frappe.throw("Use the Local Commerce payment workflow", frappe.PermissionError)

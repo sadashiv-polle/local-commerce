@@ -75,7 +75,14 @@ doc_events["LC Shop"]["validate"] = [
     "local_commerce.services.owner.validate_configuration",
     "local_commerce.services.orders.validate_delivery",
 ]
-for _doctype in ("Sales Order", "Delivery Note", "Customer", "Address"):
+for _doctype in (
+    "Sales Order",
+    "Delivery Note",
+    "Sales Invoice",
+    "Payment Entry",
+    "Customer",
+    "Address",
+):
     permission_query_conditions[_doctype] = "local_commerce.services.owner.restricted_query"
     has_permission[_doctype] = "local_commerce.services.owner.restricted_permission"
     doc_events[_doctype] = {
@@ -90,6 +97,14 @@ for _event in ("validate", "before_submit", "before_cancel", "on_trash"):
     doc_events["Delivery Note"][_event] = [
         "local_commerce.services.owner.restricted_write",
         "local_commerce.services.orders.protect_delivery_note",
+    ]
+    doc_events["Sales Invoice"][_event] = [
+        "local_commerce.services.owner.restricted_write",
+        "local_commerce.services.orders.protect_payment_document",
+    ]
+    doc_events["Payment Entry"][_event] = [
+        "local_commerce.services.owner.restricted_write",
+        "local_commerce.services.orders.protect_payment_document",
     ]
 
 permission_query_conditions["LC Customer Account"] = "local_commerce.services.customers.query"
