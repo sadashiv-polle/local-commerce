@@ -233,7 +233,7 @@ html { scroll-behavior: smooth; }
 #lc-app .driver-assignment small { grid-column: 1 / -1; color: #7a8376; }
 
 /* Rider workspace */
-#lc-app .delivery-page { max-width: 920px; margin: auto; padding: 40px 28px 70px; }
+#lc-app .delivery-page { max-width: 1200px; margin: auto; padding: 40px 28px 70px; }
 #lc-app .delivery-empty { max-width: 720px; margin: 50px auto; }
 #lc-app .delivery-hero { display: flex; justify-content: space-between; gap: 25px; align-items: center; padding: 34px; border-radius: 22px; color: white; background: linear-gradient(135deg, #143f34, #21745a); box-shadow: 0 18px 50px #173b2d22; }
 #lc-app .delivery-hero h1 { margin: 8px 0; font-size: clamp(34px, 6vw, 54px); }
@@ -256,11 +256,53 @@ html { scroll-behavior: smooth; }
 #lc-app .delivery-action { display: flex; justify-content: space-between; width: 100%; margin-top: 20px; padding: 14px 18px; border: 0; border-radius: 12px; color: white; background: #176547; font-weight: 750; }
 #lc-app .delivery-action span { font-size: 20px; line-height: 1; }
 #lc-app .delivery-complete { padding: 13px; border-radius: 10px; text-align: center; color: #34704f; background: #eaf5e8; font-weight: 700; }
+#lc-app .rider-dashboard-grid { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 24px; }
+#lc-app .rider-profile-card { position: sticky; top: 20px; padding: 26px; border: 1px solid var(--lc-line); border-radius: 20px; background: white; box-shadow: 0 8px 30px #193c3608; overflow-wrap: anywhere; }
+#lc-app .profile-avatar { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 25px; background: #eaf2dd; color: #496d3b; font-size: 37px; font-weight: 800; overflow: hidden; }
+#lc-app .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+#lc-app .online-badge { display: inline-block; margin-top: 18px; padding: 5px 9px; border-radius: 20px; background: #e9f5e8; color: #377150; font-size: 10px; font-weight: 750; }
+#lc-app .online-badge::first-letter { color: #2caf6d; }
+#lc-app .rider-profile-card h2 { margin: 16px 0 0; overflow-wrap: anywhere; }
+#lc-app .profile-role { margin: 0; color: #758277; }
+#lc-app .profile-details { margin: 22px 0; border-top: 1px solid #edf0e9; border-bottom: 1px solid #edf0e9; }
+#lc-app .profile-details > div { padding: 12px 0; }
+#lc-app .profile-details dt { color: #7b877d; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+#lc-app .profile-details dd { margin: 2px 0 0; font-weight: 650; overflow-wrap: anywhere; }
+#lc-app .assigned-shops { display: grid; gap: 8px; }
+#lc-app .shop-chip { display: flex; justify-content: space-between; gap: 8px; padding: 9px 11px; border-radius: 9px; background: #f2f5ec; font-weight: 650; }
+#lc-app .shop-chip small { color: #748074; font-weight: 500; }
+#lc-app .profile-note { display: block; margin-top: 18px; color: #818b82; }
+#lc-app .rider-workspace { min-width: 0; }
+#lc-app .rider-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+#lc-app .rider-metrics > div { display: flex; flex-direction: column; min-width: 0; padding: 18px; border: 1px solid var(--lc-line); border-radius: 15px; background: white; }
+#lc-app .rider-metrics > div:first-child { background: #edf5e8; }
+#lc-app .rider-metrics span { color: #748174; font-size: 9px; letter-spacing: 1.2px; font-weight: 750; }
+#lc-app .rider-metrics strong { margin: 4px 0; font-size: 30px; }
+#lc-app .rider-metrics small { color: #7c877e; }
+#lc-app .delivery-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin: 30px 0 16px; }
+#lc-app .delivery-section-heading h2 { margin: 5px 0 0; font-size: 30px; }
+#lc-app .delivery-tabs { display: flex; gap: 7px; margin-bottom: 18px; padding: 5px; border-radius: 12px; background: #eef2e9; }
+#lc-app .delivery-tabs button { flex: 1; border: 0; background: transparent; }
+#lc-app .delivery-tabs button[aria-selected=true] { background: white; color: #176547; box-shadow: 0 2px 8px #193c3610; font-weight: 750; }
+#lc-app .delivery-tabs span { display: inline-grid; place-items: center; min-width: 21px; height: 21px; margin-left: 5px; padding: 0 5px; border-radius: 12px; background: #e6eee1; font-size: 10px; }
+@media(max-width: 900px) {
+  #lc-app .rider-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+  #lc-app .rider-profile-card { position: static; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 18px; }
+  #lc-app .rider-profile-card .profile-avatar { grid-row: 1 / 4; }
+  #lc-app .rider-profile-card .online-badge { margin-top: 0; justify-self: start; }
+  #lc-app .rider-profile-card h2 { margin-top: 6px; }
+  #lc-app .profile-role { align-self: start; }
+  #lc-app .profile-details, #lc-app .assigned-shops, #lc-app .profile-note { grid-column: 1 / -1; }
+}
 @media(max-width: 600px) {
   #lc-app .delivery-page { padding: 20px 15px 55px; }
   #lc-app .delivery-hero { padding: 24px; }
   #lc-app .rider-avatar { width: 58px; height: 58px; flex-basis: 58px; border-radius: 18px; font-size: 25px; }
   #lc-app .delivery-card { padding: 18px; }
+  #lc-app .rider-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #lc-app .rider-profile-card { padding: 20px; }
+  #lc-app .profile-avatar { width: 67px; height: 67px; border-radius: 20px; font-size: 28px; }
+  #lc-app .delivery-section-heading { align-items: start; }
   #lc-app .driver-assignment { grid-template-columns: minmax(0, 1fr); }
   #lc-app .driver-assignment button { width: 100%; }
 }

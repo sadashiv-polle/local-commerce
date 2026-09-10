@@ -3,7 +3,8 @@ import { computed, inject, onMounted, ref } from 'vue'
 import { call } from './api.js'
 
 const session = inject('session')
-const assignments = ref([]), start = ref(0), loading = ref(false), error = ref(''), busyOrder = ref('')
+const profile = ref(null), assignments = ref([]), view = ref('active'), start = ref(0)
+const loading = ref(false), error = ref(''), busyOrder = ref('')
 const allowed = computed(() => session.value.roles.includes('LC Delivery Person') && session.value.memberships.some(member => member.membership_role === 'Driver'))
 const next = { Ready: 'Picked Up', 'Picked Up': 'Out for Delivery', 'Out for Delivery': 'Delivered' }
 const labels = { Ready: 'Confirm pickup', 'Picked Up': 'Start delivery', 'Out for Delivery': 'Confirm delivered' }
@@ -12,37 +13,72 @@ function money(value, currency) { return new Intl.NumberFormat(undefined, { styl
 async function load(delta = 0) {
   if (!allowed.value) return
   start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
-  try { assignments.value = await call('orders.delivery_assignments', { start: start.value }) }
+  try { assignments.value = await call('orders.delivery_assignments', { start: start.value, view: view.value }) }
   catch (e) { error.value = e.message }
   finally { loading.value = false }
 }
+async function loadProfile() {
+  if (!allowed.value) return
+  try { profile.value = await call('orders.delivery_profile') }
+  catch (e) { error.value = e.message }
+}
+async function refresh() { await Promise.all([load(), loadProfile()]) }
+async function switchView(target) { view.value = target; start.value = 0; await load() }
 async function advance(order) {
   busyOrder.value = order.name; error.value = ''
-  try { await call('orders.delivery_change', { order: order.name, target: next[order.status] }, true); await load() }
-  catch (e) { error.value = e.message }
+  try {
+    await call('orders.delivery_change', { order: order.name, target: next[order.status] }, true)
+    await refresh()
+  } catch (e) { error.value = e.message }
   finally { busyOrder.value = '' }
 }
-onMounted(load)
+onMounted(refresh)
 </script>
 
 <template>
   <section v-if="!allowed" class="lc-empty delivery-empty"><h2>Delivery access is not configured</h2><p>Your account needs the LC Delivery Person role and an enabled Driver membership for a shop.</p></section>
   <section v-else class="delivery-page">
-    <header class="delivery-hero"><div><span class="eyebrow">RIDER WORKSPACE</span><h1>Your deliveries</h1><p>Pickup, deliver, and keep every customer informed.</p></div><div class="rider-avatar" aria-hidden="true">{{ session.full_name.slice(0, 1).toUpperCase() }}</div></header>
-    <div class="delivery-toolbar"><div><strong>{{ assignments.filter(order => !['Delivered', 'Cancelled'].includes(order.status)).length }}</strong><span>active deliveries</span></div><button :disabled="loading || busyOrder" @click="load()">Refresh</button></div>
-    <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
-    <p v-if="loading" role="status">Loading your deliveries…</p>
-    <p v-else-if="!assignments.length" class="lc-empty">No orders are assigned to you yet.</p>
-    <div v-else class="delivery-list">
-      <article v-for="order in assignments" :key="order.name" class="delivery-card" :class="{ finished: ['Delivered', 'Cancelled'].includes(order.status) }">
-        <header><div><span class="eyebrow">{{ order.shop_name }} · {{ order.name }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>
-        <div class="delivery-address"><span aria-hidden="true">⌖</span><div><strong>{{ order.address.line1 }}</strong><p>{{ order.address.city }} · {{ order.address.postal_code }}</p><a :href="`tel:${order.phone}`">Call {{ order.phone }}</a></div></div>
-        <details><summary>{{ order.items.length }} product{{ order.items.length === 1 ? '' : 's' }} · {{ money(order.total, order.currency) }}</summary><ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }}</li></ul></details>
-        <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="advance(order)">{{ busyOrder === order.name ? 'Updating…' : labels[order.status] }} <span>›</span></button>
-        <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered{{ order.delivered_at ? ` · ${order.delivered_at}` : '' }}</p>
-        <p v-else-if="order.status === 'Cancelled'" class="muted">This order was cancelled.</p>
-      </article>
+    <header class="delivery-hero"><div><span class="eyebrow">RIDER WORKSPACE</span><h1>Hello, {{ session.full_name.split(' ')[0] }}.</h1><p>Your profile, assigned shops, and every delivery in one place.</p></div><div class="rider-avatar" aria-hidden="true">{{ session.full_name.slice(0, 1).toUpperCase() }}</div></header>
+
+    <div class="rider-dashboard-grid">
+      <aside class="rider-profile-card">
+        <div class="profile-avatar"><img v-if="profile?.profile.user_image" :src="profile.profile.user_image" :alt="`${profile.profile.full_name} profile`"><span v-else aria-hidden="true">{{ session.full_name.slice(0, 1).toUpperCase() }}</span></div>
+        <span class="online-badge">● Ready for delivery</span>
+        <h2>{{ profile?.profile.full_name || session.full_name }}</h2>
+        <p class="profile-role">Delivery partner</p>
+        <dl class="profile-details">
+          <div><dt>Email</dt><dd>{{ profile?.profile.email || session.user }}</dd></div>
+          <div><dt>Mobile</dt><dd>{{ profile?.profile.mobile_no || 'Not added' }}</dd></div>
+        </dl>
+        <div class="assigned-shops"><span class="eyebrow">ASSIGNED SHOPS</span><p v-if="!profile?.shops.length">No enabled shops</p><span v-for="shop in profile?.shops || []" :key="shop.name" class="shop-chip">{{ shop.shop_name }} <small>{{ shop.status }}</small></span></div>
+        <small class="profile-note">Your contact details come from your login account.</small>
+      </aside>
+
+      <div class="rider-workspace">
+        <div class="rider-metrics">
+          <div><span>ACTIVE</span><strong>{{ profile?.metrics.active ?? '—' }}</strong><small>to complete</small></div>
+          <div><span>DELIVERED</span><strong>{{ profile?.metrics.delivered ?? '—' }}</strong><small>successful</small></div>
+          <div><span>TOTAL</span><strong>{{ profile?.metrics.total ?? '—' }}</strong><small>assigned</small></div>
+          <div><span>SHOPS</span><strong>{{ profile?.metrics.shops ?? '—' }}</strong><small>connected</small></div>
+        </div>
+
+        <div class="delivery-section-heading"><div><span class="eyebrow">YOUR ROUTE</span><h2>{{ view === 'active' ? 'Active deliveries' : 'Delivery history' }}</h2></div><button :disabled="loading || busyOrder" @click="refresh">Refresh</button></div>
+        <div class="delivery-tabs" role="tablist" aria-label="Delivery lists"><button role="tab" :aria-selected="view === 'active'" @click="switchView('active')">Active <span>{{ profile?.metrics.active || 0 }}</span></button><button role="tab" :aria-selected="view === 'history'" @click="switchView('history')">History <span>{{ profile?.metrics.delivered || 0 }}</span></button></div>
+        <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
+        <p v-if="loading" role="status">Loading your deliveries…</p>
+        <p v-else-if="!assignments.length" class="lc-empty">{{ view === 'active' ? 'No active deliveries right now.' : 'No completed deliveries yet.' }}</p>
+        <div v-else class="delivery-list">
+          <article v-for="order in assignments" :key="order.name" class="delivery-card" :class="{ finished: ['Delivered', 'Cancelled'].includes(order.status) }">
+            <header><div><span class="eyebrow">{{ order.shop_name }} · {{ order.name }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>
+            <div class="delivery-address"><span aria-hidden="true">⌖</span><div><strong>{{ order.address.line1 }}</strong><p>{{ order.address.city }} · {{ order.address.postal_code }}</p><a :href="`tel:${order.phone}`">Call {{ order.phone }}</a></div></div>
+            <details><summary>{{ order.items.length }} product{{ order.items.length === 1 ? '' : 's' }} · {{ money(order.total, order.currency) }}</summary><ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }}</li></ul></details>
+            <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="advance(order)">{{ busyOrder === order.name ? 'Updating…' : labels[order.status] }} <span>›</span></button>
+            <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered{{ order.delivered_at ? ` · ${order.delivered_at}` : '' }}</p>
+            <p v-else-if="order.status === 'Cancelled'" class="muted">This order was cancelled.</p>
+          </article>
+        </div>
+        <div class="lc-pagination"><button :disabled="!start || loading || busyOrder" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="assignments.length < 20 || loading || busyOrder" @click="load(20)">Next</button></div>
+      </div>
     </div>
-    <div class="lc-pagination"><button :disabled="!start || loading || busyOrder" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="assignments.length < 20 || loading || busyOrder" @click="load(20)">Next</button></div>
   </section>
 </template>

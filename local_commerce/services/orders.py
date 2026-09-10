@@ -426,22 +426,72 @@ def assign_driver(order, delivery_user):
         _order_operation.reset(token)
 
 
-def delivery_assignments(start=0):
-    user = frappe.session.user
+def driver_shops(user=None):
+    user = user or frappe.session.user
     if user == "Guest" or "LC Delivery Person" not in frappe.get_roles(user):
         frappe.throw("Delivery person access required", frappe.PermissionError)
-    driver_shops = sorted(
+    return sorted(
         {
             member.shop
             for member in memberships(user)
             if member.membership_role == "Driver" and is_shop_driver(user, member.shop)
         }
     )
-    if not driver_shops:
+
+
+def delivery_profile():
+    user = frappe.session.user
+    shops = driver_shops(user)
+    account = frappe.db.get_value(
+        "User", user, ["name", "full_name", "email", "mobile_no", "user_image"], as_dict=True
+    )
+    assigned_shops = (
+        frappe.get_all(
+            "LC Shop",
+            filters={"name": ["in", shops]},
+            fields=["name", "shop_name", "status"],
+            order_by="shop_name asc",
+        )
+        if shops
+        else []
+    )
+    base_filters = {"delivery_user": user, "shop": ["in", shops]}
+    active_statuses = ["Ready", "Picked Up", "Out for Delivery"]
+    if not shops:
+        metrics = {"active": 0, "delivered": 0, "total": 0, "shops": 0}
+    else:
+        metrics = {
+            "active": frappe.db.count(
+                "LC Order", filters={**base_filters, "status": ["in", active_statuses]}
+            ),
+            "delivered": frappe.db.count(
+                "LC Order", filters={**base_filters, "status": "Delivered"}
+            ),
+            "total": frappe.db.count("LC Order", filters=base_filters),
+            "shops": len(assigned_shops),
+        }
+    return {
+        "profile": account,
+        "shops": assigned_shops,
+        "metrics": metrics,
+    }
+
+
+def delivery_assignments(start=0, view="active"):
+    user = frappe.session.user
+    shops = driver_shops(user)
+    if not shops:
         return []
+    if view not in {"active", "history"}:
+        reject("Invalid delivery view")
+    statuses = (
+        ["Ready", "Picked Up", "Out for Delivery"]
+        if view == "active"
+        else ["Delivered", "Cancelled"]
+    )
     names = frappe.get_all(
         "LC Order",
-        filters={"delivery_user": user, "shop": ["in", driver_shops]},
+        filters={"delivery_user": user, "shop": ["in", shops], "status": ["in", statuses]},
         pluck="name",
         start=offset(start),
         limit_page_length=20,

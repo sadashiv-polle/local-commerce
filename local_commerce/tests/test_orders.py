@@ -157,6 +157,10 @@ class TestDeliveryOrders(FrappeTestCase):
         assigned = orders.assign_driver(order["name"], driver.name)
         self.assertEqual(assigned["delivery_user"], driver.name)
         frappe.set_user(driver.name)
+        profile = orders.delivery_profile()
+        self.assertEqual(profile["metrics"]["active"], 1)
+        self.assertEqual(profile["metrics"]["shops"], 1)
+        self.assertEqual(len(orders.delivery_assignments()), 1)
         picked_up = orders.delivery_change(order["name"], "Picked Up")
         self.assertEqual(picked_up["status"], "Picked Up")
         doc = frappe.get_doc("LC Order", order["name"])
@@ -166,6 +170,9 @@ class TestDeliveryOrders(FrappeTestCase):
         delivered = orders.delivery_change(order["name"], "Delivered")
         self.assertEqual(delivered["status"], "Delivered")
         self.assertTrue(delivered["delivered_at"])
+        self.assertEqual(orders.delivery_assignments(), [])
+        self.assertEqual(len(orders.delivery_assignments(view="history")), 1)
+        self.assertEqual(orders.delivery_profile()["metrics"]["delivered"], 1)
 
     def test_only_assigned_shop_driver_can_update_delivery(self):
         order = self.place()

@@ -44,8 +44,13 @@ def assign_driver(order, delivery_user):
 
 
 @frappe.whitelist()
-def delivery_assignments(start=0):
-    return orders.delivery_assignments(start)
+def delivery_profile():
+    return orders.delivery_profile()
+
+
+@frappe.whitelist()
+def delivery_assignments(start=0, view="active"):
+    return orders.delivery_assignments(start, view)
 
 
 @frappe.whitelist(methods=["POST"])
