@@ -7,6 +7,7 @@ const session = ref(null), error = ref(''), loggingOut = ref(false), logoutError
 const route = useRoute(), router = useRouter()
 const logoutDialog = ref(null)
 const savedCart = ref(null)
+const headerAddresses = ref([]), headerAddress = ref(null)
 const savedCartLines = computed(() => Object.keys(savedCart.value?.cart || {}).length)
 const savedCartTotal = computed(() => Object.values(savedCart.value?.cart || {}).reduce((sum, item) => sum + Number(item.rate) * Number(item.quantity), 0))
 const savedCartCurrency = computed(() => Object.values(savedCart.value?.cart || {})[0]?.currency)
@@ -35,13 +36,29 @@ const deliveryView = computed(() => route.path === '/delivery')
 const canManage = computed(() => session.value && (session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role))))
 const canDeliver = computed(() => session.value?.roles.includes('LC Delivery Person') && session.value.memberships.some(m => m.membership_role === 'Driver'))
 provide('session', session)
+async function loadHeaderAddress(preferred = '') {
+  headerAddresses.value = []; headerAddress.value = null
+  if (!session.value || session.value.user === 'Guest' || !session.value.roles.includes('LC Customer')) return
+  try {
+    headerAddresses.value = await call('customers.addresses')
+    let remembered = preferred
+    if (!remembered) try { remembered = localStorage.getItem(`lc-address:${session.value.user}`) || '' } catch { /* Use the server default. */ }
+    headerAddress.value = headerAddresses.value.find(address => address.name === remembered) || headerAddresses.value.find(address => address.is_default) || headerAddresses.value[0] || null
+  } catch { /* The storefront remains available without a header address. */ }
+}
+function syncHeaderAddress(event) {
+  const name = typeof event.detail === 'string' ? event.detail : ''
+  const existing = headerAddresses.value.find(address => address.name === name)
+  if (existing) headerAddress.value = existing
+  else loadHeaderAddress(name)
+}
 async function load() {
   error.value = ''
   try {
     session.value = await call('session.context'); setCsrfToken(session.value.csrf_token)
     if (session.value.roles.includes('LC Customer')) {
       // Account linking is a POST; public browsing remains usable if setup needs attention.
-      try { await call('customers.ensure', {}, true) } catch { /* Account/checkout show actionable errors. */ }
+      try { await call('customers.ensure', {}, true); await loadHeaderAddress() } catch { /* Account/checkout show actionable errors. */ }
     }
     if (route.path === '/') await router.replace(canManage.value ? '/shop' : canDeliver.value ? '/delivery' : '/store')
   } catch (e) { error.value = e.message }
@@ -60,18 +77,20 @@ onMounted(() => {
   syncSavedCart()
   window.addEventListener('storage', syncSavedCart)
   window.addEventListener('lc-cart-change', syncSavedCart)
+  window.addEventListener('lc-address-change', syncHeaderAddress)
   load()
 })
 onBeforeUnmount(() => {
   window.removeEventListener('storage', syncSavedCart)
   window.removeEventListener('lc-cart-change', syncSavedCart)
+  window.removeEventListener('lc-address-change', syncHeaderAddress)
 })
 </script>
 
 <template>
   <div class="commerce-app" :class="{ 'owner-view': ownerView, 'has-global-cart': savedCartLines }">
     <header class="topbar">
-      <RouterLink class="brand" to="/store">local<span>●</span><small>{{ ownerView ? 'BUSINESS' : deliveryView ? 'DELIVERY' : 'YOUR NEIGHBOURHOOD, TOGETHER' }}</small></RouterLink>
+      <div class="brand-stack"><RouterLink class="brand" to="/store">local<span>●</span><small v-if="ownerView || deliveryView">{{ ownerView ? 'BUSINESS' : 'DELIVERY' }}</small></RouterLink><RouterLink v-if="!ownerView && !deliveryView" class="header-delivery-address" :to="session?.user === 'Guest' ? '/login?next=/account' : '/account'"><small>DELIVERING TO</small><strong v-if="headerAddress">{{ headerAddress.address_label }} · {{ headerAddress.line1 }}</strong><strong v-else>{{ session?.user === 'Guest' ? 'Login to choose location' : 'Add delivery address' }}</strong><span aria-hidden="true">⌄</span></RouterLink></div>
       <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : deliveryView ? 'Your rider workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : deliveryView ? 'Every order, right on track.' : 'Delivery from your local shops' }}</small></div></div>
       <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><RouterLink v-if="canDeliver" to="/delivery">Deliveries</RouterLink><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><RouterLink v-else-if="session" class="account" :to="session.roles.includes('LC Customer') ? '/account' : canDeliver ? '/delivery' : '/shop'"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink><button v-if="session && session.user !== 'Guest'" class="logout-button" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg>Log out</button></nav>
     </header>

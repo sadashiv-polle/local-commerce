@@ -40,6 +40,12 @@ html { scroll-behavior: smooth; }
 #lc-app .brand { font-size: 40px; line-height: 1; letter-spacing: -3px; font-weight: 850; color: #176547; }
 #lc-app .brand>span { color: #e2ad28; font-size: 17px; letter-spacing: -1px; }
 #lc-app .brand small { display: block; margin-top: 9px; font-size: 8px; letter-spacing: 1.6px; color: #627367; font-weight: 650; }
+#lc-app .brand-stack { display: grid; flex: 0 1 260px; min-width: 170px; }
+#lc-app .brand-stack > .brand { justify-self: start; }
+#lc-app .header-delivery-address { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 6px; max-width: 260px; margin-top: 8px; color: #263e30; line-height: 1.2; }
+#lc-app .header-delivery-address small { grid-column: 1 / -1; margin-bottom: 3px; color: #718073; font-size: 7px; letter-spacing: 1.4px; font-weight: 800; }
+#lc-app .header-delivery-address strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+#lc-app .header-delivery-address > span { color: #176547; font-size: 13px; }
 #lc-app .header-note { border-left: 1px solid var(--lc-line); padding-left: 35px; display: flex; gap: 13px; align-items: center; }
 #lc-app .header-note small { display: block; color: #798479; margin-top: 3px; }
 #lc-app .pin { font-size: 30px; color: #176547; }

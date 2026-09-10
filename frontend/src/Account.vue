@@ -10,6 +10,7 @@ const editing = ref(false)
 const emptyAddress = () => ({ name: '', address_type: 'Home', address_label: 'Home', recipient: session.value?.full_name || '', phone: '', line1: '', city: '', postal_code: '', latitude: '', longitude: '', is_default: false })
 const form = ref(emptyAddress())
 const addressPoints = computed(() => form.value.latitude !== '' && form.value.longitude !== '' && Number.isFinite(Number(form.value.latitude)) && Number.isFinite(Number(form.value.longitude)) ? [{ ...form.value, kind: 'customer', label: form.value.address_label || 'Saved address' }] : [])
+function notifyAddress(name = '') { window.dispatchEvent(new CustomEvent('lc-address-change', { detail: name })) }
 
 async function load(delta = 0) {
   start.value = Math.max(0, start.value + delta)
@@ -37,20 +38,20 @@ async function saveAddress() {
   try {
     const result = await call('customers.save_address', form.value, true)
     if (result.is_default) try { localStorage.setItem(`lc-address:${session.value.user}`, result.name) } catch { /* Server default remains available. */ }
-    await load(); editing.value = false; form.value = emptyAddress(); saved.value = 'Address saved.'
+    await load(); notifyAddress(result.is_default ? result.name : ''); editing.value = false; form.value = emptyAddress(); saved.value = 'Address saved.'
   }
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
 async function setDefault(address) {
   busy.value = true; error.value = ''
-  try { await call('customers.save_address', { ...address, is_default: 1 }, true); try { localStorage.setItem(`lc-address:${session.value.user}`, address.name) } catch { /* Server default remains available. */ } await load(); saved.value = `${address.address_label} is now your delivery address.` }
+  try { await call('customers.save_address', { ...address, is_default: 1 }, true); try { localStorage.setItem(`lc-address:${session.value.user}`, address.name) } catch { /* Server default remains available. */ } await load(); notifyAddress(address.name); saved.value = `${address.address_label} is now your delivery address.` }
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
 async function archiveAddress(address) {
   busy.value = true; error.value = ''
-  try { await call('customers.archive_address', { name: address.name }, true); await load(); saved.value = 'Address removed.' }
+  try { await call('customers.archive_address', { name: address.name }, true); await load(); notifyAddress(data.value.addresses.find(row => row.is_default)?.name || ''); saved.value = 'Address removed.' }
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }

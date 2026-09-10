@@ -30,6 +30,7 @@ async function loadAddresses() {
 async function selectAddress() {
   start.value = 0
   try { localStorage.setItem(`lc-address:${session.value.user}`, selectedAddress.value) } catch { /* Selection still works for this page. */ }
+  window.dispatchEvent(new CustomEvent('lc-address-change', { detail: selectedAddress.value }))
   await load()
 }
 onMounted(loadAddresses)

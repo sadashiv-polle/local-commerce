@@ -61,6 +61,7 @@ function applySavedAddress() {
   address.value = { ...address.value, ...saved, delivery_instructions: instructions }
   error.value = ''; locationError.value = ''
   try { localStorage.setItem(`lc-address:${session.value.user}`, saved.name) } catch { /* Selection still applies to checkout. */ }
+  window.dispatchEvent(new CustomEvent('lc-address-change', { detail: saved.name }))
 }
 async function loadSavedAddresses() {
   savedAddresses.value = []; selectedAddress.value = ''
