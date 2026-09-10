@@ -6,9 +6,10 @@ linked ERPNext Customer. The first address becomes the default automatically;
 choosing another address makes it the only default. Removed addresses are
 archived so they are no longer offered for discovery or checkout.
 
-Each address contains a recipient, phone, street, city, postal code, latitude,
-and longitude. Coordinates can be entered manually or chosen on the map. Device
-location requires HTTPS. Customers can keep up to 20 active addresses.
+Each address contains a recipient, phone, street, city, postal code, and an
+internal map location. Customers choose the pin on the map or use their device
+location. Device location requires HTTPS. Customers can keep up to 20 active
+addresses.
 
 The storefront remembers only the opaque selected address name in local storage.
 Nearby discovery resolves that address on the server after checking ownership.

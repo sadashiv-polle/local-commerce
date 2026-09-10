@@ -398,8 +398,6 @@ html { scroll-behavior: smooth; }
 #lc-app .location-heading p, #lc-app .location-heading small { display: block; margin: 0; color: #718073; }
 #lc-app .coordinate-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; color: #607061; font-size: 12px; }
 #lc-app .coordinate-row button { padding: 7px 11px; }
-#lc-app .manual-coordinate-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-#lc-app .manual-coordinate-fields label { margin: 0; }
 #lc-app .coordinate-help { display: block; margin-top: -7px; color: #6f7c70; }
 #lc-app .checkout-location { display: grid; gap: 10px; margin: 16px 0; padding: 14px; border-radius: 14px; background: #f2f6ed; }
 #lc-app .checkout-location .location-heading strong, #lc-app .checkout-location .location-heading small { display: block; }
@@ -422,9 +420,6 @@ html { scroll-behavior: smooth; }
 #lc-app .tracking-controls button { color: white; background: #286dcc; border-color: #286dcc; }
 #lc-app .tracking-controls button.tracking-stop { color: #9a352f; background: white; border-color: #e0b1ad; }
 #lc-app .tracking-controls small { flex: 1 1 220px; color: #617185; }
-#lc-app .manual-rider-location { display: grid; gap: 11px; margin: 14px 0; padding: 15px; border: 1px dashed #aec4a8; border-radius: 12px; background: #f6f9f3; }
-#lc-app .manual-rider-location > button { justify-self: start; color: white; background: #176547; border-color: #176547; }
-#lc-app .manual-rider-location > small { color: #6d7a6d; }
 #lc-app .order-tracking-panel { padding: 16px; border: 1px solid #dce5da; border-radius: 15px; background: #f7f9f4; }
 #lc-app .tracking-heading { margin-bottom: 12px; }
 #lc-app .tracking-heading > span { padding: 5px 9px; border-radius: 8px; color: #276549; background: #e5f1e6; font-size: 11px; font-weight: 700; }
@@ -473,7 +468,6 @@ html { scroll-behavior: smooth; }
   #lc-app .location-heading, #lc-app .tracking-heading { flex-direction: column; }
   #lc-app .location-heading button { width: 100%; }
   #lc-app .map-legend a { width: 100%; margin-left: 0; }
-  #lc-app .manual-coordinate-fields { grid-template-columns: minmax(0, 1fr); }
   #lc-app .delivery-location-bar { align-items: flex-start; flex-wrap: wrap; }
   #lc-app .delivery-location-bar > label, #lc-app .delivery-location-bar > div { flex-basis: calc(100% - 58px); }
   #lc-app .account-heading { align-items: flex-start; flex-direction: column; padding: 22px; }

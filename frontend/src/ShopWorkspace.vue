@@ -96,10 +96,9 @@ watch(() => route.params.shop, load, { immediate: true })
               <div class="location-heading"><div><span class="eyebrow">DELIVERY MAP</span><h3>Shop address &amp; service area</h3><p>Place the shop pin and set how far your riders deliver.</p></div><button type="button" :disabled="locating" @click="useShopLocation">{{ locating ? 'Finding…' : 'Use current location' }}</button></div>
               <label>Street address<input v-model="shop.address_line1" maxlength="140" autocomplete="street-address"></label>
               <div class="form-columns"><label>City<input v-model="shop.city" maxlength="140" autocomplete="address-level2"></label><label>Postal code<input v-model="shop.postal_code" maxlength="140" autocomplete="postal-code"></label></div>
-              <div class="manual-coordinate-fields"><label>Latitude<input v-model.number="shop.latitude" type="number" min="-90" max="90" step="0.000001" inputmode="decimal" placeholder="15.490900" @input="locationError = ''"></label><label>Longitude<input v-model.number="shop.longitude" type="number" min="-180" max="180" step="0.000001" inputmode="decimal" placeholder="73.827800" @input="locationError = ''"></label></div>
-              <small class="coordinate-help">Enter both coordinates manually, use the device location, or tap the map.</small>
+              <small class="coordinate-help">Tap the map to place the shop pin, or use this device's location.</small>
               <MapView :config="shop.map" :points="shopPoints" editable @pick="pickShopLocation" />
-              <div class="coordinate-row"><span v-if="shopPoints.length">Pin: {{ Number(shop.latitude).toFixed(6) }}, {{ Number(shop.longitude).toFixed(6) }}</span><span v-else>No map pin selected</span><button v-if="shopPoints.length" type="button" @click="clearShopLocation">Clear pin</button></div>
+              <div class="coordinate-row"><span>{{ shopPoints.length ? 'Shop pin selected' : 'No map pin selected' }}</span><button v-if="shopPoints.length" type="button" @click="clearShopLocation">Clear pin</button></div>
               <label>Delivery radius (km)<input v-model.number="shop.service_radius_km" type="number" min="0.1" max="500" step="0.1" required></label>
               <label class="check-label"><input v-model="shop.live_tracking_enabled" type="checkbox"><span>Allow live rider tracking<small>Customers can see the assigned rider while their order is out for delivery.</small></span></label>
               <p v-if="locationError" class="lc-notice" role="alert">{{ locationError }}</p>

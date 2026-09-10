@@ -9,7 +9,6 @@ const loading = ref(false), error = ref(''), busyOrder = ref('')
 const paymentDialog = ref(null), collectingOrder = ref(null)
 const collectedAmount = ref(''), collectionNote = ref(''), collectionError = ref('')
 const trackingOrder = ref(''), locationMessage = ref(''), locationError = ref('')
-const manualLocations = ref({})
 let locationWatch = null, sendingLocation = false, lastLocationSent = 0
 const allowed = computed(() => session.value.roles.includes('LC Delivery Person') && session.value.memberships.some(member => member.membership_role === 'Driver'))
 const collectionVariance = computed(() => collectingOrder.value ? Number(collectedAmount.value || 0) - Number(collectingOrder.value.total) : 0)
@@ -28,12 +27,7 @@ function mapLink(location) { return `https://www.openstreetmap.org/?mlat=${encod
 async function load(delta = 0) {
   if (!allowed.value) return
   start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
-  try {
-    assignments.value = await call('orders.delivery_assignments', { start: start.value, view: view.value })
-    for (const order of assignments.value) {
-      if (!manualLocations.value[order.name]) manualLocations.value[order.name] = { latitude: '', longitude: '' }
-    }
-  }
+  try { assignments.value = await call('orders.delivery_assignments', { start: start.value, view: view.value }) }
   catch (e) { error.value = e.message }
   finally { loading.value = false }
 }
@@ -75,18 +69,6 @@ function startTracking(order) {
     } catch (e) { locationError.value = e.message }
     finally { sendingLocation = false }
   }, () => { locationError.value = 'Location access failed. Allow precise location in your browser and try again.'; stopTracking('') }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 })
-}
-async function shareManualLocation(order) {
-  const location = manualLocations.value[order.name]
-  locationError.value = ''; locationMessage.value = ''
-  if (!location || !Number.isFinite(Number(location.latitude)) || !Number.isFinite(Number(location.longitude)) || location.latitude === '' || location.longitude === '') { locationError.value = 'Enter valid latitude and longitude.'; return }
-  busyOrder.value = order.name
-  try {
-    const saved = await call('orders.update_driver_location', { order: order.name, latitude: location.latitude, longitude: location.longitude, accuracy: 0 }, true)
-    order.driver_location = { latitude: Number(location.latitude), longitude: Number(location.longitude), accuracy: 0, updated_at: saved.updated_at }
-    locationMessage.value = 'Manual rider location shared with the customer.'
-  } catch (e) { locationError.value = e.message }
-  finally { busyOrder.value = '' }
 }
 function requestAdvance(order) {
   if (order.status !== 'Out for Delivery') { advance(order); return }
@@ -151,7 +133,6 @@ onBeforeUnmount(() => stopTracking(''))
             <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
             <details><summary>{{ order.items.length }} product{{ order.items.length === 1 ? '' : 's' }} · {{ money(order.total, order.currency) }}</summary><ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }}</li></ul></details>
             <div v-if="order.status === 'Out for Delivery' && order.live_tracking_enabled" class="tracking-controls"><button v-if="trackingOrder !== order.name" type="button" @click="startTracking(order)">Share live location</button><button v-else type="button" class="tracking-stop" @click="stopTracking()">Stop sharing</button><small>Location is visible only to this customer and is removed after delivery.</small></div>
-            <div v-if="order.status === 'Out for Delivery' && order.live_tracking_enabled && manualLocations[order.name]" class="manual-rider-location"><strong>Enter location manually</strong><div class="manual-coordinate-fields"><label>Latitude<input v-model.number="manualLocations[order.name].latitude" type="number" min="-90" max="90" step="0.000001" inputmode="decimal" placeholder="15.490900"></label><label>Longitude<input v-model.number="manualLocations[order.name].longitude" type="number" min="-180" max="180" step="0.000001" inputmode="decimal" placeholder="73.827800"></label></div><button type="button" :disabled="!!busyOrder" @click="shareManualLocation(order)">Update customer map</button><small>Use this HTTP testing option until the site has HTTPS for automatic GPS.</small></div>
             <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="requestAdvance(order)">{{ busyOrder === order.name ? 'Updating…' : order.status === 'Out for Delivery' ? 'Collect cash & confirm delivered' : labels[order.status] }} <span>›</span></button>
             <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered · Cash {{ order.payment_status === 'Reconciled' ? 'handed over' : 'awaiting handover' }}{{ order.delivered_at ? ` · ${order.delivered_at}` : '' }}</p>
             <p v-else-if="order.status === 'Cancelled'" class="muted">This order was cancelled.</p>
