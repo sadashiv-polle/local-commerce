@@ -12,7 +12,10 @@ const payment = ref(null), paymentSaved = ref(''), paymentSaving = ref(false)
 const tab = ref('inventory')
 const locationError = ref(''), locating = ref(false)
 const canEdit = computed(() => shop.value && (session.value.platform_admin || session.value.memberships.some(m => m.shop === shop.value.name && m.membership_role === 'Owner')))
-const shopPoints = computed(() => shop.value?.latitude != null && shop.value?.longitude != null ? [{ kind: 'shop', label: shop.value.shop_name, latitude: shop.value.latitude, longitude: shop.value.longitude }] : [])
+const shopPoints = computed(() => {
+  const latitude = shop.value?.latitude, longitude = shop.value?.longitude
+  return latitude !== '' && longitude !== '' && latitude != null && longitude != null && Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude)) ? [{ kind: 'shop', label: shop.value.shop_name, latitude, longitude }] : []
+})
 let request = 0
 async function load() {
   const current = ++request
@@ -93,6 +96,8 @@ watch(() => route.params.shop, load, { immediate: true })
               <div class="location-heading"><div><span class="eyebrow">DELIVERY MAP</span><h3>Shop address &amp; service area</h3><p>Place the shop pin and set how far your riders deliver.</p></div><button type="button" :disabled="locating" @click="useShopLocation">{{ locating ? 'Finding…' : 'Use current location' }}</button></div>
               <label>Street address<input v-model="shop.address_line1" maxlength="140" autocomplete="street-address"></label>
               <div class="form-columns"><label>City<input v-model="shop.city" maxlength="140" autocomplete="address-level2"></label><label>Postal code<input v-model="shop.postal_code" maxlength="140" autocomplete="postal-code"></label></div>
+              <div class="manual-coordinate-fields"><label>Latitude<input v-model.number="shop.latitude" type="number" min="-90" max="90" step="0.000001" inputmode="decimal" placeholder="15.490900" @input="locationError = ''"></label><label>Longitude<input v-model.number="shop.longitude" type="number" min="-180" max="180" step="0.000001" inputmode="decimal" placeholder="73.827800" @input="locationError = ''"></label></div>
+              <small class="coordinate-help">Enter both coordinates manually, use the device location, or tap the map.</small>
               <MapView :config="shop.map" :points="shopPoints" editable @pick="pickShopLocation" />
               <div class="coordinate-row"><span v-if="shopPoints.length">Pin: {{ Number(shop.latitude).toFixed(6) }}, {{ Number(shop.longitude).toFixed(6) }}</span><span v-else>No map pin selected</span><button v-if="shopPoints.length" type="button" @click="clearShopLocation">Clear pin</button></div>
               <label>Delivery radius (km)<input v-model.number="shop.service_radius_km" type="number" min="0.1" max="500" step="0.1" required></label>

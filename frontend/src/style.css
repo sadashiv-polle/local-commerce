@@ -380,6 +380,9 @@ html { scroll-behavior: smooth; }
 #lc-app .location-heading p, #lc-app .location-heading small { display: block; margin: 0; color: #718073; }
 #lc-app .coordinate-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; color: #607061; font-size: 12px; }
 #lc-app .coordinate-row button { padding: 7px 11px; }
+#lc-app .manual-coordinate-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+#lc-app .manual-coordinate-fields label { margin: 0; }
+#lc-app .coordinate-help { display: block; margin-top: -7px; color: #6f7c70; }
 #lc-app .checkout-location { display: grid; gap: 10px; margin: 16px 0; padding: 14px; border-radius: 14px; background: #f2f6ed; }
 #lc-app .checkout-location .location-heading strong, #lc-app .checkout-location .location-heading small { display: block; }
 #lc-app .checkout-location .location-heading button { padding: 8px 11px; }
@@ -407,6 +410,7 @@ html { scroll-behavior: smooth; }
   #lc-app .location-heading, #lc-app .tracking-heading { flex-direction: column; }
   #lc-app .location-heading button { width: 100%; }
   #lc-app .map-legend a { width: 100%; margin-left: 0; }
+  #lc-app .manual-coordinate-fields { grid-template-columns: minmax(0, 1fr); }
 }
 
 #lc-app .auth-page { max-width: 720px; }
