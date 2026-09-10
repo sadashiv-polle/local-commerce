@@ -64,5 +64,15 @@ def delivery_assignments(start=0, view="active"):
 
 
 @frappe.whitelist(methods=["POST"])
-def delivery_change(order, target):
-    return orders.delivery_change(order, target)
+def delivery_change(order, target, collected_amount=None, note=""):
+    return orders.delivery_change(order, target, collected_amount, note)
+
+
+@frappe.whitelist()
+def cod_collections(shop, view="pending", start=0):
+    return orders.cod_collections(shop, view, start)
+
+
+@frappe.whitelist(methods=["POST"])
+def reconcile_cod(collection, owner_note=""):
+    return orders.reconcile_cod(collection, owner_note)

@@ -463,7 +463,15 @@ def payment_options(shop):
 def configure_cod(shop, enabled, cash_account="", mode_of_payment=""):
     require_shop(shop, "write")
     doc = frappe.get_doc("LC Shop", shop)
-    doc.cod_enabled = enabled in (True, 1, "1", "true", "True")
+    requested_enabled = enabled in (True, 1, "1", "true", "True")
+    pending = frappe.db.count("LC COD Collection", {"shop": shop, "status": "Awaiting Handover"})
+    if pending and (
+        not requested_enabled
+        or cash_account != doc.cod_cash_account
+        or mode_of_payment != doc.cod_mode_of_payment
+    ):
+        reject("Reconcile all pending cash handovers before changing Cash on Delivery settings")
+    doc.cod_enabled = requested_enabled
     doc.cod_cash_account = cash_account or None
     doc.cod_mode_of_payment = mode_of_payment or None
     validate_delivery(doc)
@@ -529,7 +537,14 @@ def delivery_profile():
     base_filters = {"delivery_user": user, "shop": ["in", shops]}
     active_statuses = ["Ready", "Picked Up", "Out for Delivery"]
     if not shops:
-        metrics = {"active": 0, "delivered": 0, "total": 0, "shops": 0}
+        metrics = {
+            "active": 0,
+            "delivered": 0,
+            "total": 0,
+            "shops": 0,
+            "awaiting_handover": 0,
+        }
+        cash_pending = []
     else:
         metrics = {
             "active": frappe.db.count(
@@ -540,11 +555,42 @@ def delivery_profile():
             ),
             "total": frappe.db.count("LC Order", filters=base_filters),
             "shops": len(assigned_shops),
+            "awaiting_handover": frappe.db.count(
+                "LC COD Collection",
+                filters={
+                    "delivery_user": user,
+                    "shop": ["in", shops],
+                    "status": "Awaiting Handover",
+                },
+            ),
         }
+        cash_by_shop = {}
+        for row in frappe.get_all(
+            "LC COD Collection",
+            filters={
+                "delivery_user": user,
+                "shop": ["in", shops],
+                "status": "Awaiting Handover",
+            },
+            fields=["shop", "currency", "collected_amount"],
+            limit_page_length=0,
+        ):
+            key = (row.shop, row.currency)
+            cash_by_shop[key] = cash_by_shop.get(key, 0) + float(row.collected_amount)
+        cash_pending = [
+            {
+                "shop": shop,
+                "shop_name": frappe.db.get_value("LC Shop", shop, "shop_name"),
+                "currency": currency,
+                "amount": amount,
+            }
+            for (shop, currency), amount in sorted(cash_by_shop.items())
+        ]
     return {
         "profile": account,
         "shops": assigned_shops,
         "metrics": metrics,
+        "cash_pending": cash_pending,
     }
 
 
@@ -571,19 +617,27 @@ def delivery_assignments(start=0, view="active"):
     return [serialize(frappe.get_doc("LC Order", name)) for name in names]
 
 
-def collect_cash_on_delivery(doc):
+def create_cod_collection(doc, collected_amount, driver_note=""):
     if doc.payment_method != "Cash on Delivery" or doc.payment_status != "Pending":
         reject("This order is not waiting for a Cash on Delivery payment")
     shop = frappe.get_doc("LC Shop", doc.shop)
     validate_delivery(shop)
     if not shop.cod_enabled:
         reject("Cash on Delivery is no longer configured; contact the shop")
+    sales_order = frappe.get_doc("Sales Order", doc.sales_order)
+    expected = checked_number(sales_order.grand_total, "Expected amount")
+    collected = checked_number(collected_amount, "Collected amount")
+    variance = collected - expected
+    driver_note = str(driver_note or "").strip()
+    if variance and not 3 <= len(driver_note) <= 500:
+        reject("Explain a short or excess cash collection (3–500 characters)")
+    if len(driver_note) > 500:
+        reject("Delivery payment note cannot exceed 500 characters")
     original_user = frappe.session.user
     try:
-        # ERPNext's helpers perform explicit accounting permission checks. This trusted workflow
-        # has already authorized and locked the assigned rider, so bookkeeping runs as the system.
+        # ERPNext's mapper performs accounting permission checks. This trusted workflow has
+        # already authorized and locked the assigned rider, so bookkeeping runs as the system.
         frappe.set_user("Administrator")
-        from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
         from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 
         invoice = make_sales_invoice(doc.sales_order, ignore_permissions=True)
@@ -591,23 +645,29 @@ def collect_cash_on_delivery(doc):
         invoice.flags.ignore_permissions = True
         invoice.insert(ignore_permissions=True)
         invoice.submit()
-        payment = get_payment_entry(
-            "Sales Invoice",
-            invoice.name,
-            bank_account=shop.cod_cash_account,
-            reference_date=nowdate(),
-        )
-        payment.mode_of_payment = shop.cod_mode_of_payment
-        payment.lc_order = doc.name
-        payment.flags.ignore_permissions = True
-        payment.insert(ignore_permissions=True)
-        payment.submit()
-        return invoice.name, payment.name
+        if checked_number(invoice.grand_total, "Invoice total") != expected:
+            reject("The ERPNext invoice total changed; the shop must review this order")
     finally:
         frappe.set_user(original_user)
+    collection = frappe.get_doc(
+        {
+            "doctype": "LC COD Collection",
+            "order": doc.name,
+            "shop": doc.shop,
+            "delivery_user": doc.delivery_user,
+            "currency": sales_order.currency,
+            "expected_amount": float(expected),
+            "collected_amount": float(collected),
+            "variance": float(variance),
+            "status": "Awaiting Handover",
+            "collected_at": now_datetime(),
+            "driver_note": driver_note,
+        }
+    ).insert(ignore_permissions=True)
+    return invoice.name, collection.name
 
 
-def delivery_change(order, target):
+def delivery_change(order, target, collected_amount=None, note=""):
     doc = frappe.get_doc("LC Order", order)
     if doc.delivery_user != frappe.session.user or not is_shop_driver(
         frappe.session.user, doc.shop
@@ -647,10 +707,9 @@ def delivery_change(order, target):
                 or frappe.db.get_value("Delivery Note", doc.delivery_note, "docstatus") != 1
             ):
                 reject("The submitted delivery note is missing; contact the shop")
-            invoice, payment = collect_cash_on_delivery(doc)
+            invoice, collection = create_cod_collection(doc, collected_amount, note)
             doc.sales_invoice = invoice
-            doc.payment_entry = payment
-            doc.payment_status = "Paid"
+            doc.payment_status = "Collected"
             doc.collected_at = now_datetime()
             doc.delivered_at = now_datetime()
         previous = doc.status
@@ -660,6 +719,112 @@ def delivery_change(order, target):
         return serialize(doc)
     finally:
         _owner_operation.reset(owner_token)
+        _order_operation.reset(token)
+
+
+def serialize_collection(doc):
+    return {
+        "name": doc.name,
+        "order": doc.order,
+        "shop": doc.shop,
+        "shop_name": frappe.db.get_value("LC Shop", doc.shop, "shop_name"),
+        "delivery_user": doc.delivery_user,
+        "delivery_name": frappe.db.get_value("User", doc.delivery_user, "full_name")
+        or doc.delivery_user,
+        "currency": doc.currency,
+        "expected_amount": doc.expected_amount,
+        "collected_amount": doc.collected_amount,
+        "variance": doc.variance,
+        "status": doc.status,
+        "collected_at": str(doc.collected_at),
+        "driver_note": doc.driver_note,
+        "reconciled_by": doc.reconciled_by,
+        "reconciled_at": str(doc.reconciled_at) if doc.reconciled_at else None,
+        "owner_note": doc.owner_note,
+    }
+
+
+def cod_collections(shop, view="pending", start=0):
+    require_shop(shop)
+    if view not in {"pending", "history"}:
+        reject("Invalid cash collection view")
+    status = "Awaiting Handover" if view == "pending" else "Reconciled"
+    names = frappe.get_all(
+        "LC COD Collection",
+        filters={"shop": shop, "status": status},
+        pluck="name",
+        start=offset(start),
+        limit_page_length=20,
+        order_by="collected_at desc, name desc",
+    )
+    return [serialize_collection(frappe.get_doc("LC COD Collection", name)) for name in names]
+
+
+def create_cod_payment(order, collected_amount):
+    if not collected_amount:
+        return None
+    shop = frappe.get_doc("LC Shop", order.shop)
+    validate_delivery(shop)
+    original_user = frappe.session.user
+    try:
+        frappe.set_user("Administrator")
+        from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+
+        payment = get_payment_entry(
+            "Sales Invoice",
+            order.sales_invoice,
+            bank_account=shop.cod_cash_account,
+            reference_date=nowdate(),
+        )
+        amount = float(collected_amount)
+        payment.paid_amount = amount
+        payment.received_amount = amount
+        remaining = amount
+        for reference in payment.references:
+            allocation = min(remaining, float(reference.outstanding_amount))
+            reference.allocated_amount = allocation
+            remaining -= allocation
+        payment.mode_of_payment = shop.cod_mode_of_payment
+        payment.lc_order = order.name
+        payment.flags.ignore_permissions = True
+        payment.insert(ignore_permissions=True)
+        payment.submit()
+        return payment.name
+    finally:
+        frappe.set_user(original_user)
+
+
+def reconcile_cod(collection, owner_note=""):
+    record = frappe.get_doc("LC COD Collection", collection)
+    require_shop(record.shop, "write")
+    frappe.db.sql("select name from `tabLC Shop` where name=%s for update", record.shop)
+    frappe.db.sql("select name from `tabLC COD Collection` where name=%s for update", record.name)
+    frappe.db.sql("select name from `tabLC Order` where name=%s for update", record.order)
+    record.reload()
+    if record.status == "Reconciled":
+        return serialize_collection(record)
+    owner_note = str(owner_note or "").strip()
+    if record.variance and not 3 <= len(owner_note) <= 500:
+        reject("Explain how the cash difference was reconciled (3–500 characters)")
+    if len(owner_note) > 500:
+        reject("Reconciliation note cannot exceed 500 characters")
+    order = frappe.get_doc("LC Order", record.order)
+    if order.status != "Delivered" or order.payment_status != "Collected":
+        reject("This order is not ready for cash reconciliation")
+    token = _order_operation.set(True)
+    try:
+        payment_entry = create_cod_payment(order, record.collected_amount)
+        record.status = "Reconciled"
+        record.reconciled_by = frappe.session.user
+        record.reconciled_at = now_datetime()
+        record.owner_note = owner_note
+        record.save(ignore_permissions=True)
+        order.payment_entry = payment_entry
+        order.payment_status = "Reconciled"
+        order.save(ignore_permissions=True)
+        order.add_comment("Info", escape(f"Cash handover reconciled by {record.reconciled_by}."))
+        return serialize_collection(record)
+    finally:
         _order_operation.reset(token)
 
 
@@ -726,6 +891,25 @@ def permission(doc, user=None, permission_type=None, **kwargs):
         or (user == doc.delivery_user and is_shop_driver(user, doc.shop))
         or can_access_shop(user, roles, memberships(user), doc.shop)
     )
+
+
+def collection_permission(doc, user=None, permission_type=None, **kwargs):
+    user, roles = identity(user)
+    if permission_type not in (None, "read"):
+        return False
+    return (user == doc.delivery_user and is_shop_driver(user, doc.shop)) or can_access_shop(
+        user, roles, memberships(user), doc.shop
+    )
+
+
+def collection_query(user=None):
+    user = user or frappe.session.user
+    if user == "Guest":
+        return "1=0"
+    scoped = shop_query(user).replace("`tabLC Shop`.`name`", "`tabLC COD Collection`.`shop`")
+    if not scoped:
+        return ""
+    return f"({scoped}) or `tabLC COD Collection`.`delivery_user`={frappe.db.escape(user)}"
 
 
 def query(user=None):

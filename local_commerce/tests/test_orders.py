@@ -182,24 +182,43 @@ class TestDeliveryOrders(FrappeTestCase):
         doc = frappe.get_doc("LC Order", order["name"])
         self.assertEqual(frappe.db.get_value("Delivery Note", doc.delivery_note, "docstatus"), 1)
         self.assertEqual(owner.balance(self.item, self.warehouse.name)["actual"], 3)
-        orders.delivery_change(order["name"], "Out for Delivery")
-        delivered = orders.delivery_change(order["name"], "Delivered")
+        out_for_delivery = orders.delivery_change(order["name"], "Out for Delivery")
+        delivered = orders.delivery_change(
+            order["name"], "Delivered", collected_amount=out_for_delivery["total"]
+        )
         self.assertEqual(delivered["status"], "Delivered")
         self.assertTrue(delivered["delivered_at"])
-        self.assertEqual(delivered["payment_status"], "Paid")
+        self.assertEqual(delivered["payment_status"], "Collected")
+        self.assertFalse(delivered["payment_entry"])
         self.assertEqual(
             frappe.db.get_value("Sales Invoice", delivered["sales_invoice"], "docstatus"), 1
         )
+        collection = frappe.db.get_value("LC COD Collection", {"order": order["name"]}, "name")
+        self.assertTrue(collection)
         self.assertEqual(
-            frappe.db.get_value("Payment Entry", delivered["payment_entry"], "docstatus"), 1
-        )
-        self.assertEqual(
-            frappe.db.get_value("Sales Invoice", delivered["sales_invoice"], "outstanding_amount"),
-            0,
+            frappe.db.get_value("LC COD Collection", collection, "status"),
+            "Awaiting Handover",
         )
         self.assertEqual(orders.delivery_assignments(), [])
         self.assertEqual(len(orders.delivery_assignments(view="history")), 1)
-        self.assertEqual(orders.delivery_profile()["metrics"]["delivered"], 1)
+        profile = orders.delivery_profile()
+        self.assertEqual(profile["metrics"]["delivered"], 1)
+        self.assertEqual(profile["metrics"]["awaiting_handover"], 1)
+        self.assertEqual(profile["cash_pending"][0]["amount"], delivered["total"])
+        frappe.set_user(self.user.name)
+        self.assertEqual(len(orders.cod_collections(self.shop.name)), 1)
+        orders.reconcile_cod(collection)
+        reconciled = orders.detail(order["name"])
+        self.assertEqual(reconciled["payment_status"], "Reconciled")
+        self.assertEqual(
+            frappe.db.get_value("Payment Entry", reconciled["payment_entry"], "docstatus"), 1
+        )
+        self.assertEqual(
+            frappe.db.get_value("Sales Invoice", reconciled["sales_invoice"], "outstanding_amount"),
+            0,
+        )
+        self.assertEqual(orders.cod_collections(self.shop.name), [])
+        self.assertEqual(len(orders.cod_collections(self.shop.name, view="history")), 1)
 
     def test_only_assigned_shop_driver_can_update_delivery(self):
         order = self.place()

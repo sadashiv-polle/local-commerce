@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { call } from './api.js'
 import Products from './Products.vue'
 import Orders from './Orders.vue'
+import CashReconciliation from './CashReconciliation.vue'
 const session = inject('session'), route = useRoute()
 const shop = ref(null), loading = ref(false), error = ref(''), saved = ref(''), saving = ref(false)
 const payment = ref(null), paymentSaved = ref(''), paymentSaving = ref(false)
@@ -52,6 +53,7 @@ watch(() => route.params.shop, load, { immediate: true })
       <p>Everything you need to manage this shop, in one place.</p>
       <nav v-if="shop" class="workspace-nav" aria-label="Shop sections">
         <button :class="{ 'sidebar-active': tab === 'orders' }" :aria-current="tab === 'orders' ? 'page' : undefined" @click="tab = 'orders'">Orders</button>
+        <button :class="{ 'sidebar-active': tab === 'cash' }" :aria-current="tab === 'cash' ? 'page' : undefined" @click="tab = 'cash'">Cash handover</button>
         <button :class="{ 'sidebar-active': tab === 'inventory' }" :aria-current="tab === 'inventory' ? 'page' : undefined" @click="tab = 'inventory'">Products &amp; stock</button>
         <button :class="{ 'sidebar-active': tab === 'settings' }" :aria-current="tab === 'settings' ? 'page' : undefined" @click="tab = 'settings'">Shop settings</button>
       </nav>
@@ -63,6 +65,7 @@ watch(() => route.params.shop, load, { immediate: true })
       <template v-if="shop">
         <header class="workspace-heading"><div><span class="eyebrow">YOUR SHOP</span><h1>{{ shop.shop_name }}</h1><p class="muted">{{ shop.company }}</p></div><span class="status-pill">{{ shop.status }}</span></header>
         <Orders v-if="tab === 'orders'" :shop="shop.name" :editable="canEdit" />
+        <CashReconciliation v-if="tab === 'cash'" :shop="shop.name" :editable="canEdit" />
         <Products v-show="tab === 'inventory'" :key="shop.name" :shop="shop.name" :editable="canEdit" />
         <form v-show="tab === 'settings'" class="lc-form" @submit.prevent="save">
           <h2>Shop settings</h2><p class="muted">Keep your shop details and availability up to date.</p>
@@ -76,7 +79,7 @@ watch(() => route.params.shop, load, { immediate: true })
           <p v-if="saved" role="status">{{ saved }}</p>
         </form>
         <form v-if="tab === 'settings' && canEdit && payment" class="lc-form payment-settings" @submit.prevent="savePayment">
-          <span class="eyebrow">PAYMENT</span><h2>Cash on Delivery</h2><p class="muted">The rider records payment when confirming delivery. ERPNext creates and pays the Sales Invoice automatically.</p>
+          <span class="eyebrow">PAYMENT</span><h2>Cash on Delivery</h2><p class="muted">The rider records the amount at delivery. The Payment Entry is created after the shop confirms the cash handover.</p>
           <fieldset :disabled="paymentSaving" class="workspace-fields">
             <label class="check-label"><input v-model="payment.enabled" type="checkbox"><span>Enable Cash on Delivery<small>Customers can place an order and pay the rider at delivery.</small></span></label>
             <label>Cash collection account<select v-model="payment.cash_account" :required="payment.enabled"><option value="">Select cash account</option><option v-for="account in payment.cash_accounts" :key="account" :value="account">{{ account }}</option></select></label>

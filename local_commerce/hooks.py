@@ -109,3 +109,6 @@ for _event in ("validate", "before_submit", "before_cancel", "on_trash"):
 
 permission_query_conditions["LC Customer Account"] = "local_commerce.services.customers.query"
 has_permission["LC Customer Account"] = "local_commerce.services.customers.permission"
+
+permission_query_conditions["LC COD Collection"] = "local_commerce.services.orders.collection_query"
+has_permission["LC COD Collection"] = "local_commerce.services.orders.collection_permission"

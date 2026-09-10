@@ -298,6 +298,47 @@ html { scroll-behavior: smooth; }
 #lc-app .payment-dialog::backdrop { background: #16342c8c; backdrop-filter: blur(4px); }
 #lc-app .payment-dialog h2 { margin: 8px 0; font-size: 28px; }
 #lc-app .cash-symbol { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 20px; border-radius: 16px; color: white; background: #176547; font-size: 25px; font-weight: 800; }
+#lc-app .cash-field { margin-top: 18px; font-weight: 700; }
+#lc-app .cash-field small { display: block; color: #748174; font-weight: 500; }
+#lc-app .cash-field textarea { min-height: 82px; resize: vertical; }
+#lc-app .variance-note { padding: 10px 13px; border-radius: 9px; color: #765d20; background: #fff3ce; font-weight: 700; }
+#lc-app .variance-note.shortage { color: #933e2c; background: #fdebe5; }
+#lc-app .rider-cash-summary { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 14px; padding: 16px 18px; border-radius: 14px; color: #614d1b; background: #fff4d2; border: 1px solid #f0dfaa; }
+#lc-app .rider-cash-summary > div { display: flex; align-items: center; gap: 12px; }
+#lc-app .rider-cash-summary > div > span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; color: white; background: #b88b22; font-size: 18px; font-weight: 800; }
+#lc-app .rider-cash-summary small { display: block; color: #807044; }
+#lc-app .rider-cash-summary p { margin: 0; font-size: 20px; font-weight: 800; }
+#lc-app .rider-cash-lines { display: grid; gap: 5px; text-align: right; }
+#lc-app .rider-cash-lines p small { margin-right: 8px; }
+
+/* Shop cash handover */
+#lc-app .cash-page { min-width: 0; }
+#lc-app .cash-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+#lc-app .cash-heading h2 { margin: 7px 0 2px; font-size: 32px; }
+#lc-app .cash-heading p { margin: 0; color: #718073; }
+#lc-app .cash-tabs { display: flex; gap: 7px; padding: 5px; margin-bottom: 18px; border-radius: 12px; background: #eef2e9; }
+#lc-app .cash-tabs button { flex: 1; border: 0; background: transparent; }
+#lc-app .cash-tabs button[aria-selected=true] { color: #176547; background: white; box-shadow: 0 2px 8px #193c3610; font-weight: 750; }
+#lc-app .cash-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 18px; }
+#lc-app .cash-totals article { display: flex; flex-direction: column; padding: 20px; border: 1px solid #dce5cf; border-radius: 15px; background: #f0f5e5; }
+#lc-app .cash-totals span { color: #6f7b63; font-size: 9px; letter-spacing: 1.2px; font-weight: 750; }
+#lc-app .cash-totals strong { margin: 5px 0; font-size: 30px; }
+#lc-app .cash-totals small { color: #77816f; }
+#lc-app .cash-list { display: grid; gap: 16px; }
+#lc-app .cash-card { padding: 22px; border: 1px solid var(--lc-line); border-radius: 17px; background: white; box-shadow: 0 5px 20px #193c3608; }
+#lc-app .cash-card > header { display: flex; align-items: start; justify-content: space-between; gap: 15px; }
+#lc-app .cash-card h3 { margin: 5px 0 0; }
+#lc-app .cash-card header p { margin: 0; color: #79847b; font-size: 12px; }
+#lc-app .cash-amounts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
+#lc-app .cash-amounts > div { padding: 13px; border-radius: 11px; background: #f5f7f1; }
+#lc-app .cash-amounts > div.variance { background: #fff1dc; }
+#lc-app .cash-amounts dt { color: #79847a; font-size: 10px; }
+#lc-app .cash-amounts dd { margin: 3px 0 0; font-size: 17px; font-weight: 750; overflow-wrap: anywhere; }
+#lc-app .cash-note { display: grid; margin: 10px 0; padding: 12px 15px; border-left: 3px solid #d9a83a; border-radius: 5px; background: #fff9e9; }
+#lc-app .cash-card > footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 18px; padding: 16px 0 0; }
+#lc-app .cash-card > footer span { color: #788278; font-size: 12px; }
+#lc-app .cash-empty { text-align: center; }
+#lc-app .cash-empty > div { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 12px; border-radius: 50%; color: white; background: #35a06d; font-size: 22px; }
 @media(max-width: 900px) {
   #lc-app .rider-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
   #lc-app .rider-profile-card { position: static; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 18px; }
@@ -318,6 +359,10 @@ html { scroll-behavior: smooth; }
   #lc-app .delivery-section-heading { align-items: start; }
   #lc-app .driver-assignment { grid-template-columns: minmax(0, 1fr); }
   #lc-app .driver-assignment button { width: 100%; }
+  #lc-app .rider-cash-summary, #lc-app .cash-heading, #lc-app .cash-card > footer { align-items: stretch; flex-direction: column; }
+  #lc-app .rider-cash-lines { text-align: left; }
+  #lc-app .cash-amounts { grid-template-columns: minmax(0, 1fr); }
+  #lc-app .cash-card > footer button { width: 100%; }
 }
 
 #lc-app .auth-page { max-width: 720px; }

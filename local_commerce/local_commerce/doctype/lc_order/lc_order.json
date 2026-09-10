@@ -114,7 +114,7 @@
       "fieldname": "payment_status",
       "label": "Payment Status",
       "fieldtype": "Select",
-      "options": "Pending\nPaid",
+      "options": "Pending\nCollected\nReconciled",
       "read_only": 1
     },
     {

@@ -15,6 +15,7 @@ def before_install():
         "LC Stock Operation",
         "LC Order",
         "LC Customer Account",
+        "LC COD Collection",
     ):
         if frappe.db.exists("DocType", name):
             frappe.throw(f"DocType collision: {name}; inspect ownership before installing")
@@ -169,6 +170,11 @@ def after_migrate():
                 'Picked Up', 'Out for Delivery')
             and coalesce(payment_method, '')=''"""
         )
+        frappe.db.sql(
+            """update `tabLC Order`
+            set payment_status='Reconciled'
+            where payment_status='Paid' and coalesce(payment_entry, '')!=''"""
+        )
     frappe.db.add_unique("LC Shop Member", ["shop", "user"], "lc_shop_member_unique")
 
 
@@ -179,6 +185,7 @@ def before_migrate():
         "LC Stock Operation",
         "LC Order",
         "LC Customer Account",
+        "LC COD Collection",
     ):
         module = frappe.db.get_value("DocType", name, "module")
         if module and module != "Local Commerce":

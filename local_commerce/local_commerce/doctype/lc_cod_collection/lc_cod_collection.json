@@ -1,0 +1,130 @@
+{
+  "doctype": "DocType",
+  "name": "LC COD Collection",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "track_changes": 1,
+  "title_field": "order",
+  "field_order": [
+    "order",
+    "shop",
+    "delivery_user",
+    "currency",
+    "expected_amount",
+    "collected_amount",
+    "variance",
+    "status",
+    "collected_at",
+    "driver_note",
+    "reconciled_by",
+    "reconciled_at",
+    "owner_note"
+  ],
+  "fields": [
+    {
+      "fieldname": "order",
+      "label": "Order",
+      "fieldtype": "Link",
+      "options": "LC Order",
+      "unique": 1,
+      "reqd": 1,
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "shop",
+      "label": "Shop",
+      "fieldtype": "Link",
+      "options": "LC Shop",
+      "reqd": 1,
+      "read_only": 1,
+      "search_index": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "delivery_user",
+      "label": "Delivery Person",
+      "fieldtype": "Link",
+      "options": "User",
+      "reqd": 1,
+      "read_only": 1,
+      "search_index": 1
+    },
+    {
+      "fieldname": "currency",
+      "label": "Currency",
+      "fieldtype": "Link",
+      "options": "Currency",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "expected_amount",
+      "label": "Expected Amount",
+      "fieldtype": "Currency",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "collected_amount",
+      "label": "Collected Amount",
+      "fieldtype": "Currency",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "variance",
+      "label": "Variance",
+      "fieldtype": "Currency",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "status",
+      "label": "Status",
+      "fieldtype": "Select",
+      "options": "Awaiting Handover\nReconciled",
+      "reqd": 1,
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "collected_at",
+      "label": "Collected At",
+      "fieldtype": "Datetime",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "driver_note",
+      "label": "Driver Note",
+      "fieldtype": "Small Text",
+      "read_only": 1
+    },
+    {
+      "fieldname": "reconciled_by",
+      "label": "Reconciled By",
+      "fieldtype": "Link",
+      "options": "User",
+      "read_only": 1
+    },
+    {
+      "fieldname": "reconciled_at",
+      "label": "Reconciled At",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    },
+    {
+      "fieldname": "owner_note",
+      "label": "Owner Note",
+      "fieldtype": "Small Text",
+      "read_only": 1
+    }
+  ],
+  "permissions": [
+    { "role": "LC Platform Administrator", "read": 1 },
+    { "role": "LC Shop Owner", "read": 1 },
+    { "role": "LC Delivery Person", "read": 1 }
+  ]
+}
