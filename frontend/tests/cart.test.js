@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readCart, writeCart, clearCart, loginUrl } from '../src/cart.js'
+import { readCart, writeCart, clearCart, loginUrl, changeQuantity } from '../src/cart.js'
 function storage() {
   const values = new Map()
   return { getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) }
@@ -26,4 +26,13 @@ test('login URL preserves checkout route in encoded redirect', () => {
 })
 test('storage failures propagate instead of pretending a cart was saved', () => {
   assert.throws(() => writeCart({ setItem() { throw new Error('blocked') } }, 'a', cart), /blocked/)
+})
+test('cart quantity controls add, increment, and remove a line', () => {
+  const item = { item: 'fish', item_name: 'Fish', rate: 100, available: 2 }
+  const one = changeQuantity({}, item, 1)
+  assert.equal(one.fish.quantity, 1)
+  const two = changeQuantity(one, item, 1)
+  assert.equal(two.fish.quantity, 2)
+  assert.deepEqual(changeQuantity(one, item, -1), {})
+  assert.throws(() => changeQuantity(two, item, 1), /available stock/)
 })

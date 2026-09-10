@@ -3,13 +3,15 @@ import { computed, inject, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call } from './api.js'
 import AuthChoices from './AuthChoices.vue'
-import { readCart, writeCart, clearCart } from './cart.js'
+import { readCart, writeCart, clearCart, changeQuantity } from './cart.js'
 const route = useRoute(), router = useRouter(), session = inject('session')
-const catalog = ref(null), quantities = ref({}), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
-const cart = ref({}), pending = ref(null), checkout = ref(false)
+const catalog = ref(null), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
+const cart = ref({}), pending = ref(null), checkout = ref(false), cartOpen = ref(false)
 const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '' })
 const storageKey = computed(() => `lc-delivery:${session.value.user}:${route.params.shop}`)
 const subtotal = computed(() => Object.values(cart.value).reduce((sum, row) => sum + row.rate * Number(row.quantity), 0))
+const cartLines = computed(() => Object.keys(cart.value).length)
+const estimatedTotal = computed(() => subtotal.value + Number(catalog.value?.delivery_fee || 0))
 function money(value) { if (value == null) return 'Price coming soon'; return new Intl.NumberFormat(undefined, { style: 'currency', currency: catalog.value.currency }).format(value) }
 async function load(delta = 0) {
   loading.value = true; error.value = ''; start.value = Math.max(0, start.value + delta)
@@ -17,10 +19,17 @@ async function load(delta = 0) {
   catch (e) { error.value = e.message }
   finally { loading.value = false }
 }
-function add(item) {
-  const quantity = Number(quantities.value[item.item] || 1)
-  if (!Number.isFinite(quantity) || quantity <= 0 || quantity > item.available) { error.value = 'Choose a quantity within available stock.'; return }
-  cart.value[item.item] = { ...item, quantity }
+function updateQuantity(item, delta) {
+  error.value = ''
+  try { cart.value = changeQuantity(cart.value, item, delta) }
+  catch { error.value = 'That quantity is not available right now.' }
+}
+function openCart() {
+  checkout.value = false
+  cartOpen.value = true
+}
+function closeCart() {
+  if (!busy.value) cartOpen.value = false
 }
 async function place() {
   if (session.value.user === 'Guest') {
@@ -45,17 +54,18 @@ async function place() {
   } finally { busy.value = false }
 }
 watch(() => route.params.shop, () => {
-  start.value = 0; quantities.value = {}; pending.value = null
+  start.value = 0; pending.value = null; cartOpen.value = false; checkout.value = false
   try { cart.value = readCart(localStorage, route.params.shop) } catch { cart.value = {}; error.value = 'Your saved cart could not be read.' }
   try { pending.value = JSON.parse(sessionStorage.getItem(storageKey.value) || 'null') } catch { /* Server validates recovered payloads. */ }
   load()
 }, { immediate: true })
 watch(cart, value => {
   try { writeCart(localStorage, route.params.shop, value) } catch { error.value = 'Your browser could not save this cart. Enable local storage before logging in.' }
+  if (!Object.keys(value).length) cartOpen.value = false
 }, { deep: true })
 </script>
 <template>
-  <div class="store-page">
+  <div class="store-page customer-shop" :class="{ 'has-cart-bar': cartLines }">
     <RouterLink to="/store">← All shops</RouterLink> · <RouterLink to="/orders">My orders</RouterLink>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p><p v-if="loading" role="status">Loading products…</p>
     <template v-if="catalog">
@@ -64,30 +74,36 @@ watch(cart, value => {
       <p v-if="pending" class="lc-notice">Your last request is not confirmed. Retry it below before starting another.</p>
       <fieldset :disabled="busy || !!pending">
         <div class="lc-grid product-grid">
-          <article v-for="item in catalog.items" :key="item.item" class="lc-card">
-            <h3>{{ item.item_name }}</h3><p>{{ item.description }}</p><strong>{{ money(item.rate) }} / {{ item.uom }}</strong><p>{{ item.available }} {{ item.uom }} available</p>
-            <label>Quantity<input v-model="quantities[item.item]" type="number" min="0.000001" step="0.000001" :max="item.available" placeholder="1"></label>
-            <button :disabled="item.available <= 0 || item.rate == null" @click="add(item)">{{ item.rate == null ? 'Price coming soon' : item.available > 0 ? 'Add to cart' : 'Sold out' }}</button>
+          <article v-for="item in catalog.items" :key="item.item" class="lc-card customer-product-card">
+            <div class="product-art" aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</div>
+            <p class="product-availability">{{ item.available }} {{ item.uom }} available</p>
+            <h3>{{ item.item_name }}</h3><p class="product-description">{{ item.description || 'Fresh from your local shop.' }}</p>
+            <div class="product-buy-row"><strong>{{ money(item.rate) }}<small v-if="item.rate != null"> / {{ item.uom }}</small></strong>
+              <div v-if="cart[item.item]" class="quantity-stepper" :aria-label="`${item.item_name} quantity`"><button type="button" :aria-label="`Remove one ${item.item_name}`" @click="updateQuantity(item, -1)">−</button><strong aria-live="polite">{{ cart[item.item].quantity }}</strong><button type="button" :disabled="cart[item.item].quantity >= item.available" :aria-label="`Add one ${item.item_name}`" @click="updateQuantity(item, 1)">+</button></div>
+              <button v-else class="add-item-button" :disabled="item.available <= 0 || item.rate == null" @click="updateQuantity(item, 1)">{{ item.rate == null ? 'Soon' : item.available > 0 ? 'ADD' : 'Sold out' }}</button>
+            </div>
           </article>
         </div>
         <p v-if="!catalog.items.length" class="lc-empty">No products on this page.</p>
         <div class="lc-pagination"><button :disabled="!start || loading" @click="load(-20)">Previous</button><button :disabled="!catalog.has_more || loading" @click="load(20)">Next</button></div>
       </fieldset>
-      <AuthChoices v-if="checkout && session.user === 'Guest'" />
-      <form v-if="Object.keys(cart).length || pending" class="inventory-form" @submit.prevent="place">
-        <h2>Your delivery request</h2>
-        <fieldset :disabled="busy || !!pending">
-          <ul><li v-for="item in cart" :key="item.item">{{ item.item_name }} · {{ item.quantity }} {{ item.uom }} <button type="button" @click="delete cart[item.item]">Remove</button></li></ul>
-          <p>Products {{ money(subtotal) }} + delivery {{ money(catalog.delivery_fee) }}. ERPNext calculates applicable taxes when the request is saved. This is a request for shop confirmation; no payment is taken.</p>
-          <template v-if="session.user !== 'Guest'">
-            <div class="form-columns"><label>Recipient<input v-model="address.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="address.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div>
-            <label>Street address<input v-model="address.line1" required maxlength="140" autocomplete="address-line1"></label>
-            <div class="form-columns"><label>City<input v-model="address.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="address.postal_code" required maxlength="20" autocomplete="postal-code"></label></div>
-          </template>
-        </fieldset>
-        <p v-if="!catalog.accepting_orders" class="muted">Your cart is saved. This shop is not accepting orders yet.</p>
-        <button class="lc-primary" :disabled="busy || (!catalog.accepting_orders && !pending)">{{ busy ? 'Sending…' : pending ? 'Retry same request' : session.user === 'Guest' ? 'Order / Checkout' : 'Send delivery request' }}</button>
-      </form>
+      <button v-if="cartLines" class="floating-cart-bar" type="button" aria-haspopup="dialog" @click="openCart"><span class="cart-bag" aria-hidden="true">▣</span><span><strong>{{ cartLines }} {{ cartLines === 1 ? 'item' : 'items' }}</strong><small>{{ money(subtotal) }}</small></span><strong>View cart&nbsp; ›</strong></button>
+      <div v-if="cartOpen" class="cart-backdrop" @click.self="closeCart">
+        <aside class="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+          <header class="cart-drawer-header"><div><span class="eyebrow">YOUR BASKET</span><h2 id="cart-title">My cart</h2></div><button type="button" aria-label="Close cart" :disabled="busy" @click="closeCart">×</button></header>
+          <div class="delivery-promise"><span aria-hidden="true">✓</span><div><strong>From {{ catalog.shop_name }}</strong><small>{{ catalog.accepting_orders ? 'Delivery request subject to shop confirmation' : 'Ordering opens soon' }}</small></div></div>
+          <div class="cart-line-list">
+            <article v-for="item in cart" :key="item.item" class="cart-line"><div class="cart-line-art" aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</div><div><strong>{{ item.item_name }}</strong><small>{{ money(item.rate) }} / {{ item.uom }}</small></div><div class="quantity-stepper"><button type="button" :disabled="busy || !!pending" :aria-label="`Remove one ${item.item_name}`" @click="updateQuantity(item, -1)">−</button><strong>{{ item.quantity }}</strong><button type="button" :disabled="busy || !!pending || item.quantity >= item.available" :aria-label="`Add one ${item.item_name}`" @click="updateQuantity(item, 1)">+</button></div><strong>{{ money(item.rate * item.quantity) }}</strong></article>
+          </div>
+          <section class="bill-details"><h3>Bill details</h3><p><span>Item total</span><strong>{{ money(subtotal) }}</strong></p><p><span>Delivery fee</span><strong>{{ money(catalog.delivery_fee) }}</strong></p><p class="bill-total"><span>Estimated total</span><strong>{{ money(estimatedTotal) }}</strong></p><small>ERPNext calculates applicable taxes when your request is saved.</small></section>
+          <AuthChoices v-if="checkout && session.user === 'Guest'" />
+          <form v-else class="cart-checkout-form" @submit.prevent="place">
+            <fieldset v-if="session.user !== 'Guest'" :disabled="busy || !!pending"><h3>Delivery details</h3><div class="form-columns"><label>Recipient<input v-model="address.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="address.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div><label>Street address<input v-model="address.line1" required maxlength="140" autocomplete="address-line1"></label><div class="form-columns"><label>City<input v-model="address.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="address.postal_code" required maxlength="20" autocomplete="postal-code"></label></div></fieldset>
+            <p v-if="!catalog.accepting_orders" class="muted">Your cart is saved. This shop is not accepting orders yet.</p>
+            <button class="cart-checkout-button" :disabled="busy || (!catalog.accepting_orders && !pending)"><span>{{ busy ? 'Sending…' : pending ? 'Retry request' : session.user === 'Guest' ? 'Login to order' : 'Send order request' }}</span><strong>{{ money(estimatedTotal) }} ›</strong></button>
+          </form>
+        </aside>
+      </div>
     </template>
   </div>
 </template>
