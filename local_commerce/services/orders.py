@@ -700,12 +700,19 @@ def delivery_change(order, target, collected_amount=None, note=""):
 
             if doc.delivery_note:
                 reject("This order already has a delivery note")
-            note = make_delivery_note(doc.sales_order)
-            note.lc_order = doc.name
-            note.flags.ignore_permissions = True
-            note.insert(ignore_permissions=True)
-            note.submit()
-            doc.delivery_note = note.name
+            original_user = frappe.session.user
+            try:
+                # The assigned rider is authorized above. ERPNext's mapper separately
+                # requires accounting create permission, so trusted bookkeeping runs as system.
+                frappe.set_user("Administrator")
+                delivery_note = make_delivery_note(doc.sales_order)
+                delivery_note.lc_order = doc.name
+                delivery_note.flags.ignore_permissions = True
+                delivery_note.insert(ignore_permissions=True)
+                delivery_note.submit()
+            finally:
+                frappe.set_user(original_user)
+            doc.delivery_note = delivery_note.name
             doc.picked_up_at = now_datetime()
         elif target == "Delivered":
             if (

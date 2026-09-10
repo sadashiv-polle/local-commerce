@@ -179,6 +179,7 @@ class TestDeliveryOrders(FrappeTestCase):
         self.assertEqual(len(orders.delivery_assignments()), 1)
         picked_up = orders.delivery_change(order["name"], "Picked Up")
         self.assertEqual(picked_up["status"], "Picked Up")
+        self.assertEqual(frappe.session.user, driver.name)
         doc = frappe.get_doc("LC Order", order["name"])
         self.assertEqual(frappe.db.get_value("Delivery Note", doc.delivery_note, "docstatus"), 1)
         self.assertEqual(owner.balance(self.item, self.warehouse.name)["actual"], 3)
