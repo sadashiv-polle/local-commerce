@@ -35,7 +35,12 @@ def after_install():
 
 
 def after_migrate():
+    from erpnext.setup.install import create_address_and_contact_custom_fields
     from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+    # ERPNext controllers query these standard Address fields. Re-run its idempotent
+    # installer because older or restored sites can be missing the Custom Field records.
+    create_address_and_contact_custom_fields()
 
     existing = frappe.get_meta("Item").get_field("lc_shop")
     if existing and (existing.fieldtype != "Link" or existing.options != "LC Shop"):
