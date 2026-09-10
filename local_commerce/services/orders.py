@@ -6,11 +6,13 @@ from contextvars import ContextVar
 from html import escape
 
 import frappe
-from frappe.utils import getdate, now_datetime, nowdate
+from frappe.utils import getdate, now_datetime, nowdate, time_diff_in_seconds
 
 from local_commerce.permissions.policy import can_access_shop
 from local_commerce.permissions.scope import identity, memberships, require_shop, shop_query
 from local_commerce.services import order_rules
+from local_commerce.services.location_rules import distance_km, point
+from local_commerce.services.locations import map_config, shop_location
 from local_commerce.services.owner import (
     _owner_operation,
     balance,
@@ -45,6 +47,14 @@ def is_shop_driver(user, shop):
 
 
 def validate_delivery(doc, method=None):
+    try:
+        location = point(doc.latitude, doc.longitude)
+    except ValueError as exc:
+        reject(str(exc))
+    if location:
+        if not all((doc.address_line1, doc.city, doc.postal_code)):
+            reject("Enter the complete shop address for its map location")
+        checked_number(doc.service_radius_km, "Delivery radius", positive=True)
     if doc.cod_enabled:
         company_link(
             "Account",
@@ -87,13 +97,29 @@ def public_shop(name, browsing=False):
 
 
 def shops(start=0):
-    return frappe.get_all(
+    rows = frappe.get_all(
         "LC Shop",
         filters={"status": "Active"},
-        fields=["name", "shop_name", "description"],
+        fields=[
+            "name",
+            "shop_name",
+            "description",
+            "address_line1",
+            "city",
+            "latitude",
+            "longitude",
+        ],
         start=offset(start),
         limit_page_length=20,
     )
+    for row in rows:
+        try:
+            row.location = point(row.latitude, row.longitude)
+        except ValueError:
+            row.location = None
+        row.pop("latitude", None)
+        row.pop("longitude", None)
+    return rows
 
 
 def offset(value):
@@ -165,6 +191,8 @@ def catalog(shop, start=0):
         products.append(product_data(doc, item, browsing=True))
     return {
         "shop_name": doc.shop_name,
+        "shop_location": shop_location(doc),
+        "map": map_config(),
         "accepting_orders": bool(doc.delivery_enabled and doc.cod_enabled),
         "items": products,
         "has_more": len(names) == 20,
@@ -219,6 +247,19 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
     allowed = {p.strip().upper() for p in doc.delivery_postcodes.splitlines() if p.strip()}
     if address["postal_code"] not in allowed:
         reject("This shop does not deliver to that postal code")
+    origin = shop_location(doc)
+    destination = point(address["latitude"], address["longitude"])
+    delivery_distance = None
+    if origin:
+        if not destination:
+            reject("Select your delivery location on the map")
+        delivery_distance = distance_km(origin, destination)
+        if delivery_distance > float(
+            checked_number(doc.service_radius_km, "Delivery radius", positive=True)
+        ):
+            reject(
+                f"This address is {delivery_distance:g} km away and outside the shop delivery area"
+            )
     prepared = []
     for row in rows:
         item = frappe.get_doc("Item", row["item"])
@@ -264,6 +305,10 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 "recipient": address["recipient"],
                 "phone": address["phone"],
                 "address_snapshot": json.dumps(address),
+                "destination_latitude": address["latitude"],
+                "destination_longitude": address["longitude"],
+                "delivery_distance_km": delivery_distance,
+                "delivery_instructions": address["delivery_instructions"],
             }
         ).insert(ignore_permissions=True)
         customer = customer_record(user, doc.company)
@@ -353,6 +398,19 @@ def authorize(doc, write=False):
 
 def serialize(doc):
     so = frappe.get_doc("Sales Order", doc.sales_order)
+    shop = frappe.get_doc("LC Shop", doc.shop)
+    try:
+        destination_location = point(doc.destination_latitude, doc.destination_longitude)
+    except ValueError:
+        destination_location = None
+    try:
+        driver_location = (
+            point(doc.driver_latitude, doc.driver_longitude)
+            if doc.status == "Out for Delivery" and doc.driver_location_at
+            else None
+        )
+    except ValueError:
+        driver_location = None
     return {
         "name": doc.name,
         "shop": doc.shop,
@@ -362,6 +420,21 @@ def serialize(doc):
         "recipient": doc.recipient,
         "phone": doc.phone,
         "address": json.loads(doc.address_snapshot),
+        "destination_location": destination_location,
+        "delivery_distance_km": doc.delivery_distance_km,
+        "delivery_instructions": doc.delivery_instructions,
+        "shop_location": shop_location(shop),
+        "map": map_config(),
+        "live_tracking_enabled": bool(shop.live_tracking_enabled),
+        "driver_location": (
+            {
+                **driver_location,
+                "accuracy": doc.driver_location_accuracy,
+                "updated_at": str(doc.driver_location_at),
+            }
+            if driver_location
+            else None
+        ),
         "reason": doc.reason,
         "delivery_user": doc.delivery_user,
         "delivery_name": (
@@ -725,6 +798,11 @@ def delivery_change(order, target, collected_amount=None, note=""):
             doc.payment_status = "Collected"
             doc.collected_at = now_datetime()
             doc.delivered_at = now_datetime()
+            # Precise rider coordinates are transient and are not retained after delivery.
+            doc.driver_latitude = None
+            doc.driver_longitude = None
+            doc.driver_location_accuracy = None
+            doc.driver_location_at = None
         previous = doc.status
         doc.status = target
         doc.save(ignore_permissions=True)
@@ -733,6 +811,56 @@ def delivery_change(order, target, collected_amount=None, note=""):
     finally:
         _owner_operation.reset(owner_token)
         _order_operation.reset(token)
+
+
+def update_driver_location(order, latitude, longitude, accuracy=None):
+    doc = frappe.get_doc("LC Order", order)
+    if doc.delivery_user != frappe.session.user or not is_shop_driver(
+        frappe.session.user, doc.shop
+    ):
+        frappe.throw("This delivery is not assigned to you", frappe.PermissionError)
+    # Keep the same shop-then-order lock order used by checkout and delivery changes.
+    frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
+    frappe.db.sql("select name from `tabLC Order` where name=%s for update", doc.name)
+    doc.reload()
+    if doc.delivery_user != frappe.session.user or not is_shop_driver(
+        frappe.session.user, doc.shop
+    ):
+        frappe.throw("This delivery is not assigned to you", frappe.PermissionError)
+    if doc.status != "Out for Delivery":
+        reject("Live location is available only while an order is out for delivery")
+    shop = frappe.get_doc("LC Shop", doc.shop)
+    if not shop.live_tracking_enabled:
+        reject("Live delivery tracking is disabled for this shop")
+    try:
+        location = point(latitude, longitude, required=True)
+    except ValueError as exc:
+        reject(str(exc))
+    location_accuracy = checked_number(accuracy or 0, "Location accuracy")
+    if location_accuracy < 0 or location_accuracy > 5000:
+        reject("Location accuracy is too low; move outdoors and try again")
+    now = now_datetime()
+    if doc.driver_location_at and time_diff_in_seconds(now, doc.driver_location_at) < 5:
+        return {"accepted": False, "updated_at": str(doc.driver_location_at)}
+    token = _order_operation.set(True)
+    try:
+        doc.driver_latitude = location["latitude"]
+        doc.driver_longitude = location["longitude"]
+        doc.driver_location_accuracy = float(location_accuracy)
+        doc.driver_location_at = now
+        doc.save(ignore_permissions=True)
+    finally:
+        _order_operation.reset(token)
+    payload = {
+        "order": doc.name,
+        **location,
+        "accuracy": float(location_accuracy),
+        "updated_at": str(now),
+    }
+    frappe.publish_realtime(
+        "lc_delivery_location", payload, user=doc.customer_user, after_commit=True
+    )
+    return {"accepted": True, **payload}
 
 
 def serialize_collection(doc):

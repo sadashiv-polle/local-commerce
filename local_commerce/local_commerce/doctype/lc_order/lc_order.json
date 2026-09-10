@@ -25,6 +25,14 @@
     "recipient",
     "phone",
     "address_snapshot",
+    "destination_latitude",
+    "destination_longitude",
+    "delivery_distance_km",
+    "delivery_instructions",
+    "driver_latitude",
+    "driver_longitude",
+    "driver_location_accuracy",
+    "driver_location_at",
     "reason"
   ],
   "fields": [
@@ -153,6 +161,59 @@
       "fieldname": "address_snapshot",
       "label": "Address Snapshot",
       "fieldtype": "Small Text",
+      "read_only": 1
+    },
+    {
+      "fieldname": "destination_latitude",
+      "label": "Destination Latitude",
+      "fieldtype": "Float",
+      "precision": 6,
+      "read_only": 1
+    },
+    {
+      "fieldname": "destination_longitude",
+      "label": "Destination Longitude",
+      "fieldtype": "Float",
+      "precision": 6,
+      "read_only": 1
+    },
+    {
+      "fieldname": "delivery_distance_km",
+      "label": "Straight-line Delivery Distance (km)",
+      "fieldtype": "Float",
+      "precision": 3,
+      "read_only": 1
+    },
+    {
+      "fieldname": "delivery_instructions",
+      "label": "Delivery Instructions",
+      "fieldtype": "Small Text",
+      "read_only": 1
+    },
+    {
+      "fieldname": "driver_latitude",
+      "label": "Current Driver Latitude",
+      "fieldtype": "Float",
+      "precision": 6,
+      "read_only": 1
+    },
+    {
+      "fieldname": "driver_longitude",
+      "label": "Current Driver Longitude",
+      "fieldtype": "Float",
+      "precision": 6,
+      "read_only": 1
+    },
+    {
+      "fieldname": "driver_location_accuracy",
+      "label": "Driver Location Accuracy (m)",
+      "fieldtype": "Float",
+      "read_only": 1
+    },
+    {
+      "fieldname": "driver_location_at",
+      "label": "Driver Location At",
+      "fieldtype": "Datetime",
       "read_only": 1
     },
     {

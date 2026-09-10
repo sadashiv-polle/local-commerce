@@ -5,11 +5,14 @@ import { call } from './api.js'
 import Products from './Products.vue'
 import Orders from './Orders.vue'
 import CashReconciliation from './CashReconciliation.vue'
+import MapView from './MapView.vue'
 const session = inject('session'), route = useRoute()
 const shop = ref(null), loading = ref(false), error = ref(''), saved = ref(''), saving = ref(false)
 const payment = ref(null), paymentSaved = ref(''), paymentSaving = ref(false)
 const tab = ref('inventory')
+const locationError = ref(''), locating = ref(false)
 const canEdit = computed(() => shop.value && (session.value.platform_admin || session.value.memberships.some(m => m.shop === shop.value.name && m.membership_role === 'Owner')))
+const shopPoints = computed(() => shop.value?.latitude != null && shop.value?.longitude != null ? [{ kind: 'shop', label: shop.value.shop_name, latitude: shop.value.latitude, longitude: shop.value.longitude }] : [])
 let request = 0
 async function load() {
   const current = ++request
@@ -36,10 +39,22 @@ async function save() {
   const current = request
   try {
     const s = shop.value
-    const result = await call('shops.update_shop', { shop: s.name, shop_name: s.shop_name, status: s.status, description: s.description || '' }, true)
+    const result = await call('shops.update_shop', { shop: s.name, shop_name: s.shop_name, status: s.status, description: s.description || '', address_line1: s.address_line1 || '', city: s.city || '', postal_code: s.postal_code || '', latitude: s.latitude ?? '', longitude: s.longitude ?? '', service_radius_km: s.service_radius_km || 5, live_tracking_enabled: s.live_tracking_enabled ? 1 : 0 }, true)
     if (current === request) { shop.value = result; saved.value = 'Shop settings saved.' }
   } catch (e) { if (current === request) error.value = e.message }
   finally { saving.value = false }
+}
+function pickShopLocation(point) { shop.value.latitude = point.latitude; shop.value.longitude = point.longitude; locationError.value = '' }
+function clearShopLocation() { shop.value.latitude = null; shop.value.longitude = null; locationError.value = '' }
+function useShopLocation() {
+  locationError.value = ''
+  if (!navigator.geolocation) { locationError.value = 'Location is not available in this browser. Tap the map to place the shop pin.'; return }
+  locating.value = true
+  navigator.geolocation.getCurrentPosition(
+    position => { pickShopLocation(position.coords); locating.value = false },
+    () => { locationError.value = window.isSecureContext ? 'We could not read this device location. Allow location access or tap the map.' : 'Automatic location needs HTTPS. You can still tap the map to place the pin.'; locating.value = false },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
+  )
 }
 watch(() => route.params.shop, load, { immediate: true })
 </script>
@@ -74,6 +89,16 @@ watch(() => route.params.shop, load, { immediate: true })
             <label>Company<input :value="shop.company" disabled></label>
             <label>Status<select v-model="shop.status"><option>Draft</option><option>Active</option><option>Temporarily Closed</option><option>Disabled</option></select></label>
             <label>Description<textarea v-model="shop.description"></textarea></label>
+            <section class="location-editor">
+              <div class="location-heading"><div><span class="eyebrow">DELIVERY MAP</span><h3>Shop address &amp; service area</h3><p>Place the shop pin and set how far your riders deliver.</p></div><button type="button" :disabled="locating" @click="useShopLocation">{{ locating ? 'Finding…' : 'Use current location' }}</button></div>
+              <label>Street address<input v-model="shop.address_line1" maxlength="140" autocomplete="street-address"></label>
+              <div class="form-columns"><label>City<input v-model="shop.city" maxlength="140" autocomplete="address-level2"></label><label>Postal code<input v-model="shop.postal_code" maxlength="140" autocomplete="postal-code"></label></div>
+              <MapView :config="shop.map" :points="shopPoints" editable @pick="pickShopLocation" />
+              <div class="coordinate-row"><span v-if="shopPoints.length">Pin: {{ Number(shop.latitude).toFixed(6) }}, {{ Number(shop.longitude).toFixed(6) }}</span><span v-else>No map pin selected</span><button v-if="shopPoints.length" type="button" @click="clearShopLocation">Clear pin</button></div>
+              <label>Delivery radius (km)<input v-model.number="shop.service_radius_km" type="number" min="0.1" max="500" step="0.1" required></label>
+              <label class="check-label"><input v-model="shop.live_tracking_enabled" type="checkbox"><span>Allow live rider tracking<small>Customers can see the assigned rider while their order is out for delivery.</small></span></label>
+              <p v-if="locationError" class="lc-notice" role="alert">{{ locationError }}</p>
+            </section>
             <button v-if="canEdit" class="lc-primary">{{ saving ? 'Saving…' : 'Save settings' }}</button>
           </fieldset>
           <p v-if="saved" role="status">{{ saved }}</p>

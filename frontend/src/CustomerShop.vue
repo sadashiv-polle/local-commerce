@@ -3,14 +3,22 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call } from './api.js'
 import AuthChoices from './AuthChoices.vue'
+import MapView from './MapView.vue'
 import { readCart, writeCart, clearCart, changeQuantity } from './cart.js'
 const route = useRoute(), router = useRouter(), session = inject('session')
 const catalog = ref(null), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
 const cart = ref({}), pending = ref(null), checkout = ref(false), cartOpen = ref(false)
-const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '' })
+const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '', latitude: null, longitude: null, delivery_instructions: '' })
+const locationError = ref(''), locating = ref(false)
 const storageKey = computed(() => `lc-delivery:${session.value.user}:${route.params.shop}`)
 const subtotal = computed(() => Object.values(cart.value).reduce((sum, row) => sum + row.rate * Number(row.quantity), 0))
 const estimatedTotal = computed(() => subtotal.value + Number(catalog.value?.delivery_fee || 0))
+const deliveryPoints = computed(() => {
+  const points = []
+  if (catalog.value?.shop_location) points.push({ ...catalog.value.shop_location, kind: 'shop', label: catalog.value.shop_name })
+  if (address.value.latitude != null && address.value.longitude != null) points.push({ ...address.value, kind: 'customer', label: 'Your delivery location' })
+  return points
+})
 function money(value) { if (value == null) return 'Price coming soon'; return new Intl.NumberFormat(undefined, { style: 'currency', currency: catalog.value.currency }).format(value) }
 async function load(delta = 0) {
   loading.value = true; error.value = ''; start.value = Math.max(0, start.value + delta)
@@ -30,6 +38,17 @@ function openCart() {
 function openCartEvent() { openCart() }
 function closeCart() {
   if (!busy.value) cartOpen.value = false
+}
+function pickDeliveryLocation(point) { address.value.latitude = point.latitude; address.value.longitude = point.longitude; locationError.value = '' }
+function useDeliveryLocation() {
+  locationError.value = ''
+  if (!navigator.geolocation) { locationError.value = 'Location is not available in this browser. Tap the map to place your pin.'; return }
+  locating.value = true
+  navigator.geolocation.getCurrentPosition(
+    position => { pickDeliveryLocation(position.coords); locating.value = false },
+    () => { locationError.value = window.isSecureContext ? 'We could not read your location. Allow location access or tap the map.' : 'Automatic location needs HTTPS. You can still tap the map to place your delivery pin.'; locating.value = false },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
+  )
 }
 async function place() {
   if (session.value.user === 'Guest') {
@@ -104,7 +123,12 @@ onBeforeUnmount(() => window.removeEventListener('lc-open-cart', openCartEvent))
           <section class="bill-details"><h3>Bill details</h3><p><span>Item total</span><strong>{{ money(subtotal) }}</strong></p><p><span>Delivery fee</span><strong>{{ money(catalog.delivery_fee) }}</strong></p><p class="bill-total"><span>Estimated total</span><strong>{{ money(estimatedTotal) }}</strong></p><small>ERPNext calculates applicable taxes when your request is saved.</small></section>
           <AuthChoices v-if="checkout && session.user === 'Guest'" />
           <form v-else class="cart-checkout-form" @submit.prevent="place">
-            <fieldset v-if="session.user !== 'Guest'" :disabled="busy || !!pending"><h3>Delivery details</h3><div class="form-columns"><label>Recipient<input v-model="address.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="address.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div><label>Street address<input v-model="address.line1" required maxlength="140" autocomplete="address-line1"></label><div class="form-columns"><label>City<input v-model="address.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="address.postal_code" required maxlength="20" autocomplete="postal-code"></label></div><div class="checkout-payment"><span aria-hidden="true">₹</span><div><strong>Cash on Delivery</strong><small>{{ catalog.payment_message }}</small></div><b>✓</b></div></fieldset>
+            <fieldset v-if="session.user !== 'Guest'" :disabled="busy || !!pending">
+              <h3>Delivery details</h3><div class="form-columns"><label>Recipient<input v-model="address.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="address.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div><label>Street address<input v-model="address.line1" required maxlength="140" autocomplete="address-line1"></label><div class="form-columns"><label>City<input v-model="address.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="address.postal_code" required maxlength="20" autocomplete="postal-code"></label></div>
+              <section v-if="catalog.shop_location" class="checkout-location"><div class="location-heading"><div><strong>Pin your delivery location</strong><small>Inside {{ catalog.shop_location.service_radius_km }} km of the shop</small></div><button type="button" :disabled="locating" @click="useDeliveryLocation">{{ locating ? 'Finding…' : 'Use my location' }}</button></div><MapView :config="catalog.map" :points="deliveryPoints" editable height="220px" @pick="pickDeliveryLocation" /><p v-if="address.latitude != null" class="map-confirmation">✓ Delivery pin selected</p><p v-if="locationError" class="lc-notice" role="alert">{{ locationError }}</p></section>
+              <label>Delivery instructions <small>(optional)</small><textarea v-model="address.delivery_instructions" maxlength="500" placeholder="Landmark, gate, floor, or how to find you"></textarea></label>
+              <div class="checkout-payment"><span aria-hidden="true">₹</span><div><strong>Cash on Delivery</strong><small>{{ catalog.payment_message }}</small></div><b>✓</b></div>
+            </fieldset>
             <p v-if="!catalog.accepting_orders" class="muted">Your cart is saved. This shop is not accepting orders yet.</p>
             <button class="cart-checkout-button" :disabled="busy || (!catalog.accepting_orders && !pending)"><span>{{ busy ? 'Sending…' : pending ? 'Retry request' : session.user === 'Guest' ? 'Login to order' : 'Send order request' }}</span><strong>{{ money(estimatedTotal) }} ›</strong></button>
           </form>

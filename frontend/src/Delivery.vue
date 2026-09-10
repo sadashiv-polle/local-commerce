@@ -1,18 +1,29 @@
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import { call } from './api.js'
+import MapView from './MapView.vue'
 
 const session = inject('session')
 const profile = ref(null), assignments = ref([]), view = ref('active'), start = ref(0)
 const loading = ref(false), error = ref(''), busyOrder = ref('')
 const paymentDialog = ref(null), collectingOrder = ref(null)
 const collectedAmount = ref(''), collectionNote = ref(''), collectionError = ref('')
+const trackingOrder = ref(''), locationMessage = ref(''), locationError = ref('')
+let locationWatch = null, sendingLocation = false, lastLocationSent = 0
 const allowed = computed(() => session.value.roles.includes('LC Delivery Person') && session.value.memberships.some(member => member.membership_role === 'Driver'))
 const collectionVariance = computed(() => collectingOrder.value ? Number(collectedAmount.value || 0) - Number(collectingOrder.value.total) : 0)
 const next = { Ready: 'Picked Up', 'Picked Up': 'Out for Delivery', 'Out for Delivery': 'Delivered' }
 const labels = { Ready: 'Confirm pickup', 'Picked Up': 'Start delivery', 'Out for Delivery': 'Confirm delivered' }
 
 function money(value, currency) { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value) }
+function mapPoints(order) {
+  const points = []
+  if (order.shop_location) points.push({ ...order.shop_location, kind: 'shop', label: order.shop_name })
+  if (order.destination_location) points.push({ ...order.destination_location, kind: 'customer', label: order.recipient })
+  if (order.driver_location) points.push({ ...order.driver_location, kind: 'rider', label: 'Your live location' })
+  return points
+}
+function mapLink(location) { return `https://www.openstreetmap.org/?mlat=${encodeURIComponent(location.latitude)}&mlon=${encodeURIComponent(location.longitude)}#map=18/${encodeURIComponent(location.latitude)}/${encodeURIComponent(location.longitude)}` }
 async function load(delta = 0) {
   if (!allowed.value) return
   start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
@@ -31,9 +42,33 @@ async function advance(order, payment = {}) {
   busyOrder.value = order.name; error.value = ''
   try {
     await call('orders.delivery_change', { order: order.name, target: next[order.status], ...payment }, true)
+    if (next[order.status] === 'Delivered' && trackingOrder.value === order.name) stopTracking('Location sharing stopped after delivery.')
     await refresh()
   } catch (e) { error.value = e.message }
   finally { busyOrder.value = '' }
+}
+function stopTracking(message = 'Live location sharing stopped.') {
+  if (locationWatch != null) navigator.geolocation.clearWatch(locationWatch)
+  locationWatch = null; trackingOrder.value = ''; locationMessage.value = message; sendingLocation = false
+}
+function startTracking(order) {
+  locationError.value = ''; locationMessage.value = ''
+  if (!window.isSecureContext) { locationError.value = 'Live GPS needs HTTPS. Ask the administrator to enable HTTPS for this site.'; return }
+  if (!navigator.geolocation) { locationError.value = 'This device does not provide browser location.'; return }
+  if (trackingOrder.value && trackingOrder.value !== order.name) stopTracking('')
+  trackingOrder.value = order.name
+  locationWatch = navigator.geolocation.watchPosition(async position => {
+    const now = Date.now()
+    if (sendingLocation || now - lastLocationSent < 7000) return
+    sendingLocation = true; lastLocationSent = now
+    try {
+      await call('orders.update_driver_location', { order: order.name, latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy || 0 }, true)
+      locationMessage.value = 'Live location shared just now.'; locationError.value = ''
+      const current = assignments.value.find(row => row.name === order.name)
+      if (current) current.driver_location = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy || 0, updated_at: new Date().toISOString() }
+    } catch (e) { locationError.value = e.message }
+    finally { sendingLocation = false }
+  }, () => { locationError.value = 'Location access failed. Allow precise location in your browser and try again.'; stopTracking('') }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 })
 }
 function requestAdvance(order) {
   if (order.status !== 'Out for Delivery') { advance(order); return }
@@ -54,6 +89,7 @@ async function confirmCollection() {
   await advance(order, { collected_amount: amount, note: collectionNote.value.trim() })
 }
 onMounted(refresh)
+onBeforeUnmount(() => stopTracking(''))
 </script>
 
 <template>
@@ -93,12 +129,16 @@ onMounted(refresh)
           <article v-for="order in assignments" :key="order.name" class="delivery-card" :class="{ finished: ['Delivered', 'Cancelled'].includes(order.status) }">
             <header><div><span class="eyebrow">{{ order.shop_name }} · {{ order.name }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>
             <div class="delivery-address"><span aria-hidden="true">⌖</span><div><strong>{{ order.address.line1 }}</strong><p>{{ order.address.city }} · {{ order.address.postal_code }}</p><a :href="`tel:${order.phone}`">Call {{ order.phone }}</a></div></div>
+            <div v-if="order.destination_location" class="delivery-map-panel"><MapView :config="order.map" :points="mapPoints(order)" height="235px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Customer</span><span v-if="order.driver_location"><i class="legend-rider"></i>You</span><a :href="mapLink(order.destination_location)" target="_blank" rel="noopener">Open destination ↗</a></div></div>
+            <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
             <details><summary>{{ order.items.length }} product{{ order.items.length === 1 ? '' : 's' }} · {{ money(order.total, order.currency) }}</summary><ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }}</li></ul></details>
+            <div v-if="order.status === 'Out for Delivery' && order.live_tracking_enabled" class="tracking-controls"><button v-if="trackingOrder !== order.name" type="button" @click="startTracking(order)">Share live location</button><button v-else type="button" class="tracking-stop" @click="stopTracking()">Stop sharing</button><small>Location is visible only to this customer and is removed after delivery.</small></div>
             <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="requestAdvance(order)">{{ busyOrder === order.name ? 'Updating…' : order.status === 'Out for Delivery' ? 'Collect cash & confirm delivered' : labels[order.status] }} <span>›</span></button>
             <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered · Cash {{ order.payment_status === 'Reconciled' ? 'handed over' : 'awaiting handover' }}{{ order.delivered_at ? ` · ${order.delivered_at}` : '' }}</p>
             <p v-else-if="order.status === 'Cancelled'" class="muted">This order was cancelled.</p>
           </article>
         </div>
+        <p v-if="locationMessage" class="success-note" role="status">{{ locationMessage }}</p><p v-if="locationError" class="lc-notice" role="alert">{{ locationError }}</p>
         <div class="lc-pagination"><button :disabled="!start || loading || busyOrder" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="assignments.length < 20 || loading || busyOrder" @click="load(20)">Next</button></div>
       </div>
     </div>

@@ -365,6 +365,50 @@ html { scroll-behavior: smooth; }
   #lc-app .cash-card > footer button { width: 100%; }
 }
 
+/* Shop, checkout, and live-delivery maps */
+#lc-app .lc-map-shell { overflow: hidden; border: 1px solid #dbe5d7; border-radius: 16px; background: #edf2e9; }
+#lc-app .lc-map { width: 100%; min-height: 180px; z-index: 0; background: #e8eee4; }
+#lc-app .lc-map-shell footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; padding: 8px 12px; color: #667567; background: white; font-size: 10px; }
+#lc-app .map-marker { display: grid; place-items: center; border-radius: 50% 50% 50% 8px; border: 3px solid white; box-shadow: 0 4px 12px #193a2f45; transform: rotate(-45deg); }
+#lc-app .map-marker span { color: white; font-size: 15px; font-weight: 850; transform: rotate(45deg); }
+#lc-app .map-marker-shop { background: #f2b934; }
+#lc-app .map-marker-customer { background: #168346; }
+#lc-app .map-marker-rider { background: #286dcc; }
+#lc-app .location-editor { display: grid; gap: 14px; padding: 20px; border: 1px solid #dce6d7; border-radius: 17px; background: #f6f8f2; }
+#lc-app .location-heading, #lc-app .tracking-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+#lc-app .location-heading h3, #lc-app .tracking-heading h4 { margin: 4px 0; }
+#lc-app .location-heading p, #lc-app .location-heading small { display: block; margin: 0; color: #718073; }
+#lc-app .coordinate-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; color: #607061; font-size: 12px; }
+#lc-app .coordinate-row button { padding: 7px 11px; }
+#lc-app .checkout-location { display: grid; gap: 10px; margin: 16px 0; padding: 14px; border-radius: 14px; background: #f2f6ed; }
+#lc-app .checkout-location .location-heading strong, #lc-app .checkout-location .location-heading small { display: block; }
+#lc-app .checkout-location .location-heading button { padding: 8px 11px; }
+#lc-app .map-confirmation { margin: 0; color: #247850; font-size: 12px; font-weight: 700; }
+#lc-app .delivery-map-panel, #lc-app .order-tracking-panel { margin: 18px 0; }
+#lc-app .map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 9px; color: #667367; font-size: 11px; }
+#lc-app .map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+#lc-app .map-legend i { width: 9px; height: 9px; border-radius: 50%; }
+#lc-app .map-legend a { margin-left: auto; font-weight: 700; }
+#lc-app .legend-shop { background: #f2b934; }
+#lc-app .legend-customer { background: #168346; }
+#lc-app .legend-rider { background: #286dcc; }
+#lc-app .delivery-instructions { display: grid; gap: 3px; padding: 12px 14px; border-left: 3px solid #f0bb34; border-radius: 7px; background: #fff8df; color: #5e644e; }
+#lc-app .tracking-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 15px 0; padding: 13px; border-radius: 12px; background: #edf5ff; }
+#lc-app .tracking-controls button { color: white; background: #286dcc; border-color: #286dcc; }
+#lc-app .tracking-controls button.tracking-stop { color: #9a352f; background: white; border-color: #e0b1ad; }
+#lc-app .tracking-controls small { flex: 1 1 220px; color: #617185; }
+#lc-app .order-tracking-panel { padding: 16px; border: 1px solid #dce5da; border-radius: 15px; background: #f7f9f4; }
+#lc-app .tracking-heading { margin-bottom: 12px; }
+#lc-app .tracking-heading > span { padding: 5px 9px; border-radius: 8px; color: #276549; background: #e5f1e6; font-size: 11px; font-weight: 700; }
+#lc-app .shop-location-badge { display: inline-flex; align-self: start; margin-bottom: 8px; padding: 4px 8px; border-radius: 8px; color: #246749; background: #e8f2e5; font-size: 10px; font-weight: 700; }
+#lc-app .shop-card-address { display: block; margin: -3px 0 14px; color: #748075; }
+@media(max-width: 600px) {
+  #lc-app .location-editor { padding: 14px; }
+  #lc-app .location-heading, #lc-app .tracking-heading { flex-direction: column; }
+  #lc-app .location-heading button { width: 100%; }
+  #lc-app .map-legend a { width: 100%; margin-left: 0; }
+}
+
 #lc-app .auth-page { max-width: 720px; }
 #lc-app .auth-choices { display: flex; gap: 24px; flex-wrap: wrap; }
 #lc-app .auth-choices > div { display: grid; gap: 12px; }

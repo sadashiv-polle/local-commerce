@@ -66,9 +66,13 @@ class TestOrderRules(unittest.TestCase):
             postal_code=" ab12 ",
         )
         self.assertEqual(address_fields(address)["postal_code"], "AB12")
+        located = address_fields({**address, "latitude": 15.5, "longitude": 73.8})
+        self.assertEqual((located["latitude"], located["longitude"]), (15.5, 73.8))
         for field in address:
             with self.assertRaises(ValueError):
                 address_fields({**address, field: ""})
+        with self.assertRaises(ValueError):
+            address_fields({**address, "latitude": 15.5})
 
     def test_whole_units(self):
         whole_quantity("1.5", False)

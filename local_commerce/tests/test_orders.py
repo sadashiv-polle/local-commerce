@@ -133,6 +133,28 @@ class TestDeliveryOrders(FrappeTestCase):
         with self.assertRaises(frappe.ValidationError):
             self.place(key="outside-delivery-zone")
 
+    def test_shop_radius_requires_and_checks_customer_map_pin(self):
+        frappe.set_user("Administrator")
+        self.shop.reload()
+        self.shop.update(
+            {
+                "address_line1": "Test market",
+                "city": "Panaji",
+                "postal_code": "403001",
+                "latitude": 15.4909,
+                "longitude": 73.8278,
+                "service_radius_km": 2,
+            }
+        )
+        self.shop.save()
+        frappe.set_user(self.customer.name)
+        self.address.update({"latitude": 15.4989, "longitude": 73.8278})
+        placed = self.place(key="located-delivery-request")
+        self.assertAlmostEqual(placed["delivery_distance_km"], 0.89, places=2)
+        self.address.update({"latitude": 15.60, "longitude": 73.8278})
+        with self.assertRaises(frappe.ValidationError):
+            self.place(key="outside-map-radius")
+
     def test_acceptance_rechecks_stock(self):
         first = self.place(quantity=4)
         second = self.place(key="another-order-request", quantity=4)
@@ -184,6 +206,9 @@ class TestDeliveryOrders(FrappeTestCase):
         self.assertEqual(frappe.db.get_value("Delivery Note", doc.delivery_note, "docstatus"), 1)
         self.assertEqual(owner.balance(self.item, self.warehouse.name)["actual"], 3)
         out_for_delivery = orders.delivery_change(order["name"], "Out for Delivery")
+        location = orders.update_driver_location(order["name"], 15.5, 73.8, 12)
+        self.assertTrue(location["accepted"])
+        self.assertEqual(orders.detail(order["name"])["driver_location"]["latitude"], 15.5)
         delivered = orders.delivery_change(
             order["name"], "Delivered", collected_amount=out_for_delivery["total"]
         )
@@ -191,6 +216,7 @@ class TestDeliveryOrders(FrappeTestCase):
         self.assertTrue(delivered["delivered_at"])
         self.assertEqual(delivered["payment_status"], "Collected")
         self.assertFalse(delivered["payment_entry"])
+        self.assertIsNone(frappe.db.get_value("LC Order", order["name"], "driver_latitude"))
         self.assertEqual(
             frappe.db.get_value("Sales Invoice", delivered["sales_invoice"], "docstatus"), 1
         )

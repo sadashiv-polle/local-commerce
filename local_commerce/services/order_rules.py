@@ -2,6 +2,7 @@
 
 from decimal import Decimal
 
+from local_commerce.services.location_rules import point
 from local_commerce.services.owner_rules import number
 
 TRANSITIONS = {
@@ -65,6 +66,12 @@ def address_fields(address):
     if sum(c.isdigit() for c in result["phone"]) < 7:
         raise ValueError("Enter a valid phone number")
     result["postal_code"] = result["postal_code"].upper()
+    instructions = str(address.get("delivery_instructions") or "").strip()
+    if len(instructions) > 500:
+        raise ValueError("Delivery instructions cannot exceed 500 characters")
+    location = point(address.get("latitude"), address.get("longitude"))
+    result.update(location or {"latitude": None, "longitude": None})
+    result["delivery_instructions"] = instructions
     return result
 
 

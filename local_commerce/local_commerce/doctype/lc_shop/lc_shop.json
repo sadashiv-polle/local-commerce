@@ -12,6 +12,14 @@
     "company_currency",
     "status",
     "description",
+    "location_section",
+    "address_line1",
+    "city",
+    "postal_code",
+    "latitude",
+    "longitude",
+    "service_radius_km",
+    "live_tracking_enabled",
     "inventory_section",
     "warehouse",
     "stock_adjustment_account",
@@ -73,6 +81,50 @@
       "fieldname": "description",
       "label": "Description",
       "fieldtype": "Small Text"
+    },
+    {
+      "fieldname": "location_section",
+      "label": "Shop location and service area",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "address_line1",
+      "label": "Shop Address",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "city",
+      "label": "City",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "postal_code",
+      "label": "Shop Postal Code",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "latitude",
+      "label": "Latitude",
+      "fieldtype": "Float",
+      "precision": 6
+    },
+    {
+      "fieldname": "longitude",
+      "label": "Longitude",
+      "fieldtype": "Float",
+      "precision": 6
+    },
+    {
+      "fieldname": "service_radius_km",
+      "label": "Delivery Radius (km)",
+      "fieldtype": "Float",
+      "default": "5"
+    },
+    {
+      "fieldname": "live_tracking_enabled",
+      "label": "Enable Live Delivery Tracking",
+      "fieldtype": "Check",
+      "default": "1"
     },
     {
       "fieldname": "inventory_section",

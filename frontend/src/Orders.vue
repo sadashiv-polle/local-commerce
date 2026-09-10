@@ -1,7 +1,8 @@
 <script setup>
-import { inject, ref, watch } from 'vue'
+import { inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AuthChoices from './AuthChoices.vue'
 import { call } from './api.js'
+import MapView from './MapView.vue'
 
 const session = inject('session')
 const props = defineProps({ shop: { type: String, default: '' }, editable: Boolean })
@@ -12,8 +13,16 @@ const nextLabel = { Requested: 'Accept order', Accepted: 'Start preparing', Prep
 const cancellable = new Set(['Requested', 'Accepted', 'Preparing', 'Ready'])
 const steps = ['Requested', 'Accepted', 'Preparing', 'Ready', 'Picked Up', 'Out for Delivery', 'Delivered']
 let generation = 0
+let refreshTimer
 
 function money(value, currency) { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value) }
+function mapPoints(order) {
+  const points = []
+  if (order.shop_location) points.push({ ...order.shop_location, kind: 'shop', label: order.shop_name })
+  if (order.destination_location) points.push({ ...order.destination_location, kind: 'customer', label: order.recipient })
+  if (order.driver_location) points.push({ ...order.driver_location, kind: 'rider', label: order.delivery_name || 'Rider' })
+  return points
+}
 async function load(delta = 0) {
   if (session.value.user === 'Guest') return
   const current = ++generation
@@ -45,6 +54,8 @@ async function assign(order) {
   finally { busy.value = false }
 }
 watch(() => props.shop, () => { start.value = 0; load() }, { immediate: true })
+onMounted(() => { refreshTimer = window.setInterval(() => { if (!props.shop && orders.value.some(order => order.status === 'Out for Delivery')) load() }, 10000) })
+onBeforeUnmount(() => window.clearInterval(refreshTimer))
 </script>
 
 <template>
@@ -61,6 +72,8 @@ watch(() => props.shop, () => { start.value = 0; load() }, { immediate: true })
       <p><strong>Order total {{ money(order.total, order.currency) }}</strong><br><small>Includes {{ money(order.taxes_and_charges, order.currency) }} in configured taxes and delivery charges. Payment is not collected online yet.</small></p>
       <p class="payment-summary"><span><small>PAYMENT METHOD</small><strong>{{ order.payment_method }}</strong></span><span><small>PAYMENT STATUS</small><strong :class="{ paid: order.payment_status === 'Reconciled' }">{{ order.payment_status }}</strong></span></p>
       <details><summary>Delivery details</summary><p>{{ order.address.line1 }}<br>{{ order.address.city }} · {{ order.address.postal_code }}<br><a :href="`tel:${order.phone}`">{{ order.phone }}</a></p></details>
+      <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
+      <section v-if="order.destination_location && (shop || order.status === 'Out for Delivery')" class="order-tracking-panel"><div class="tracking-heading"><div><span class="eyebrow">{{ order.status === 'Out for Delivery' ? 'LIVE DELIVERY' : 'DELIVERY MAP' }}</span><h4>{{ order.status === 'Out for Delivery' ? 'Track your rider' : 'Route locations' }}</h4></div><span v-if="order.delivery_distance_km != null">{{ Number(order.delivery_distance_km).toFixed(1) }} km from shop</span></div><MapView :config="order.map" :points="mapPoints(order)" height="250px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Delivery</span><span v-if="order.driver_location"><i class="legend-rider"></i>Rider</span></div><p v-if="order.status === 'Out for Delivery' && order.driver_location" class="map-confirmation">Rider location updated {{ order.driver_location.updated_at }}</p><p v-else-if="order.status === 'Out for Delivery'" class="muted">Waiting for the rider to start live location sharing. This page refreshes automatically.</p></section>
       <p v-if="order.delivery_user" class="rider-summary"><span aria-hidden="true">●</span><strong>{{ order.delivery_name }}</strong> is assigned to this delivery.</p>
       <p v-if="order.reason">Cancellation: {{ order.reason }}</p>
       <p v-if="order.status === 'Requested'" class="muted">The shop will check stock before accepting this order.</p>

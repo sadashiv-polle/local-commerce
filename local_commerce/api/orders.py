@@ -68,6 +68,11 @@ def delivery_change(order, target, collected_amount=None, note=""):
     return orders.delivery_change(order, target, collected_amount, note)
 
 
+@frappe.whitelist(methods=["POST"])
+def update_driver_location(order, latitude, longitude, accuracy=None):
+    return orders.update_driver_location(order, latitude, longitude, accuracy)
+
+
 @frappe.whitelist()
 def cod_collections(shop, view="pending", start=0):
     return orders.cod_collections(shop, view, start)

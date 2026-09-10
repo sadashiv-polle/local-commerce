@@ -93,3 +93,18 @@ one customer across shops. See `docs/customer-accounts.md` for verification and
 compatibility limits. Six Bench integration tests added but unrun. Local checks:
 29 Python tests, 9 frontend tests, lint and production build pass. Signup requires
 configured outgoing email; real verification/login flow remains untested here.
+
+
+## Shop map and live delivery location milestone
+
+Added owner-managed shop addresses, coordinates, service radius and live-tracking
+configuration; customer checkout map pins; server-side coordinate validation and
+great-circle radius enforcement; rider foreground GPS sharing; and customer order
+tracking maps. Rider coordinates are customer-scoped and cleared on delivery. Map
+tiles and attribution are site-configurable. See `docs/location-tracking.md`.
+
+Local verification: 33 standalone Python tests and 15 frontend tests pass; Ruff,
+Vue lint, JSON validation and the Vite production build pass. Bench integration
+coverage now includes map-radius enforcement and rider-location cleanup, but these
+new database tests still require the deployed Bench site. Device GPS requires
+HTTPS and must be verified on the deployment.

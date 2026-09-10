@@ -14,5 +14,29 @@ def get_shop(shop):
 
 
 @frappe.whitelist(methods=["POST"])
-def update_shop(shop, shop_name, status, description=""):
-    return shops.update_shop(shop, shop_name, status, description)
+def update_shop(
+    shop,
+    shop_name,
+    status,
+    description="",
+    address_line1=None,
+    city=None,
+    postal_code=None,
+    latitude=None,
+    longitude=None,
+    service_radius_km=None,
+    live_tracking_enabled=None,
+):
+    return shops.update_shop(
+        shop,
+        shop_name,
+        status,
+        description,
+        address_line1,
+        city,
+        postal_code,
+        latitude,
+        longitude,
+        service_radius_km,
+        live_tracking_enabled,
+    )
