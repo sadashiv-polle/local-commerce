@@ -7,9 +7,11 @@ from frappe.utils import validate_email_address
 
 from local_commerce.permissions.policy import is_platform
 from local_commerce.permissions.scope import identity
+from local_commerce.services.order_rules import address_fields
 from local_commerce.services.owner import _owner_operation, reject
 
 _linking_customer = ContextVar("lc_linking_customer", default=False)
+_address_operation = ContextVar("lc_address_operation", default=False)
 
 
 def ensure_customer():
@@ -123,6 +125,7 @@ def summary(name):
 
 
 def account_info(start=0):
+    from local_commerce.services.locations import map_config
     from local_commerce.services.orders import offset
 
     customer = ensure_customer()
@@ -134,7 +137,167 @@ def account_info(start=0):
         start=offset(start),
         limit_page_length=20,
     )
-    return {"customer": customer, "orders": history}
+    return {
+        "customer": customer,
+        "addresses": list_addresses(),
+        "map": map_config(),
+        "orders": history,
+    }
+
+
+def serialize_address(doc):
+    return {
+        "name": doc.name,
+        "address_type": doc.address_type,
+        "address_label": doc.address_label,
+        "is_default": bool(doc.is_default),
+        "recipient": doc.recipient,
+        "phone": doc.phone,
+        "line1": doc.line1,
+        "city": doc.city,
+        "postal_code": doc.postal_code,
+        "latitude": doc.latitude,
+        "longitude": doc.longitude,
+    }
+
+
+def list_addresses():
+    customer = ensure_customer()
+    rows = frappe.get_all(
+        "LC Customer Address",
+        filters={"user": frappe.session.user, "customer": customer["name"], "disabled": 0},
+        fields=[
+            "name",
+            "address_type",
+            "address_label",
+            "is_default",
+            "recipient",
+            "phone",
+            "line1",
+            "city",
+            "postal_code",
+            "latitude",
+            "longitude",
+        ],
+        order_by="is_default desc, modified desc",
+        limit_page_length=50,
+    )
+    return [serialize_address(row) for row in rows]
+
+
+def save_address(
+    name,
+    address_type,
+    address_label,
+    recipient,
+    phone,
+    line1,
+    city,
+    postal_code,
+    latitude,
+    longitude,
+    is_default=False,
+):
+    customer = ensure_customer()
+    user = frappe.session.user
+    if address_type not in {"Home", "Work", "Other"}:
+        reject("Select Home, Work, or Other as the address type")
+    address_label = str(address_label or "").strip()
+    if not address_label or len(address_label) > 80:
+        reject("Enter a valid address label")
+    try:
+        values = address_fields(
+            {
+                "recipient": recipient,
+                "phone": phone,
+                "line1": line1,
+                "city": city,
+                "postal_code": postal_code,
+                "latitude": latitude,
+                "longitude": longitude,
+            }
+        )
+        if values["latitude"] is None:
+            raise ValueError("Select this address location on the map")
+    except (TypeError, ValueError) as exc:
+        reject(str(exc))
+    frappe.db.sql("select name from `tabUser` where name=%s for update", user)
+    if not name and frappe.db.count("LC Customer Address", {"user": user, "disabled": 0}) >= 20:
+        reject("You can keep up to 20 active delivery addresses")
+    if name:
+        doc = frappe.get_doc("LC Customer Address", name)
+        if doc.user != user or doc.customer != customer["name"] or doc.disabled:
+            frappe.throw("Address access denied", frappe.PermissionError)
+        frappe.db.sql("select name from `tabLC Customer Address` where name=%s for update", name)
+        doc.reload()
+    else:
+        doc = frappe.new_doc("LC Customer Address")
+        doc.user = user
+        doc.customer = customer["name"]
+    existing_default = frappe.db.exists(
+        "LC Customer Address", {"user": user, "disabled": 0, "is_default": 1}
+    )
+    make_default = is_default in (True, 1, "1", "true", "True")
+    if not existing_default or doc.is_default:
+        make_default = True
+    if make_default:
+        frappe.db.sql(
+            "update `tabLC Customer Address` set is_default=0 where `user`=%s and disabled=0",
+            user,
+        )
+    doc.update(
+        {
+            "address_type": address_type,
+            "address_label": address_label,
+            "is_default": make_default,
+            **{key: values[key] for key in ("recipient", "phone", "line1", "city", "postal_code")},
+            "latitude": values["latitude"],
+            "longitude": values["longitude"],
+        }
+    )
+    token = _address_operation.set(True)
+    try:
+        doc.save(ignore_permissions=True)
+    finally:
+        _address_operation.reset(token)
+    return serialize_address(doc)
+
+
+def archive_address(name):
+    customer = ensure_customer()
+    user = frappe.session.user
+    frappe.db.sql("select name from `tabUser` where name=%s for update", user)
+    doc = frappe.get_doc("LC Customer Address", name)
+    if doc.user != user or doc.customer != customer["name"] or doc.disabled:
+        frappe.throw("Address access denied", frappe.PermissionError)
+    was_default = bool(doc.is_default)
+    token = _address_operation.set(True)
+    try:
+        doc.disabled = 1
+        doc.is_default = 0
+        doc.save(ignore_permissions=True)
+        if was_default:
+            replacement = frappe.db.get_value(
+                "LC Customer Address",
+                {"user": user, "disabled": 0},
+                "name",
+                order_by="modified desc",
+            )
+            if replacement:
+                frappe.db.set_value("LC Customer Address", replacement, "is_default", 1)
+    finally:
+        _address_operation.reset(token)
+    return {"archived": True, "addresses": list_addresses()}
+
+
+def nearby(address, start=0):
+    customer = ensure_customer()
+    doc = frappe.get_doc("LC Customer Address", address)
+    if doc.user != frappe.session.user or doc.customer != customer["name"] or doc.disabled:
+        frappe.throw("Address access denied", frappe.PermissionError)
+    from local_commerce.services.orders import nearby_shops
+
+    return nearby_shops(serialize_address(doc), start)
 
 
 def permission(doc, user=None, permission_type=None, **kwargs):
@@ -151,6 +314,22 @@ def query(user=None):
     if is_platform(user, roles):
         return ""
     return "1=0" if user == "Guest" else "`tabLC Customer Account`.`user`=" + frappe.db.escape(user)
+
+
+def address_permission(doc, user=None, permission_type=None, **kwargs):
+    user, roles = identity(user)
+    return (
+        permission_type in (None, "read")
+        and user != "Guest"
+        and (doc.user == user or is_platform(user, roles))
+    )
+
+
+def address_query(user=None):
+    user, roles = identity(user)
+    if is_platform(user, roles):
+        return ""
+    return "1=0" if user == "Guest" else "`tabLC Customer Address`.`user`=" + frappe.db.escape(user)
 
 
 def new_customer_defaults():

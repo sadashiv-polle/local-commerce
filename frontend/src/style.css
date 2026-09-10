@@ -408,12 +408,57 @@ html { scroll-behavior: smooth; }
 #lc-app .tracking-heading > span { padding: 5px 9px; border-radius: 8px; color: #276549; background: #e5f1e6; font-size: 11px; font-weight: 700; }
 #lc-app .shop-location-badge { display: inline-flex; align-self: start; margin-bottom: 8px; padding: 4px 8px; border-radius: 8px; color: #246749; background: #e8f2e5; font-size: 10px; font-weight: 700; }
 #lc-app .shop-card-address { display: block; margin: -3px 0 14px; color: #748075; }
+#lc-app .delivery-location-bar { display: flex; align-items: center; gap: 13px; margin: 0 0 12px; padding: 14px 16px; border: 1px solid #dce5d7; border-radius: 15px; background: white; box-shadow: 0 5px 20px #193c3608; }
+#lc-app .delivery-location-bar > label, #lc-app .delivery-location-bar > div { display: grid; flex: 1; min-width: 0; margin: 0; }
+#lc-app .delivery-location-bar label small, #lc-app .delivery-location-bar div small { color: #748075; font-size: 9px; letter-spacing: 1.2px; }
+#lc-app .delivery-location-bar select { padding: 5px 24px 5px 0; border: 0; background-color: transparent; font-weight: 750; }
+#lc-app .delivery-location-bar > a { font-weight: 750; white-space: nowrap; }
+#lc-app .nearby-summary { margin: 0 0 20px; color: #667568; font-size: 12px; }
+#lc-app .shop-card-badges { display: flex; justify-content: space-between; gap: 8px; align-items: start; }
+#lc-app .distance-badge { padding: 4px 8px; border-radius: 8px; color: #586a59; background: #f0f2ec; font-size: 10px; font-weight: 700; }
+#lc-app .nearby-shop-card.unavailable { background: #fbfcfa; }
+#lc-app .serviceability-line { display: block; margin-bottom: 13px; color: #9a604c; font-size: 11px; font-weight: 700; }
+#lc-app .serviceability-line.available { color: #168346; }
+#lc-app .saved-address-picker { display: flex; align-items: end; gap: 12px; margin-bottom: 15px; padding: 12px; border-radius: 11px; background: #edf5e8; }
+#lc-app .saved-address-picker label { flex: 1; margin: 0; }
+#lc-app .saved-address-picker a { padding-bottom: 12px; font-size: 11px; font-weight: 750; }
+
+/* Customer account and address book */
+#lc-app .account-page { max-width: 1050px; margin: auto; }
+#lc-app .account-heading { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin-bottom: 32px; padding: 30px; border-radius: 22px; background: linear-gradient(135deg, #eaf3e5, #f7f5de); }
+#lc-app .account-heading h1 { margin: 7px 0; font-size: clamp(34px, 6vw, 54px); }
+#lc-app .account-heading p { margin: 0; color: #6f7c70; }
+#lc-app .address-book, #lc-app .account-history { margin: 28px 0; }
+#lc-app .address-book .section-title { align-items: end; }
+#lc-app .address-book .section-title h2 { margin: 4px 0; }
+#lc-app .address-book .section-title p { margin: 0; color: #718073; }
+#lc-app .address-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr)); gap: 14px; }
+#lc-app .address-card { padding: 20px; border: 1px solid #dce4d8; border-radius: 17px; background: white; box-shadow: 0 6px 22px #193c3608; }
+#lc-app .address-card.default { border-color: #8fbd92; box-shadow: inset 0 0 0 1px #8fbd92, 0 6px 22px #193c3608; }
+#lc-app .address-card > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 11px; margin-bottom: 15px; }
+#lc-app .address-card h3 { margin: 2px 0; }
+#lc-app .address-icon { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 auto; border-radius: 12px; color: #176547; background: #e8f2e5; font-size: 20px; }
+#lc-app .address-card > p { min-height: 44px; color: #657266; }
+#lc-app .address-card > small { color: #788278; overflow-wrap: anywhere; }
+#lc-app .address-card > footer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 17px; padding-top: 14px; border-top: 1px solid #edf0e9; }
+#lc-app .address-card > footer button { padding: 8px 10px; font-size: 11px; }
+#lc-app button.text-danger { margin-left: auto; color: #a3483f; background: #fff8f6; border-color: #edcbc6; }
+#lc-app .address-editor { display: grid; gap: 16px; margin: 28px 0; padding: 24px; border: 1px solid #d9e3d5; border-radius: 20px; background: #f5f8f1; }
+#lc-app .address-editor fieldset { display: grid; gap: 14px; }
+#lc-app .account-history { padding-top: 27px; border-top: 1px solid #dfe6db; }
 @media(max-width: 600px) {
   #lc-app .location-editor { padding: 14px; }
   #lc-app .location-heading, #lc-app .tracking-heading { flex-direction: column; }
   #lc-app .location-heading button { width: 100%; }
   #lc-app .map-legend a { width: 100%; margin-left: 0; }
   #lc-app .manual-coordinate-fields { grid-template-columns: minmax(0, 1fr); }
+  #lc-app .delivery-location-bar { align-items: flex-start; flex-wrap: wrap; }
+  #lc-app .delivery-location-bar > label, #lc-app .delivery-location-bar > div { flex-basis: calc(100% - 58px); }
+  #lc-app .account-heading { align-items: flex-start; flex-direction: column; padding: 22px; }
+  #lc-app .account-heading .primary { width: 100%; text-align: center; }
+  #lc-app .address-editor { padding: 16px; }
+  #lc-app .saved-address-picker { align-items: stretch; flex-direction: column; }
+  #lc-app .saved-address-picker a { padding-bottom: 0; }
 }
 
 #lc-app .auth-page { max-width: 720px; }

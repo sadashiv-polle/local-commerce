@@ -3,7 +3,7 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from local_commerce.services import orders, owner
+from local_commerce.services import customers, orders, owner
 from local_commerce.tests.helpers import add_member, create_user
 from local_commerce.tests.test_owner_inventory import TestOwnerInventory
 
@@ -154,6 +154,39 @@ class TestDeliveryOrders(FrappeTestCase):
         self.address.update({"latitude": 15.60, "longitude": 73.8278})
         with self.assertRaises(frappe.ValidationError):
             self.place(key="outside-map-radius")
+
+    def test_saved_address_discovers_serviceable_shops_by_distance(self):
+        frappe.set_user("Administrator")
+        self.shop.reload()
+        self.shop.update(
+            {
+                "address_line1": "Test market",
+                "city": "Panaji",
+                "postal_code": "403001",
+                "latitude": 15.4909,
+                "longitude": 73.8278,
+                "service_radius_km": 2,
+            }
+        )
+        self.shop.save()
+        frappe.set_user(self.customer.name)
+        saved = customers.save_address(
+            None,
+            "Home",
+            "Home",
+            "Customer",
+            "1234567890",
+            "Test street",
+            "Panaji",
+            "403001",
+            15.4989,
+            73.8278,
+            True,
+        )
+        result = customers.nearby(saved["name"])
+        located = next(row for row in result["shops"] if row.name == self.shop.name)
+        self.assertTrue(located.serviceable)
+        self.assertAlmostEqual(located.distance_km, 0.89, places=2)
 
     def test_acceptance_rechecks_stock(self):
         first = self.place(quantity=4)

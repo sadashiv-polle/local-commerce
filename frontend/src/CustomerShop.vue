@@ -9,6 +9,7 @@ const route = useRoute(), router = useRouter(), session = inject('session')
 const catalog = ref(null), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
 const cart = ref({}), pending = ref(null), checkout = ref(false), cartOpen = ref(false)
 const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '', latitude: null, longitude: null, delivery_instructions: '' })
+const savedAddresses = ref([]), selectedAddress = ref('')
 const locationError = ref(''), locating = ref(false)
 const storageKey = computed(() => `lc-delivery:${session.value.user}:${route.params.shop}`)
 const subtotal = computed(() => Object.values(cart.value).reduce((sum, row) => sum + row.rate * Number(row.quantity), 0))
@@ -50,6 +51,24 @@ function useDeliveryLocation() {
     { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
   )
 }
+function applySavedAddress() {
+  const saved = savedAddresses.value.find(row => row.name === selectedAddress.value)
+  if (!saved) return
+  const instructions = address.value.delivery_instructions
+  address.value = { ...address.value, ...saved, delivery_instructions: instructions }
+  try { localStorage.setItem(`lc-address:${session.value.user}`, saved.name) } catch { /* Selection still applies to checkout. */ }
+}
+async function loadSavedAddresses() {
+  savedAddresses.value = []; selectedAddress.value = ''
+  if (session.value.user === 'Guest' || !session.value.roles.includes('LC Customer')) return
+  try {
+    savedAddresses.value = await call('customers.addresses')
+    let remembered = ''
+    try { remembered = localStorage.getItem(`lc-address:${session.value.user}`) || '' } catch { /* Use the server default. */ }
+    selectedAddress.value = savedAddresses.value.some(row => row.name === remembered) ? remembered : savedAddresses.value.find(row => row.is_default)?.name || savedAddresses.value[0]?.name || ''
+    applySavedAddress()
+  } catch { /* Manual checkout remains available if the address book cannot load. */ }
+}
 async function place() {
   if (session.value.user === 'Guest') {
     try { writeCart(localStorage, route.params.shop, cart.value); checkout.value = true }
@@ -80,6 +99,7 @@ watch(() => route.params.shop, () => {
   } catch { cart.value = {}; error.value = 'Your saved cart could not be read.' }
   try { pending.value = JSON.parse(sessionStorage.getItem(storageKey.value) || 'null') } catch { /* Server validates recovered payloads. */ }
   load()
+  loadSavedAddresses()
   if (route.query.cart === '1') cartOpen.value = true
 }, { immediate: true })
 watch(cart, value => {
@@ -124,7 +144,7 @@ onBeforeUnmount(() => window.removeEventListener('lc-open-cart', openCartEvent))
           <AuthChoices v-if="checkout && session.user === 'Guest'" />
           <form v-else class="cart-checkout-form" @submit.prevent="place">
             <fieldset v-if="session.user !== 'Guest'" :disabled="busy || !!pending">
-              <h3>Delivery details</h3><div class="form-columns"><label>Recipient<input v-model="address.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="address.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div><label>Street address<input v-model="address.line1" required maxlength="140" autocomplete="address-line1"></label><div class="form-columns"><label>City<input v-model="address.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="address.postal_code" required maxlength="20" autocomplete="postal-code"></label></div>
+              <h3>Delivery details</h3><div v-if="savedAddresses.length" class="saved-address-picker"><label>Saved address<select v-model="selectedAddress" @change="applySavedAddress"><option v-for="savedAddress in savedAddresses" :key="savedAddress.name" :value="savedAddress.name">{{ savedAddress.address_label }} · {{ savedAddress.line1 }}</option></select></label><RouterLink to="/account">Manage addresses</RouterLink></div><div class="form-columns"><label>Recipient<input v-model="address.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="address.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div><label>Street address<input v-model="address.line1" required maxlength="140" autocomplete="address-line1"></label><div class="form-columns"><label>City<input v-model="address.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="address.postal_code" required maxlength="20" autocomplete="postal-code"></label></div>
               <section v-if="catalog.shop_location" class="checkout-location"><div class="location-heading"><div><strong>Pin your delivery location</strong><small>Inside {{ catalog.shop_location.service_radius_km }} km of the shop</small></div><button type="button" :disabled="locating" @click="useDeliveryLocation">{{ locating ? 'Finding…' : 'Use my location' }}</button></div><div class="manual-coordinate-fields"><label>Latitude<input v-model.number="address.latitude" required type="number" min="-90" max="90" step="0.000001" inputmode="decimal" placeholder="15.490900" @input="locationError = ''"></label><label>Longitude<input v-model.number="address.longitude" required type="number" min="-180" max="180" step="0.000001" inputmode="decimal" placeholder="73.827800" @input="locationError = ''"></label></div><small class="coordinate-help">You can copy latitude and longitude from any map app.</small><MapView :config="catalog.map" :points="deliveryPoints" editable height="220px" @pick="pickDeliveryLocation" /><p v-if="deliveryPoints.length > 1" class="map-confirmation">✓ Delivery pin selected</p><p v-if="locationError" class="lc-notice" role="alert">{{ locationError }}</p></section>
               <label>Delivery instructions <small>(optional)</small><textarea v-model="address.delivery_instructions" maxlength="500" placeholder="Landmark, gate, floor, or how to find you"></textarea></label>
               <div class="checkout-payment"><span aria-hidden="true">₹</span><div><strong>Cash on Delivery</strong><small>{{ catalog.payment_message }}</small></div><b>✓</b></div>

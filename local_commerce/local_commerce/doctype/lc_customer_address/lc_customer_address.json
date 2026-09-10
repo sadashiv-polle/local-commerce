@@ -1,0 +1,125 @@
+{
+  "doctype": "DocType",
+  "name": "LC Customer Address",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "title_field": "address_label",
+  "search_fields": "address_label,recipient,postal_code",
+  "track_changes": 1,
+  "field_order": [
+    "user",
+    "customer",
+    "address_type",
+    "address_label",
+    "is_default",
+    "disabled",
+    "recipient",
+    "phone",
+    "line1",
+    "city",
+    "postal_code",
+    "latitude",
+    "longitude"
+  ],
+  "fields": [
+    {
+      "fieldname": "user",
+      "label": "User",
+      "fieldtype": "Link",
+      "options": "User",
+      "reqd": 1,
+      "read_only": 1,
+      "search_index": 1
+    },
+    {
+      "fieldname": "customer",
+      "label": "Customer",
+      "fieldtype": "Link",
+      "options": "Customer",
+      "reqd": 1,
+      "read_only": 1,
+      "search_index": 1
+    },
+    {
+      "fieldname": "address_type",
+      "label": "Address Type",
+      "fieldtype": "Select",
+      "options": "Home\nWork\nOther",
+      "reqd": 1
+    },
+    {
+      "fieldname": "address_label",
+      "label": "Address Label",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "is_default",
+      "label": "Default Address",
+      "fieldtype": "Check",
+      "default": "0"
+    },
+    {
+      "fieldname": "disabled",
+      "label": "Archived",
+      "fieldtype": "Check",
+      "default": "0",
+      "read_only": 1
+    },
+    {
+      "fieldname": "recipient",
+      "label": "Recipient",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "phone",
+      "label": "Phone",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "line1",
+      "label": "Street Address",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "city",
+      "label": "City",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "postal_code",
+      "label": "Postal Code",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "latitude",
+      "label": "Latitude",
+      "fieldtype": "Float",
+      "precision": 6,
+      "reqd": 1
+    },
+    {
+      "fieldname": "longitude",
+      "label": "Longitude",
+      "fieldtype": "Float",
+      "precision": 6,
+      "reqd": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "LC Customer",
+      "read": 1
+    },
+    {
+      "role": "LC Platform Administrator",
+      "read": 1
+    }
+  ]
+}

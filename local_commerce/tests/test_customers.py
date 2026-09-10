@@ -38,6 +38,21 @@ class TestCustomerAccounts(FrappeTestCase):
             }
         ).insert()
 
+    def save_address(self, label="Home", latitude=15.4909, longitude=73.8278, **values):
+        return customers.save_address(
+            values.get("name"),
+            values.get("address_type", label if label in {"Home", "Work"} else "Other"),
+            label,
+            "LC Customer",
+            "1234567890",
+            f"{label} street",
+            "Panaji",
+            "403001",
+            latitude,
+            longitude,
+            values.get("is_default", False),
+        )
+
     def test_verified_account_reuses_existing_customer_and_portal_link(self):
         customer = self.existing(self.user.email)
         frappe.set_user(self.user.name)
@@ -111,3 +126,33 @@ class TestCustomerAccounts(FrappeTestCase):
         self.assertEqual(customer.customer_type, "Individual")
         self.assertTrue(frappe.db.exists("Territory", customer.territory))
         self.assertFalse(frappe.db.get_value("Customer Group", "Individual", "is_group"))
+
+    def test_saved_addresses_have_one_default_and_can_be_archived(self):
+        frappe.set_user(self.user.name)
+        home = self.save_address()
+        self.assertTrue(home["is_default"])
+        work = self.save_address("Work", is_default=True)
+        listed = customers.list_addresses()
+        self.assertEqual([row["name"] for row in listed], [work["name"], home["name"]])
+        self.assertFalse(next(row for row in listed if row["name"] == home["name"])["is_default"])
+        customers.archive_address(work["name"])
+        remaining = customers.list_addresses()
+        self.assertEqual(len(remaining), 1)
+        self.assertTrue(remaining[0]["is_default"])
+
+    def test_customer_cannot_change_another_users_saved_address(self):
+        frappe.set_user(self.user.name)
+        address = self.save_address()
+        frappe.set_user(self.other.name)
+        with self.assertRaises(frappe.PermissionError):
+            self.save_address("Stolen", name=address["name"])
+        with self.assertRaises(frappe.PermissionError):
+            customers.archive_address(address["name"])
+
+    def test_raw_saved_address_edit_is_denied(self):
+        frappe.set_user(self.user.name)
+        address = self.save_address()
+        doc = frappe.get_doc("LC Customer Address", address["name"])
+        doc.city = "Changed outside service"
+        with self.assertRaises(frappe.PermissionError):
+            doc.save(ignore_permissions=True)

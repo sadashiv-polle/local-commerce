@@ -15,6 +15,7 @@ def before_install():
         "LC Stock Operation",
         "LC Order",
         "LC Customer Account",
+        "LC Customer Address",
         "LC COD Collection",
     ):
         if frappe.db.exists("DocType", name):
@@ -190,6 +191,7 @@ def before_migrate():
         "LC Stock Operation",
         "LC Order",
         "LC Customer Account",
+        "LC Customer Address",
         "LC COD Collection",
     ):
         module = frappe.db.get_value("DocType", name, "module")

@@ -18,8 +18,8 @@ labelled complete without end-to-end Bench verification.
 | Availability | Sold out, archive, low stock | Manual sold-out flag, archive/restore, stock-aware status and thresholds | Implemented but incomplete | Browser and Bench verification; customer publication | owner_rules.py; Products.vue | Pure status tests pass |
 | Reservations | Checkout holds, expiry, concurrency | None | Missing | Reservation service/jobs | Not yet implemented | None |
 | Customer catalog | Discovery, search, product detail, prices | Opt-in shops and paginated priced products | Implemented but incomplete | Search, media, browser and Bench verification | Store.vue; CustomerShop.vue; services/orders.py | Build passes; integration unrun |
-| Addresses | Customer-owned addresses and snapshots | None | Missing | Standard Address integration and snapshots | Not yet implemented | None |
-| Serviceability | Radius, zones, postal codes | None | Missing | Configuration and server validation | Not yet implemented | None |
+| Addresses | Customer-owned addresses and snapshots | Protected saved address book and immutable order snapshots | Implemented but incomplete | Address autocomplete and ERPNext Address synchronization | LC Customer Address; services/customers.py; Account.vue | Pure checks pass; Bench tests added |
+| Serviceability | Radius, zones, postal codes | Server postal-code and straight-line radius checks | Implemented but incomplete | Road routing, polygon zones and ETA | services/orders.py; Store.vue | Pure checks pass; Bench tests added |
 | Cart/checkout | Server totals, stock checks, idempotency | None | Missing | Complete checkout vertical workflow | Not yet implemented | None |
 | Orders | State machine, Sales Order, history | Delivery request → owner accept/prepare/ready/cancel; ERP Sales Order | Implemented but incomplete | Dispatch, completion, paid checkout, Bench verification | services/orders.py; LC Order; Orders.vue | 7 pure tests pass; 5 integration tests unrun |
 | Delivery | Normal, scheduled, slots and pricing | None | Missing | Configured rules, slot locking | Not yet implemented | None |
@@ -108,3 +108,14 @@ Vue lint, JSON validation and the Vite production build pass. Bench integration
 coverage now includes map-radius enforcement and rider-location cleanup, but these
 new database tests still require the deployed Bench site. Device GPS requires
 HTTPS and must be verified on the deployment.
+
+
+## Saved addresses and nearby discovery milestone
+
+Added a protected LC Customer Address model with Home, Work, and Other labels,
+one default per User, map coordinates, soft removal, and a 20-address limit. The
+customer account provides the full address-book editor. The storefront resolves
+the selected saved address on the server, ranks shops by serviceability and
+distance, and shows the result on each shop card. Checkout pre-fills the selected
+address while continuing to create an immutable order snapshot. Cross-user
+address access is rejected. See `docs/customer-addresses.md`.

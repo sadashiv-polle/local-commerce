@@ -11,7 +11,7 @@ from frappe.utils import getdate, now_datetime, nowdate, time_diff_in_seconds
 from local_commerce.permissions.policy import can_access_shop
 from local_commerce.permissions.scope import identity, memberships, require_shop, shop_query
 from local_commerce.services import order_rules
-from local_commerce.services.location_rules import distance_km, point
+from local_commerce.services.location_rules import delivery_match, distance_km, point
 from local_commerce.services.locations import map_config, shop_location
 from local_commerce.services.owner import (
     _owner_operation,
@@ -96,30 +96,97 @@ def public_shop(name, browsing=False):
     return doc
 
 
+SHOP_LISTING_FIELDS = [
+    "name",
+    "shop_name",
+    "description",
+    "address_line1",
+    "city",
+    "latitude",
+    "longitude",
+]
+
+
+def serialize_public_shop(row):
+    try:
+        row.location = point(row.latitude, row.longitude)
+    except ValueError:
+        row.location = None
+    row.pop("latitude", None)
+    row.pop("longitude", None)
+    return row
+
+
 def shops(start=0):
     rows = frappe.get_all(
         "LC Shop",
         filters={"status": "Active"},
-        fields=[
-            "name",
-            "shop_name",
-            "description",
-            "address_line1",
-            "city",
-            "latitude",
-            "longitude",
-        ],
+        fields=SHOP_LISTING_FIELDS,
         start=offset(start),
         limit_page_length=20,
     )
+    return [serialize_public_shop(row) for row in rows]
+
+
+def nearby_shops(address, start=0):
+    start = offset(start)
+    try:
+        destination = point(address.get("latitude"), address.get("longitude"), required=True)
+    except ValueError as exc:
+        reject(str(exc))
+    postal_code = str(address.get("postal_code") or "").strip().upper()
+    rows = frappe.get_all(
+        "LC Shop",
+        filters={"status": "Active"},
+        fields=[
+            *SHOP_LISTING_FIELDS,
+            "service_radius_km",
+            "delivery_enabled",
+            "delivery_postcodes",
+            "cod_enabled",
+        ],
+        limit_page_length=1001,
+    )
+    if len(rows) > 1000:
+        reject("Nearby discovery is temporarily unavailable; too many shops need indexing")
+    result = []
     for row in rows:
-        try:
-            row.location = point(row.latitude, row.longitude)
-        except ValueError:
-            row.location = None
-        row.pop("latitude", None)
-        row.pop("longitude", None)
-    return rows
+        radius = float(row.service_radius_km or 0)
+        public = serialize_public_shop(row)
+        location = public.location
+        postcodes = {
+            value.strip().upper()
+            for value in str(public.delivery_postcodes or "").splitlines()
+            if value.strip()
+        }
+        accepting = bool(public.delivery_enabled and public.cod_enabled)
+        match = delivery_match(location, destination, radius, postcodes, postal_code, accepting)
+        for internal in ("delivery_enabled", "delivery_postcodes", "cod_enabled"):
+            public.pop(internal, None)
+        public.update(
+            {
+                "distance_km": match["distance_km"],
+                "service_radius_km": radius,
+                "serviceable": match["serviceable"],
+                "serviceability_message": match["message"],
+            }
+        )
+        result.append(public)
+    result.sort(
+        key=lambda row: (
+            not row.serviceable,
+            row.distance_km is None,
+            row.distance_km if row.distance_km is not None else float("inf"),
+            row.shop_name.lower(),
+        )
+    )
+    page = result[start : start + 20]
+    return {
+        "address": address,
+        "shops": page,
+        "has_more": len(result) > start + 20,
+        "map": map_config(),
+    }
 
 
 def offset(value):

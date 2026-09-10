@@ -38,3 +38,23 @@ def distance_km(origin, destination):
     )
     value = min(1, max(0, value))
     return round(6371.0088 * 2 * math.atan2(math.sqrt(value), math.sqrt(1 - value)), 3)
+
+
+def delivery_match(origin, destination, radius, postcodes, postal_code, accepting=True):
+    distance = distance_km(origin, destination) if origin else None
+    normalized = {str(value).strip().upper() for value in postcodes if str(value).strip()}
+    postal_code = str(postal_code or "").strip().upper()
+    serviceable = bool(
+        accepting and origin and radius > 0 and postal_code in normalized and distance <= radius
+    )
+    if serviceable:
+        reason = "Delivers to this address"
+    elif not accepting:
+        reason = "Delivery setup pending"
+    elif not origin:
+        reason = "Shop map location unavailable"
+    elif postal_code not in normalized:
+        reason = "Postal code not served"
+    else:
+        reason = "Outside delivery radius"
+    return {"distance_km": distance, "serviceable": serviceable, "message": reason}
