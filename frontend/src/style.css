@@ -387,6 +387,10 @@ html { scroll-behavior: smooth; }
 #lc-app .checkout-location .location-heading strong, #lc-app .checkout-location .location-heading small { display: block; }
 #lc-app .checkout-location .location-heading button { padding: 8px 11px; }
 #lc-app .map-confirmation { margin: 0; color: #247850; font-size: 12px; font-weight: 700; }
+#lc-app .range-warning { display: grid; gap: 3px; margin: 0; padding: 12px 13px; border: 1px solid #efc5b8; border-radius: 11px; color: #864536; background: #fff1eb; font-size: 12px; }
+#lc-app .range-warning strong { font-size: 14px; }
+#lc-app .checkout-error { margin: 12px 0; padding: 12px 13px; border: 1px solid #efc5b8; border-radius: 11px; color: #864536; background: #fff1eb; font-size: 12px; font-weight: 700; }
+#lc-app .cart-checkout-button:disabled { background: #88968a; color: #f1f4f1; }
 #lc-app .delivery-map-panel, #lc-app .order-tracking-panel { margin: 18px 0; }
 #lc-app .map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 9px; color: #667367; font-size: 11px; }
 #lc-app .map-legend span { display: inline-flex; align-items: center; gap: 5px; }
