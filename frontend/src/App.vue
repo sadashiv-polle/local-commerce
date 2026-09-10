@@ -5,7 +5,7 @@ import { call, setCsrfToken } from './api.js'
 import { activeCart, loginUrl } from './cart.js'
 const session = ref(null), error = ref(''), loggingOut = ref(false), logoutError = ref('')
 const route = useRoute(), router = useRouter()
-const logoutDialog = ref(null)
+const logoutDialog = ref(null), headerAddressMenu = ref(null)
 const savedCart = ref(null)
 const headerAddresses = ref([]), headerAddress = ref(null)
 const savedCartLines = computed(() => Object.keys(savedCart.value?.cart || {}).length)
@@ -52,6 +52,21 @@ function syncHeaderAddress(event) {
   if (existing) headerAddress.value = existing
   else loadHeaderAddress(name)
 }
+function chooseHeaderAddress(address) {
+  headerAddress.value = address
+  try { localStorage.setItem(`lc-address:${session.value.user}`, address.name) } catch { /* Selection still applies now. */ }
+  window.dispatchEvent(new CustomEvent('lc-address-change', { detail: address.name }))
+  headerAddressMenu.value?.removeAttribute('open')
+}
+async function addHeaderAddress() {
+  headerAddressMenu.value?.removeAttribute('open')
+  if (session.value?.user === 'Guest') { await router.push({ path: '/login', query: { next: '/account?add=1' } }); return }
+  await router.push({ path: '/account', query: { add: '1' } })
+  window.dispatchEvent(new CustomEvent('lc-add-address'))
+}
+function closeHeaderAddressMenu(event) {
+  if (headerAddressMenu.value?.open && !headerAddressMenu.value.contains(event.target)) headerAddressMenu.value.removeAttribute('open')
+}
 async function load() {
   error.value = ''
   try {
@@ -78,19 +93,21 @@ onMounted(() => {
   window.addEventListener('storage', syncSavedCart)
   window.addEventListener('lc-cart-change', syncSavedCart)
   window.addEventListener('lc-address-change', syncHeaderAddress)
+  document.addEventListener('click', closeHeaderAddressMenu)
   load()
 })
 onBeforeUnmount(() => {
   window.removeEventListener('storage', syncSavedCart)
   window.removeEventListener('lc-cart-change', syncSavedCart)
   window.removeEventListener('lc-address-change', syncHeaderAddress)
+  document.removeEventListener('click', closeHeaderAddressMenu)
 })
 </script>
 
 <template>
   <div class="commerce-app" :class="{ 'owner-view': ownerView, 'customer-view': !ownerView && !deliveryView, 'has-global-cart': savedCartLines }">
     <header class="topbar">
-      <div class="brand-stack"><RouterLink class="brand" to="/store">local<span>●</span><small v-if="ownerView || deliveryView">{{ ownerView ? 'BUSINESS' : 'DELIVERY' }}</small></RouterLink><RouterLink v-if="!ownerView && !deliveryView" class="header-delivery-address" :to="session?.user === 'Guest' ? '/login?next=/account' : '/account'"><small>DELIVERING TO</small><strong v-if="headerAddress">{{ headerAddress.address_label }} · {{ headerAddress.line1 }}</strong><strong v-else>{{ session?.user === 'Guest' ? 'Login to choose location' : 'Add delivery address' }}</strong><span aria-hidden="true">⌄</span></RouterLink></div>
+      <div class="brand-stack"><RouterLink class="brand" to="/store">local<span>●</span><small v-if="ownerView || deliveryView">{{ ownerView ? 'BUSINESS' : 'DELIVERY' }}</small></RouterLink><details v-if="!ownerView && !deliveryView" ref="headerAddressMenu" class="header-address-menu"><summary class="header-delivery-address"><small>DELIVERING TO</small><strong v-if="headerAddress">{{ headerAddress.address_label }} · {{ headerAddress.line1 }}</strong><strong v-else>{{ session?.user === 'Guest' ? 'Choose delivery location' : 'Add delivery address' }}</strong><span aria-hidden="true">⌄</span></summary><div class="header-address-options"><span class="eyebrow">SAVED ADDRESSES</span><button v-for="address in headerAddresses" :key="address.name" type="button" :class="{ selected: address.name === headerAddress?.name }" @click="chooseHeaderAddress(address)"><span class="address-icon" aria-hidden="true">{{ address.address_type === 'Home' ? '⌂' : address.address_type === 'Work' ? '▦' : '⌖' }}</span><span><strong>{{ address.address_label }}</strong><small>{{ address.line1 }} · {{ address.city }}</small></span><b v-if="address.name === headerAddress?.name">✓</b></button><p v-if="!headerAddresses.length">No saved addresses yet.</p><button type="button" class="header-add-address" @click="addHeaderAddress">+ {{ session?.user === 'Guest' ? 'Login to add address' : 'Add address' }}</button></div></details></div>
       <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : deliveryView ? 'Your rider workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : deliveryView ? 'Every order, right on track.' : 'Delivery from your local shops' }}</small></div></div>
       <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><RouterLink v-if="canDeliver" to="/delivery">Deliveries</RouterLink><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><RouterLink v-else-if="session" class="account" :to="session.roles.includes('LC Customer') ? '/account' : canDeliver ? '/delivery' : '/shop'"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink><button v-if="session && session.user !== 'Guest'" class="logout-button" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg>Log out</button></nav>
     </header>

@@ -1,12 +1,14 @@
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { call } from './api.js'
 import AuthChoices from './AuthChoices.vue'
 import MapView from './MapView.vue'
 
 const session = inject('session')
+const route = useRoute()
 const data = ref(null), error = ref(''), saved = ref(''), loading = ref(false), busy = ref(false), locating = ref(false), start = ref(0)
-const editing = ref(false)
+const editing = ref(false), editor = ref(null)
 const emptyAddress = () => ({ name: '', address_type: 'Home', address_label: 'Home', recipient: session.value?.full_name || '', phone: '', line1: '', city: '', postal_code: '', latitude: '', longitude: '', is_default: false })
 const form = ref(emptyAddress())
 const addressPoints = computed(() => form.value.latitude !== '' && form.value.longitude !== '' && Number.isFinite(Number(form.value.latitude)) && Number.isFinite(Number(form.value.longitude)) ? [{ ...form.value, kind: 'customer', label: form.value.address_label || 'Saved address' }] : [])
@@ -20,6 +22,7 @@ async function load(delta = 0) {
   finally { loading.value = false }
 }
 function newAddress() { form.value = emptyAddress(); editing.value = true; saved.value = ''; error.value = '' }
+async function openNewAddress() { newAddress(); await nextTick(); editor.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 function editAddress(address) { form.value = { ...address }; editing.value = true; saved.value = ''; error.value = '' }
 function cancelEdit() { editing.value = false; form.value = emptyAddress() }
 function pickLocation(point) { form.value.latitude = point.latitude; form.value.longitude = point.longitude; error.value = '' }
@@ -55,7 +58,12 @@ async function archiveAddress(address) {
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
-onMounted(() => { if (session.value.user !== 'Guest') load() })
+onMounted(async () => {
+  window.addEventListener('lc-add-address', openNewAddress)
+  if (session.value.user !== 'Guest') await load()
+  if (route.query.add === '1') await openNewAddress()
+})
+onBeforeUnmount(() => window.removeEventListener('lc-add-address', openNewAddress))
 </script>
 
 <template>
@@ -74,7 +82,7 @@ onMounted(() => { if (session.value.user !== 'Guest') load() })
           </div>
           <p v-else class="lc-empty">Add Home, Work, or another address to discover shops that deliver nearby.</p>
         </section>
-        <form v-if="editing" class="address-editor" @submit.prevent="saveAddress">
+        <form v-if="editing" ref="editor" class="address-editor" @submit.prevent="saveAddress">
           <div class="section-title"><div><span class="eyebrow">{{ form.name ? 'EDIT ADDRESS' : 'NEW ADDRESS' }}</span><h2>{{ form.name ? form.address_label : 'Where should we deliver?' }}</h2></div><button type="button" :disabled="busy" @click="cancelEdit">Close</button></div>
           <fieldset :disabled="busy"><div class="form-columns"><label>Type<select v-model="form.address_type" required><option>Home</option><option>Work</option><option>Other</option></select></label><label>Label<input v-model="form.address_label" required maxlength="80" placeholder="Home"></label></div><div class="form-columns"><label>Recipient<input v-model="form.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="form.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div><label>Street address<input v-model="form.line1" required maxlength="140" autocomplete="street-address"></label><div class="form-columns"><label>City<input v-model="form.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="form.postal_code" required maxlength="20" autocomplete="postal-code"></label></div><div class="location-heading"><div><strong>Map location</strong><small>Tap the map or enter coordinates.</small></div><button type="button" :disabled="locating" @click="useLocation">{{ locating ? 'Finding…' : 'Use my location' }}</button></div><div class="manual-coordinate-fields"><label>Latitude<input v-model.number="form.latitude" required type="number" min="-90" max="90" step="0.000001" inputmode="decimal"></label><label>Longitude<input v-model.number="form.longitude" required type="number" min="-180" max="180" step="0.000001" inputmode="decimal"></label></div><MapView :config="data.map" :points="addressPoints" editable @pick="pickLocation" /><label class="check-label"><input v-model="form.is_default" type="checkbox"><span>Use as my delivery address<small>Nearby shops will be sorted for this location.</small></span></label><button class="lc-primary">{{ busy ? 'Saving…' : 'Save address' }}</button></fieldset>
         </form>
