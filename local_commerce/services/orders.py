@@ -277,9 +277,15 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 "pincode": address["postal_code"],
                 "phone": address["phone"],
                 "country": frappe.db.get_value("Company", doc.company, "country"),
+                # ERPNext v15 Address validation expects this value even on sites where
+                # the optional Custom Field is missing from Address metadata.
+                "is_your_company_address": 0,
+                "is_shipping_address": 1,
                 "links": [{"link_doctype": "Customer", "link_name": customer}],
             }
-        ).insert(ignore_permissions=True)
+        )
+        destination.is_your_company_address = 0
+        destination.insert(ignore_permissions=True)
         so = frappe.get_doc(
             {
                 "doctype": "Sales Order",
