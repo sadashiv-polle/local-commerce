@@ -88,7 +88,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="commerce-app" :class="{ 'owner-view': ownerView, 'has-global-cart': savedCartLines }">
+  <div class="commerce-app" :class="{ 'owner-view': ownerView, 'customer-view': !ownerView && !deliveryView, 'has-global-cart': savedCartLines }">
     <header class="topbar">
       <div class="brand-stack"><RouterLink class="brand" to="/store">local<span>●</span><small v-if="ownerView || deliveryView">{{ ownerView ? 'BUSINESS' : 'DELIVERY' }}</small></RouterLink><RouterLink v-if="!ownerView && !deliveryView" class="header-delivery-address" :to="session?.user === 'Guest' ? '/login?next=/account' : '/account'"><small>DELIVERING TO</small><strong v-if="headerAddress">{{ headerAddress.address_label }} · {{ headerAddress.line1 }}</strong><strong v-else>{{ session?.user === 'Guest' ? 'Login to choose location' : 'Add delivery address' }}</strong><span aria-hidden="true">⌄</span></RouterLink></div>
       <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : deliveryView ? 'Your rider workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : deliveryView ? 'Every order, right on track.' : 'Delivery from your local shops' }}</small></div></div>
