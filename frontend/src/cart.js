@@ -1,4 +1,10 @@
 const prefix = 'lc-cart-v1:'
+const activeKey = 'lc-cart-active-v1'
+function notifyCart(shop) {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('lc-cart-change', { detail: { shop } }))
+  }
+}
 export function readCart(storage, shop) {
   const data = JSON.parse(storage.getItem(prefix + shop) || '{}')
   if (!data || Array.isArray(data) || typeof data !== 'object') return {}
@@ -8,8 +14,26 @@ export function readCart(storage, shop) {
     Number.isFinite(Number(row.rate)) && Number(row.rate) >= 0
   ).slice(0, 30))
 }
-export function writeCart(storage, shop, cart) { storage.setItem(prefix + shop, JSON.stringify(cart)) }
-export function clearCart(storage, shop) { storage.removeItem(prefix + shop) }
+export function writeCart(storage, shop, cart) {
+  if (!Object.keys(cart).length) {
+    clearCart(storage, shop)
+    return
+  }
+  storage.setItem(prefix + shop, JSON.stringify(cart))
+  storage.setItem(activeKey, shop)
+  notifyCart(shop)
+}
+export function clearCart(storage, shop) {
+  storage.removeItem(prefix + shop)
+  if (storage.getItem(activeKey) === shop) storage.removeItem(activeKey)
+  notifyCart(shop)
+}
+export function activeCart(storage) {
+  const shop = storage.getItem(activeKey)
+  if (!shop) return null
+  const cart = readCart(storage, shop)
+  return Object.keys(cart).length ? { shop, cart } : null
+}
 export function changeQuantity(cart, item, delta) {
   const current = Number(cart[item.item]?.quantity || 0)
   const next = current + Number(delta)

@@ -1,11 +1,30 @@
 <script setup>
-import { computed, onMounted, provide, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
-import { loginUrl } from './cart.js'
+import { activeCart, loginUrl } from './cart.js'
 const session = ref(null), error = ref(''), loggingOut = ref(false), logoutError = ref('')
 const route = useRoute(), router = useRouter()
 const logoutDialog = ref(null)
+const savedCart = ref(null)
+const savedCartLines = computed(() => Object.keys(savedCart.value?.cart || {}).length)
+const savedCartTotal = computed(() => Object.values(savedCart.value?.cart || {}).reduce((sum, item) => sum + Number(item.rate) * Number(item.quantity), 0))
+const savedCartCurrency = computed(() => Object.values(savedCart.value?.cart || {})[0]?.currency)
+function syncSavedCart() {
+  try { savedCart.value = activeCart(localStorage) } catch { savedCart.value = null }
+}
+function savedCartMoney() {
+  if (!savedCartCurrency.value) return ''
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: savedCartCurrency.value }).format(savedCartTotal.value)
+}
+async function openSavedCart() {
+  if (!savedCart.value) return
+  if (route.name === 'customer-shop' && route.params.shop === savedCart.value.shop) {
+    window.dispatchEvent(new CustomEvent('lc-open-cart'))
+    return
+  }
+  await router.push({ name: 'customer-shop', params: { shop: savedCart.value.shop }, query: { cart: '1' } })
+}
 function confirmLogout() { logoutError.value = ''; logoutDialog.value.showModal() }
 function cancelLogout(event) {
   if (loggingOut.value) { event?.preventDefault(); return }
@@ -35,11 +54,20 @@ async function logout() {
   } catch { logoutError.value = 'Could not log out. Please retry.' }
   finally { loggingOut.value = false }
 }
-onMounted(load)
+onMounted(() => {
+  syncSavedCart()
+  window.addEventListener('storage', syncSavedCart)
+  window.addEventListener('lc-cart-change', syncSavedCart)
+  load()
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('storage', syncSavedCart)
+  window.removeEventListener('lc-cart-change', syncSavedCart)
+})
 </script>
 
 <template>
-  <div class="commerce-app" :class="{ 'owner-view': ownerView }">
+  <div class="commerce-app" :class="{ 'owner-view': ownerView, 'has-global-cart': savedCartLines }">
     <header class="topbar">
       <RouterLink class="brand" to="/store">local<span>●</span><small>{{ ownerView ? 'BUSINESS' : 'YOUR NEIGHBOURHOOD, TOGETHER' }}</small></RouterLink>
       <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : 'Delivery from your local shops' }}</small></div></div>
@@ -50,6 +78,7 @@ onMounted(load)
       <div v-else-if="!session" class="page-state" role="status"><span class="brand">local<span>●</span></span><p>Opening your neighbourhood…</p></div>
       <RouterView v-else />
     </main>
+    <button v-if="savedCartLines" class="floating-cart-bar global-cart-bar" type="button" aria-label="Open saved cart" @click="openSavedCart"><span class="cart-bag" aria-hidden="true">▣</span><span><strong>{{ savedCartLines }} {{ savedCartLines === 1 ? 'item' : 'items' }}</strong><small>{{ savedCartMoney() }}</small></span><strong>View cart&nbsp; ›</strong></button>
     <dialog ref="logoutDialog" class="logout-dialog" aria-labelledby="logout-title" aria-describedby="logout-description" :aria-busy="loggingOut" @cancel="cancelLogout">
       <div class="logout-symbol" aria-hidden="true">↗</div>
       <span class="eyebrow">YOUR ACCOUNT</span>

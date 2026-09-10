@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readCart, writeCart, clearCart, loginUrl, changeQuantity } from '../src/cart.js'
+import { readCart, writeCart, clearCart, loginUrl, changeQuantity, activeCart } from '../src/cart.js'
 function storage() {
   const values = new Map()
   return { getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) }
@@ -35,4 +35,14 @@ test('cart quantity controls add, increment, and remove a line', () => {
   assert.equal(two.fish.quantity, 2)
   assert.deepEqual(changeQuantity(one, item, -1), {})
   assert.throws(() => changeQuantity(two, item, 1), /available stock/)
+})
+test('the latest cart is available from every app page', () => {
+  const saved = storage()
+  writeCart(saved, 'shop-a', cart)
+  assert.deepEqual(activeCart(saved), { shop: 'shop-a', cart })
+  const bread = { bread: { item: 'bread', item_name: 'Bread', quantity: 1, rate: 40 } }
+  writeCart(saved, 'shop-b', bread)
+  assert.deepEqual(activeCart(saved), { shop: 'shop-b', cart: bread })
+  clearCart(saved, 'shop-b')
+  assert.equal(activeCart(saved), null)
 })

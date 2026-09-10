@@ -1,5 +1,5 @@
 <script setup>
-import { computed, inject, ref, watch } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call } from './api.js'
 import AuthChoices from './AuthChoices.vue'
@@ -10,7 +10,6 @@ const cart = ref({}), pending = ref(null), checkout = ref(false), cartOpen = ref
 const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '' })
 const storageKey = computed(() => `lc-delivery:${session.value.user}:${route.params.shop}`)
 const subtotal = computed(() => Object.values(cart.value).reduce((sum, row) => sum + row.rate * Number(row.quantity), 0))
-const cartLines = computed(() => Object.keys(cart.value).length)
 const estimatedTotal = computed(() => subtotal.value + Number(catalog.value?.delivery_fee || 0))
 function money(value) { if (value == null) return 'Price coming soon'; return new Intl.NumberFormat(undefined, { style: 'currency', currency: catalog.value.currency }).format(value) }
 async function load(delta = 0) {
@@ -28,6 +27,7 @@ function openCart() {
   checkout.value = false
   cartOpen.value = true
 }
+function openCartEvent() { openCart() }
 function closeCart() {
   if (!busy.value) cartOpen.value = false
 }
@@ -55,17 +55,23 @@ async function place() {
 }
 watch(() => route.params.shop, () => {
   start.value = 0; pending.value = null; cartOpen.value = false; checkout.value = false
-  try { cart.value = readCart(localStorage, route.params.shop) } catch { cart.value = {}; error.value = 'Your saved cart could not be read.' }
+  try {
+    cart.value = readCart(localStorage, route.params.shop)
+    if (Object.keys(cart.value).length) writeCart(localStorage, route.params.shop, cart.value)
+  } catch { cart.value = {}; error.value = 'Your saved cart could not be read.' }
   try { pending.value = JSON.parse(sessionStorage.getItem(storageKey.value) || 'null') } catch { /* Server validates recovered payloads. */ }
   load()
+  if (route.query.cart === '1') cartOpen.value = true
 }, { immediate: true })
 watch(cart, value => {
   try { writeCart(localStorage, route.params.shop, value) } catch { error.value = 'Your browser could not save this cart. Enable local storage before logging in.' }
   if (!Object.keys(value).length) cartOpen.value = false
 }, { deep: true })
+onMounted(() => window.addEventListener('lc-open-cart', openCartEvent))
+onBeforeUnmount(() => window.removeEventListener('lc-open-cart', openCartEvent))
 </script>
 <template>
-  <div class="store-page customer-shop" :class="{ 'has-cart-bar': cartLines }">
+  <div class="store-page customer-shop">
     <RouterLink to="/store">← All shops</RouterLink> · <RouterLink to="/orders">My orders</RouterLink>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p><p v-if="loading" role="status">Loading products…</p>
     <template v-if="catalog">
@@ -78,7 +84,8 @@ watch(cart, value => {
             <div class="product-art" aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</div>
             <p class="product-availability">{{ item.available }} {{ item.uom }} available</p>
             <h3>{{ item.item_name }}</h3><p class="product-description">{{ item.description || 'Fresh from your local shop.' }}</p>
-            <div class="product-buy-row"><strong>{{ money(item.rate) }}<small v-if="item.rate != null"> / {{ item.uom }}</small></strong>
+            <div class="product-buy-row">
+              <strong>{{ money(item.rate) }}<small v-if="item.rate != null"> / {{ item.uom }}</small></strong>
               <div v-if="cart[item.item]" class="quantity-stepper" :aria-label="`${item.item_name} quantity`"><button type="button" :aria-label="`Remove one ${item.item_name}`" @click="updateQuantity(item, -1)">−</button><strong aria-live="polite">{{ cart[item.item].quantity }}</strong><button type="button" :disabled="cart[item.item].quantity >= item.available" :aria-label="`Add one ${item.item_name}`" @click="updateQuantity(item, 1)">+</button></div>
               <button v-else class="add-item-button" :disabled="item.available <= 0 || item.rate == null" @click="updateQuantity(item, 1)">{{ item.rate == null ? 'Soon' : item.available > 0 ? 'ADD' : 'Sold out' }}</button>
             </div>
@@ -87,7 +94,6 @@ watch(cart, value => {
         <p v-if="!catalog.items.length" class="lc-empty">No products on this page.</p>
         <div class="lc-pagination"><button :disabled="!start || loading" @click="load(-20)">Previous</button><button :disabled="!catalog.has_more || loading" @click="load(20)">Next</button></div>
       </fieldset>
-      <button v-if="cartLines" class="floating-cart-bar" type="button" aria-haspopup="dialog" @click="openCart"><span class="cart-bag" aria-hidden="true">▣</span><span><strong>{{ cartLines }} {{ cartLines === 1 ? 'item' : 'items' }}</strong><small>{{ money(subtotal) }}</small></span><strong>View cart&nbsp; ›</strong></button>
       <div v-if="cartOpen" class="cart-backdrop" @click.self="closeCart">
         <aside class="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title">
           <header class="cart-drawer-header"><div><span class="eyebrow">YOUR BASKET</span><h2 id="cart-title">My cart</h2></div><button type="button" aria-label="Close cart" :disabled="busy" @click="closeCart">×</button></header>
