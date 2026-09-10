@@ -115,6 +115,17 @@ def after_migrate():
                     "unique": 1,
                 }
             ],
+            "Delivery Note": [
+                {
+                    "fieldname": "lc_order",
+                    "label": "Local Commerce Order",
+                    "fieldtype": "Link",
+                    "options": "LC Order",
+                    "read_only": 1,
+                    "no_copy": 1,
+                    "unique": 1,
+                }
+            ],
             "Customer": [
                 {
                     "fieldname": "lc_customer_key",
@@ -144,6 +155,7 @@ def before_migrate():
             frappe.throw(f"DocType collision: {name} belongs to {module}")
     for doctype, field, fieldtype, options in (
         ("Sales Order", "lc_order", "Link", "LC Order"),
+        ("Delivery Note", "lc_order", "Link", "LC Order"),
         ("Customer", "lc_customer_key", "Data", None),
         ("Item", "lc_shop", "Link", "LC Shop"),
         ("Item", "lc_creation_key", "Data", None),

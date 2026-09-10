@@ -12,6 +12,11 @@
     "sales_order",
     "request_hash",
     "status",
+    "delivery_user",
+    "delivery_note",
+    "assigned_at",
+    "picked_up_at",
+    "delivered_at",
     "recipient",
     "phone",
     "address_snapshot",
@@ -58,8 +63,40 @@
       "label": "Status",
       "fieldtype": "Select",
       "read_only": 1,
-      "options": "Requested\nAccepted\nPreparing\nReady\nCancelled",
+      "options": "Requested\nAccepted\nPreparing\nReady\nPicked Up\nOut for Delivery\nDelivered\nCancelled",
       "in_list_view": 1
+    },
+    {
+      "fieldname": "delivery_user",
+      "label": "Delivery Person",
+      "fieldtype": "Link",
+      "options": "User",
+      "read_only": 1
+    },
+    {
+      "fieldname": "delivery_note",
+      "label": "Delivery Note",
+      "fieldtype": "Link",
+      "options": "Delivery Note",
+      "read_only": 1
+    },
+    {
+      "fieldname": "assigned_at",
+      "label": "Assigned At",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    },
+    {
+      "fieldname": "picked_up_at",
+      "label": "Picked Up At",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    },
+    {
+      "fieldname": "delivered_at",
+      "label": "Delivered At",
+      "fieldtype": "Datetime",
+      "read_only": 1
     },
     {
       "fieldname": "recipient",

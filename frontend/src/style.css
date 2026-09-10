@@ -223,6 +223,47 @@ html { scroll-behavior: smooth; }
 #lc-app .order-card li { margin-bottom: 10px; }
 #lc-app .order-actions { display: grid; gap: 16px; margin-top: 20px; }
 #lc-app summary { cursor: pointer; padding: 8px 0; }
+#lc-app .delivery-progress { display: grid; grid-template-columns: repeat(7, minmax(70px, 1fr)); gap: 5px; overflow-x: auto; padding: 4px 0 14px; }
+#lc-app .delivery-progress span { border-top: 3px solid #dfe6dc; padding-top: 7px; color: #8a9487; font-size: 9px; white-space: nowrap; }
+#lc-app .delivery-progress span.complete { border-color: #2b8060; color: #245b45; font-weight: 700; }
+#lc-app .rider-summary { display: flex; align-items: center; gap: 9px; padding: 12px 15px; border-radius: 10px; background: #eef5e9; }
+#lc-app .rider-summary > span { color: #30a66f; }
+#lc-app .driver-assignment { display: grid; grid-template-columns: minmax(180px, 1fr) auto; align-items: end; gap: 12px; padding: 18px; margin-top: 18px; border-radius: 12px; background: #f5f7f1; border: 1px solid var(--lc-line); }
+#lc-app .driver-assignment label { margin: 0; }
+#lc-app .driver-assignment small { grid-column: 1 / -1; color: #7a8376; }
+
+/* Rider workspace */
+#lc-app .delivery-page { max-width: 920px; margin: auto; padding: 40px 28px 70px; }
+#lc-app .delivery-empty { max-width: 720px; margin: 50px auto; }
+#lc-app .delivery-hero { display: flex; justify-content: space-between; gap: 25px; align-items: center; padding: 34px; border-radius: 22px; color: white; background: linear-gradient(135deg, #143f34, #21745a); box-shadow: 0 18px 50px #173b2d22; }
+#lc-app .delivery-hero h1 { margin: 8px 0; font-size: clamp(34px, 6vw, 54px); }
+#lc-app .delivery-hero p { margin: 0; color: #d9ebe1; }
+#lc-app .delivery-hero .eyebrow { color: #b9d9c8; }
+#lc-app .rider-avatar { display: grid; place-items: center; width: 78px; height: 78px; flex: 0 0 78px; border-radius: 24px; background: #f3c854; color: #234235; font-size: 34px; font-weight: 800; transform: rotate(4deg); }
+#lc-app .delivery-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin: 24px 0; }
+#lc-app .delivery-toolbar > div { display: flex; align-items: baseline; gap: 8px; }
+#lc-app .delivery-toolbar strong { font-size: 30px; }
+#lc-app .delivery-toolbar span { color: #718075; }
+#lc-app .delivery-list { display: grid; gap: 18px; }
+#lc-app .delivery-card { padding: 24px; border: 1px solid var(--lc-line); border-radius: 18px; background: white; box-shadow: 0 6px 24px #193c360a; }
+#lc-app .delivery-card.finished { opacity: .75; }
+#lc-app .delivery-card > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+#lc-app .delivery-card h2 { margin: 7px 0 0; }
+#lc-app .delivery-address { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 12px; margin: 20px 0; padding: 17px; background: #f5f7f0; border-radius: 13px; }
+#lc-app .delivery-address > span { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: #e3eee2; color: #176547; font-size: 22px; }
+#lc-app .delivery-address p { margin: 2px 0; color: #6f7c70; }
+#lc-app .delivery-address a { font-weight: 700; }
+#lc-app .delivery-action { display: flex; justify-content: space-between; width: 100%; margin-top: 20px; padding: 14px 18px; border: 0; border-radius: 12px; color: white; background: #176547; font-weight: 750; }
+#lc-app .delivery-action span { font-size: 20px; line-height: 1; }
+#lc-app .delivery-complete { padding: 13px; border-radius: 10px; text-align: center; color: #34704f; background: #eaf5e8; font-weight: 700; }
+@media(max-width: 600px) {
+  #lc-app .delivery-page { padding: 20px 15px 55px; }
+  #lc-app .delivery-hero { padding: 24px; }
+  #lc-app .rider-avatar { width: 58px; height: 58px; flex-basis: 58px; border-radius: 18px; font-size: 25px; }
+  #lc-app .delivery-card { padding: 18px; }
+  #lc-app .driver-assignment { grid-template-columns: minmax(0, 1fr); }
+  #lc-app .driver-assignment button { width: 100%; }
+}
 
 #lc-app .auth-page { max-width: 720px; }
 #lc-app .auth-choices { display: flex; gap: 24px; flex-wrap: wrap; }

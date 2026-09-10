@@ -12,6 +12,13 @@ TRANSITIONS = {
     "Cancelled": set(),
 }
 
+DELIVERY_TRANSITIONS = {
+    "Ready": {"Picked Up"},
+    "Picked Up": {"Out for Delivery"},
+    "Out for Delivery": {"Delivered"},
+    "Delivered": set(),
+}
+
 
 def transition(current, target, customer=False):
     if current == target:
@@ -20,6 +27,14 @@ def transition(current, target, customer=False):
         customer and (current != "Requested" or target != "Cancelled")
     ):
         raise ValueError("This order status change is not allowed")
+    return True
+
+
+def delivery_transition(current, target):
+    if current == target:
+        return False
+    if target not in DELIVERY_TRANSITIONS.get(current, set()):
+        raise ValueError("This delivery status change is not allowed")
     return True
 
 

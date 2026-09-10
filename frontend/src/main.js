@@ -9,6 +9,7 @@ import Orders from './Orders.vue'
 import Signup from './Signup.vue'
 import Login from './Login.vue'
 import Account from './Account.vue'
+import Delivery from './Delivery.vue'
 import './style.css'
 const router = createRouter({ history: createWebHashHistory(), scrollBehavior: () => ({ top: 0 }), routes: [
   { path: '/', component: Store },
@@ -18,6 +19,7 @@ const router = createRouter({ history: createWebHashHistory(), scrollBehavior: (
   { path: '/signup', component: Signup },
   { path: '/login', component: Login },
   { path: '/account', component: Account },
+  { path: '/delivery', component: Delivery },
   { path: '/shop', component: Shops },
   { path: '/shop/:shop', name: 'shop-workspace', component: ShopWorkspace },
   { path: '/:pathMatch(.*)*', redirect: '/' },

@@ -3,6 +3,7 @@ import unittest
 from local_commerce.services.order_rules import (
     address_fields,
     cart_rows,
+    delivery_transition,
     transition,
     whole_quantity,
 )
@@ -42,6 +43,19 @@ class TestOrderRules(unittest.TestCase):
         ]:
             with self.assertRaises(ValueError):
                 transition(current, target)
+
+    def test_driver_must_follow_delivery_sequence(self):
+        self.assertTrue(delivery_transition("Ready", "Picked Up"))
+        self.assertTrue(delivery_transition("Picked Up", "Out for Delivery"))
+        self.assertTrue(delivery_transition("Out for Delivery", "Delivered"))
+        self.assertFalse(delivery_transition("Delivered", "Delivered"))
+        for current, target in [
+            ("Ready", "Delivered"),
+            ("Picked Up", "Delivered"),
+            ("Delivered", "Out for Delivery"),
+        ]:
+            with self.assertRaises(ValueError):
+                delivery_transition(current, target)
 
     def test_address_normalized_and_required(self):
         address = dict(

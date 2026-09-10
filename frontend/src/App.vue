@@ -31,17 +31,19 @@ function cancelLogout(event) {
   logoutDialog.value.close()
 }
 const ownerView = computed(() => route.path === '/shop' || route.path.startsWith('/shop/'))
+const deliveryView = computed(() => route.path === '/delivery')
 const canManage = computed(() => session.value && (session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role))))
+const canDeliver = computed(() => session.value?.roles.includes('LC Delivery Person') && session.value.memberships.some(m => m.membership_role === 'Driver'))
 provide('session', session)
 async function load() {
   error.value = ''
   try {
     session.value = await call('session.context'); setCsrfToken(session.value.csrf_token)
-    if (session.value.user !== 'Guest') {
+    if (session.value.roles.includes('LC Customer')) {
       // Account linking is a POST; public browsing remains usable if setup needs attention.
       try { await call('customers.ensure', {}, true) } catch { /* Account/checkout show actionable errors. */ }
     }
-    if (route.path === '/') await router.replace(canManage.value ? '/shop' : '/store')
+    if (route.path === '/') await router.replace(canManage.value ? '/shop' : canDeliver.value ? '/delivery' : '/store')
   } catch (e) { error.value = e.message }
 }
 async function logout() {
@@ -69,9 +71,9 @@ onBeforeUnmount(() => {
 <template>
   <div class="commerce-app" :class="{ 'owner-view': ownerView, 'has-global-cart': savedCartLines }">
     <header class="topbar">
-      <RouterLink class="brand" to="/store">local<span>●</span><small>{{ ownerView ? 'BUSINESS' : 'YOUR NEIGHBOURHOOD, TOGETHER' }}</small></RouterLink>
-      <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : 'Delivery from your local shops' }}</small></div></div>
-      <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><RouterLink v-else-if="session" class="account" to="/account"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink><button v-if="session && session.user !== 'Guest'" class="logout-button" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg>Log out</button></nav>
+      <RouterLink class="brand" to="/store">local<span>●</span><small>{{ ownerView ? 'BUSINESS' : deliveryView ? 'DELIVERY' : 'YOUR NEIGHBOURHOOD, TOGETHER' }}</small></RouterLink>
+      <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : deliveryView ? 'Your rider workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : deliveryView ? 'Every order, right on track.' : 'Delivery from your local shops' }}</small></div></div>
+      <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><RouterLink v-if="canDeliver" to="/delivery">Deliveries</RouterLink><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><RouterLink v-else-if="session" class="account" :to="session.roles.includes('LC Customer') ? '/account' : canDeliver ? '/delivery' : '/shop'"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink><button v-if="session && session.user !== 'Guest'" class="logout-button" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg>Log out</button></nav>
     </header>
     <main>
       <div v-if="error" class="page-state" role="alert"><h1>Let's try that again.</h1><p>{{ error }}</p><button @click="load">Retry</button></div>

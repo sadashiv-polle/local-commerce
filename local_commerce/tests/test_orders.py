@@ -4,7 +4,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from local_commerce.services import orders, owner
-from local_commerce.tests.helpers import create_user
+from local_commerce.tests.helpers import add_member, create_user
 from local_commerce.tests.test_owner_inventory import TestOwnerInventory
 
 
@@ -144,3 +144,45 @@ class TestDeliveryOrders(FrappeTestCase):
         frappe.set_user(self.customer.name)
         with self.assertRaises(frappe.ValidationError):
             self.place()
+
+    def test_owner_assigns_driver_and_delivery_posts_stock(self):
+        order = self.place()
+        frappe.set_user("Administrator")
+        driver = create_user("LC Delivery Person")
+        add_member(self.shop, driver, "Driver")
+        frappe.set_user(self.user.name)
+        orders.change(order["name"], "Accepted")
+        orders.change(order["name"], "Preparing")
+        orders.change(order["name"], "Ready")
+        assigned = orders.assign_driver(order["name"], driver.name)
+        self.assertEqual(assigned["delivery_user"], driver.name)
+        frappe.set_user(driver.name)
+        picked_up = orders.delivery_change(order["name"], "Picked Up")
+        self.assertEqual(picked_up["status"], "Picked Up")
+        doc = frappe.get_doc("LC Order", order["name"])
+        self.assertEqual(frappe.db.get_value("Delivery Note", doc.delivery_note, "docstatus"), 1)
+        self.assertEqual(owner.balance(self.item, self.warehouse.name)["actual"], 3)
+        orders.delivery_change(order["name"], "Out for Delivery")
+        delivered = orders.delivery_change(order["name"], "Delivered")
+        self.assertEqual(delivered["status"], "Delivered")
+        self.assertTrue(delivered["delivered_at"])
+
+    def test_only_assigned_shop_driver_can_update_delivery(self):
+        order = self.place()
+        frappe.set_user("Administrator")
+        driver = create_user("LC Delivery Person")
+        other_driver = create_user("LC Delivery Person")
+        add_member(self.shop, driver, "Driver")
+        add_member(self.other, other_driver, "Driver")
+        frappe.set_user(self.user.name)
+        with self.assertRaises(frappe.ValidationError):
+            orders.assign_driver(order["name"], other_driver.name)
+        with self.assertRaises(frappe.ValidationError):
+            orders.assign_driver(order["name"], driver.name)
+        orders.change(order["name"], "Accepted")
+        orders.change(order["name"], "Preparing")
+        orders.change(order["name"], "Ready")
+        orders.assign_driver(order["name"], driver.name)
+        frappe.set_user(other_driver.name)
+        with self.assertRaises(frappe.PermissionError):
+            orders.delivery_change(order["name"], "Picked Up")

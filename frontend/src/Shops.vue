@@ -34,7 +34,7 @@ onMounted(() => { if (canList.value) load() })
   </section>
   <section v-else class="lc-empty">
     <h2>Your account is connected</h2>
-    <p v-if="session.roles.includes('LC Delivery Person')">Delivery assignments will be available when the delivery phase is installed.</p>
+    <p v-if="session.roles.includes('LC Delivery Person')">Your rider workspace is ready.</p><RouterLink v-if="session.roles.includes('LC Delivery Person')" class="primary" to="/delivery">Open deliveries →</RouterLink>
     <p v-else-if="session.roles.includes('LC Customer')">Customer ordering will be available when the ordering phase is installed.</p>
     <p v-else>Your account has no shop workspace. Contact your platform administrator for access.</p>
   </section>

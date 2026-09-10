@@ -31,3 +31,23 @@ def detail(order):
 @frappe.whitelist(methods=["POST"])
 def change(order, target, reason=""):
     return orders.change(order, target, reason)
+
+
+@frappe.whitelist()
+def drivers(shop):
+    return orders.drivers(shop)
+
+
+@frappe.whitelist(methods=["POST"])
+def assign_driver(order, delivery_user):
+    return orders.assign_driver(order, delivery_user)
+
+
+@frappe.whitelist()
+def delivery_assignments(start=0):
+    return orders.delivery_assignments(start)
+
+
+@frappe.whitelist(methods=["POST"])
+def delivery_change(order, target):
+    return orders.delivery_change(order, target)

@@ -6,7 +6,7 @@ const route = useRoute()
 const username = ref(''), password = ref(''), otp = ref(''), challenge = ref(null)
 const busy = ref(false), error = ref(''), message = ref(''), forgot = ref(false), showPassword = ref(false)
 const candidate = route.query.next
-const next = typeof candidate === 'string' && /^\/(store|shop|orders|account)(\/|\?|$)/.test(candidate) ? candidate : '/store'
+const next = typeof candidate === 'string' && /^\/(store|shop|orders|account|delivery)(\/|\?|$)/.test(candidate) ? candidate : '/store'
 async function submit() {
   busy.value = true; error.value = ''; message.value = ''
   try {

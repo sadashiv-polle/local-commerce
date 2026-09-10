@@ -1,4 +1,4 @@
-"""Delivery requests backed by ERPNext Sales Orders; no payment or delivery posting."""
+"""Delivery orders backed by ERPNext Sales Orders and Delivery Notes; no online payment."""
 
 import hashlib
 import json
@@ -6,7 +6,7 @@ from contextvars import ContextVar
 from html import escape
 
 import frappe
-from frappe.utils import getdate, nowdate
+from frappe.utils import getdate, now_datetime, nowdate
 
 from local_commerce.permissions.policy import can_access_shop
 from local_commerce.permissions.scope import identity, memberships, require_shop, shop_query
@@ -27,6 +27,21 @@ def customer_access():
     if frappe.session.user == "Guest":
         frappe.throw("Please sign in to place an order", frappe.AuthenticationError)
     return frappe.session.user
+
+
+def is_shop_driver(user, shop):
+    return (
+        isinstance(user, str)
+        and bool(user)
+        and user != "Guest"
+        and "LC Delivery Person" in frappe.get_roles(user)
+        and bool(
+            frappe.db.exists(
+                "LC Shop Member",
+                {"shop": shop, "user": user, "membership_role": "Driver", "enabled": 1},
+            )
+        )
+    )
 
 
 def validate_delivery(doc, method=None):
@@ -295,6 +310,12 @@ def place(shop, items, address, request_key):
 def authorize(doc, write=False):
     if not write and doc.customer_user == frappe.session.user and frappe.session.user != "Guest":
         return
+    if (
+        not write
+        and doc.delivery_user == frappe.session.user
+        and is_shop_driver(frappe.session.user, doc.shop)
+    ):
+        return
     require_shop(doc.shop, "write" if write else "read")
 
 
@@ -310,6 +331,15 @@ def serialize(doc):
         "phone": doc.phone,
         "address": json.loads(doc.address_snapshot),
         "reason": doc.reason,
+        "delivery_user": doc.delivery_user,
+        "delivery_name": (
+            frappe.db.get_value("User", doc.delivery_user, "full_name")
+            if doc.delivery_user
+            else None
+        ),
+        "assigned_at": str(doc.assigned_at) if doc.assigned_at else None,
+        "picked_up_at": str(doc.picked_up_at) if doc.picked_up_at else None,
+        "delivered_at": str(doc.delivered_at) if doc.delivered_at else None,
         "currency": so.currency,
         "total": so.grand_total,
         "taxes_and_charges": so.total_taxes_and_charges,
@@ -349,6 +379,126 @@ def list_orders(shop=None, start=0):
         order_by="creation desc",
     )
     return [serialize(frappe.get_doc("LC Order", name)) for name in names]
+
+
+def drivers(shop):
+    require_shop(shop, "write")
+    members = frappe.get_all(
+        "LC Shop Member",
+        filters={"shop": shop, "membership_role": "Driver", "enabled": 1},
+        pluck="user",
+        order_by="user asc",
+    )
+    result = []
+    for user in members:
+        if frappe.db.get_value(
+            "User", user, "enabled"
+        ) and "LC Delivery Person" in frappe.get_roles(user):
+            result.append(
+                {"user": user, "full_name": frappe.db.get_value("User", user, "full_name") or user}
+            )
+    return result
+
+
+def assign_driver(order, delivery_user):
+    doc = frappe.get_doc("LC Order", order)
+    authorize(doc, True)
+    frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
+    frappe.db.sql("select name from `tabLC Order` where name=%s for update", doc.name)
+    doc.reload()
+    if doc.status != "Ready":
+        reject("A delivery person can only be assigned when the order is ready")
+    if not is_shop_driver(delivery_user, doc.shop):
+        reject("Select an enabled delivery person assigned to this shop")
+    if doc.delivery_user == delivery_user:
+        return serialize(doc)
+    token = _order_operation.set(True)
+    try:
+        previous = doc.delivery_user
+        doc.delivery_user = delivery_user
+        doc.assigned_at = now_datetime()
+        doc.save(ignore_permissions=True)
+        label = frappe.db.get_value("User", delivery_user, "full_name") or delivery_user
+        action = "Reassigned" if previous else "Assigned"
+        doc.add_comment("Info", escape(f"{action} delivery to {label}."))
+        return serialize(doc)
+    finally:
+        _order_operation.reset(token)
+
+
+def delivery_assignments(start=0):
+    user = frappe.session.user
+    if user == "Guest" or "LC Delivery Person" not in frappe.get_roles(user):
+        frappe.throw("Delivery person access required", frappe.PermissionError)
+    driver_shops = sorted(
+        {
+            member.shop
+            for member in memberships(user)
+            if member.membership_role == "Driver" and is_shop_driver(user, member.shop)
+        }
+    )
+    if not driver_shops:
+        return []
+    names = frappe.get_all(
+        "LC Order",
+        filters={"delivery_user": user, "shop": ["in", driver_shops]},
+        pluck="name",
+        start=offset(start),
+        limit_page_length=20,
+        order_by="creation desc",
+    )
+    return [serialize(frappe.get_doc("LC Order", name)) for name in names]
+
+
+def delivery_change(order, target):
+    doc = frappe.get_doc("LC Order", order)
+    if doc.delivery_user != frappe.session.user or not is_shop_driver(
+        frappe.session.user, doc.shop
+    ):
+        frappe.throw("This delivery is not assigned to you", frappe.PermissionError)
+    frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
+    frappe.db.sql("select name from `tabLC Order` where name=%s for update", doc.name)
+    doc.reload()
+    if doc.delivery_user != frappe.session.user or not is_shop_driver(
+        frappe.session.user, doc.shop
+    ):
+        frappe.throw("This delivery is no longer assigned to you", frappe.PermissionError)
+    try:
+        changed = order_rules.delivery_transition(doc.status, target)
+    except ValueError as exc:
+        reject(str(exc))
+    if not changed:
+        return serialize(doc)
+    token = _order_operation.set(True)
+    owner_token = _owner_operation.set(True)
+    try:
+        if target == "Picked Up":
+            from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
+
+            if doc.delivery_note:
+                reject("This order already has a delivery note")
+            note = make_delivery_note(doc.sales_order)
+            note.lc_order = doc.name
+            note.flags.ignore_permissions = True
+            note.insert(ignore_permissions=True)
+            note.submit()
+            doc.delivery_note = note.name
+            doc.picked_up_at = now_datetime()
+        elif target == "Delivered":
+            if (
+                not doc.delivery_note
+                or frappe.db.get_value("Delivery Note", doc.delivery_note, "docstatus") != 1
+            ):
+                reject("The submitted delivery note is missing; contact the shop")
+            doc.delivered_at = now_datetime()
+        previous = doc.status
+        doc.status = target
+        doc.save(ignore_permissions=True)
+        doc.add_comment("Info", escape(f"{previous} → {target}."))
+        return serialize(doc)
+    finally:
+        _owner_operation.reset(owner_token)
+        _order_operation.reset(token)
 
 
 def change(order, target, reason=""):
@@ -409,8 +559,10 @@ def permission(doc, user=None, permission_type=None, **kwargs):
     user, roles = identity(user)
     if permission_type not in (None, "read"):
         return False
-    return (user != "Guest" and user == doc.customer_user) or can_access_shop(
-        user, roles, memberships(user), doc.shop
+    return (
+        (user != "Guest" and user == doc.customer_user)
+        or (user == doc.delivery_user and is_shop_driver(user, doc.shop))
+        or can_access_shop(user, roles, memberships(user), doc.shop)
     )
 
 
@@ -421,7 +573,10 @@ def query(user=None):
     scoped = shop_query(user).replace("`tabLC Shop`.`name`", "`tabLC Order`.`shop`")
     if not scoped:
         return ""
-    return f"({scoped}) or `tabLC Order`.`customer_user`={frappe.db.escape(user)}"
+    return (
+        f"({scoped}) or `tabLC Order`.`customer_user`={frappe.db.escape(user)}"
+        f" or `tabLC Order`.`delivery_user`={frappe.db.escape(user)}"
+    )
 
 
 def protect_sales_order(doc, method=None, **kwargs):
@@ -430,3 +585,11 @@ def protect_sales_order(doc, method=None, **kwargs):
         doc.get("lc_order") or (previous and previous.get("lc_order"))
     ) and not _order_operation.get():
         frappe.throw("Use the Local Commerce order workflow", frappe.PermissionError)
+
+
+def protect_delivery_note(doc, method=None, **kwargs):
+    previous = doc.get_doc_before_save()
+    if (
+        doc.get("lc_order") or (previous and previous.get("lc_order"))
+    ) and not _order_operation.get():
+        frappe.throw("Use the Local Commerce delivery workflow", frappe.PermissionError)
