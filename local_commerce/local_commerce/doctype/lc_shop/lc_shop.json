@@ -85,46 +85,54 @@
     {
       "fieldname": "location_section",
       "label": "Shop location and service area",
-      "fieldtype": "Section Break"
+      "fieldtype": "Section Break",
+      "permlevel": 1
     },
     {
       "fieldname": "address_line1",
       "label": "Shop Address",
-      "fieldtype": "Data"
+      "fieldtype": "Data",
+      "permlevel": 1
     },
     {
       "fieldname": "city",
       "label": "City",
-      "fieldtype": "Data"
+      "fieldtype": "Data",
+      "permlevel": 1
     },
     {
       "fieldname": "postal_code",
       "label": "Shop Postal Code",
-      "fieldtype": "Data"
+      "fieldtype": "Data",
+      "permlevel": 1
     },
     {
       "fieldname": "latitude",
       "label": "Latitude",
       "fieldtype": "Float",
-      "precision": 6
+      "precision": 6,
+      "permlevel": 1
     },
     {
       "fieldname": "longitude",
       "label": "Longitude",
       "fieldtype": "Float",
-      "precision": 6
+      "precision": 6,
+      "permlevel": 1
     },
     {
       "fieldname": "service_radius_km",
       "label": "Delivery Radius (km)",
       "fieldtype": "Float",
-      "default": "5"
+      "default": "5",
+      "permlevel": 1
     },
     {
       "fieldname": "live_tracking_enabled",
       "label": "Enable Live Delivery Tracking",
       "fieldtype": "Check",
-      "default": "1"
+      "default": "1",
+      "permlevel": 1
     },
     {
       "fieldname": "inventory_section",
@@ -227,6 +235,13 @@
       "delete": 1,
       "report": 1,
       "export": 1
+    },
+    {
+      "role": "LC Platform Administrator",
+      "permlevel": 1,
+      "read": 1,
+      "write": 1,
+      "create": 1
     },
     {
       "role": "LC Shop Owner",

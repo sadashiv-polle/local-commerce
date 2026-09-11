@@ -58,6 +58,20 @@ class LCShop(Document):
                 frappe.throw(
                     "Only platform administrators can change Company", frappe.PermissionError
                 )
+            location_fields = (
+                "address_line1",
+                "city",
+                "postal_code",
+                "latitude",
+                "longitude",
+                "service_radius_km",
+                "live_tracking_enabled",
+            )
+            if any(previous.get(field) != self.get(field) for field in location_fields):
+                frappe.throw(
+                    "Only platform administrators can change shop location settings",
+                    frappe.PermissionError,
+                )
         if not frappe.db.exists("Company", self.company):
             frappe.throw("A valid ERPNext Company is required")
         self.shop_name = (self.shop_name or "").strip()

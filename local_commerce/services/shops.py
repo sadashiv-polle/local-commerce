@@ -1,6 +1,6 @@
 import frappe
 
-from local_commerce.permissions.scope import require_shop
+from local_commerce.permissions.scope import require_platform, require_shop
 from local_commerce.services.location_rules import point
 from local_commerce.services.locations import map_config, shop_location
 from local_commerce.services.owner import checked_number, reject
@@ -62,6 +62,7 @@ def update_shop(
     doc = frappe.get_doc("LC Shop", shop)
     doc.shop_name, doc.status, doc.description = shop_name, status, description
     if address_line1 is not None:
+        require_platform()
         try:
             location = point(latitude, longitude)
         except ValueError as exc:

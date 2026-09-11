@@ -33,6 +33,37 @@ class TestLCShop(FrappeTestCase):
         with self.assertRaises(frappe.PermissionError):
             self.a.save()
 
+    def test_only_platform_admin_can_change_shop_location(self):
+        frappe.set_user(self.owner.name)
+        with self.assertRaises(frappe.PermissionError):
+            update_shop(
+                self.a.name,
+                self.a.shop_name,
+                self.a.status,
+                address_line1="Owner supplied address",
+                city="Test City",
+                postal_code="403001",
+                latitude=15.49,
+                longitude=73.83,
+                service_radius_km=5,
+                live_tracking_enabled=1,
+            )
+
+        frappe.set_user("Administrator")
+        result = update_shop(
+            self.a.name,
+            self.a.shop_name,
+            self.a.status,
+            address_line1="Admin supplied address",
+            city="Test City",
+            postal_code="403001",
+            latitude=15.49,
+            longitude=73.83,
+            service_radius_km=5,
+            live_tracking_enabled=1,
+        )
+        self.assertEqual(result["address_line1"], "Admin supplied address")
+
     def test_revocation_applies_immediately(self):
         self.member.enabled = 0
         self.member.save()
