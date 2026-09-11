@@ -17,7 +17,7 @@ let layer
 const markerStyles = {
   shop: ['<svg viewBox="0 0 24 24"><path d="M4 10v9h16v-9M3 10l2-5h14l2 5M8 19v-5h4v5M3 10c0 1.4 1.1 2.5 2.5 2.5S8 11.4 8 10c0 1.4 1.1 2.5 2.5 2.5S13 11.4 13 10c0 1.4 1.1 2.5 2.5 2.5S18 11.4 18 10c0 1.4 1.1 2.5 2.5 2.5"/></svg>', 'map-marker-shop'],
   customer: ['<svg viewBox="0 0 24 24"><path d="m4 11 8-7 8 7v9h-6v-6h-4v6H4z"/></svg>', 'map-marker-customer'],
-  rider: ['<svg viewBox="0 0 24 24"><path d="m5 18 3.5-12L19 3l-3 10.5-4.5-2.5z"/></svg>', 'map-marker-rider'],
+  rider: ['<svg viewBox="0 0 32 24"><circle cx="7" cy="18" r="3.5"/><circle cx="25" cy="18" r="3.5"/><path d="M7 18h5l4-8h5l4 8M12 18h8l-4-8-3-4M20 10l3-3h3M11 7h5"/></svg>', 'map-marker-rider'],
 }
 
 function renderPoints() {
