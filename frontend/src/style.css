@@ -407,11 +407,19 @@ html { scroll-behavior: smooth; }
 #lc-app .lc-map-shell { overflow: hidden; border: 1px solid #dbe5d7; border-radius: 16px; background: #edf2e9; }
 #lc-app .lc-map { width: 100%; min-height: 180px; z-index: 0; background: #e8eee4; }
 #lc-app .lc-map-shell footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; padding: 8px 12px; color: #667567; background: white; font-size: 10px; }
-#lc-app .map-marker { display: grid; place-items: center; border-radius: 50% 50% 50% 8px; border: 3px solid white; box-shadow: 0 4px 12px #193a2f45; transform: rotate(-45deg); }
-#lc-app .map-marker span { color: white; font-size: 15px; font-weight: 850; transform: rotate(45deg); }
-#lc-app .map-marker-shop { background: #f2b934; }
-#lc-app .map-marker-customer { background: #168346; }
-#lc-app .map-marker-rider { background: #286dcc; }
+#lc-app .map-marker { display: block; border: 0; background: transparent; filter: drop-shadow(0 6px 7px #173c3038); }
+#lc-app .map-pin-body { position: absolute; z-index: 2; top: 1px; left: 5px; display: grid; place-items: center; width: 40px; height: 40px; border: 3px solid white; border-radius: 50% 50% 50% 12px; background: #168346; transform: rotate(-45deg); animation: lc-pin-drop .28s ease-out; }
+#lc-app .map-pin-body svg { width: 21px; height: 21px; fill: none; stroke: white; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; transform: rotate(45deg); }
+#lc-app .map-pin-pulse { position: absolute; z-index: 1; left: 13px; bottom: 0; width: 24px; height: 8px; border-radius: 50%; background: #173c3024; }
+#lc-app .map-marker-selected .map-pin-pulse { animation: lc-pin-pulse 1.7s ease-out infinite; }
+#lc-app .map-marker-shop .map-pin-body { background: #f8c632; }
+#lc-app .map-marker-shop .map-pin-body svg { stroke: #244c39; }
+#lc-app .map-marker-customer .map-pin-body { background: #168346; }
+#lc-app .map-marker-rider .map-pin-body { background: #3478e5; }
+#lc-app .map-marker-rider .map-pin-body svg { fill: white; stroke: white; }
+@keyframes lc-pin-drop { from { opacity: 0; transform: translateY(-10px) rotate(-45deg) scale(.8); } to { opacity: 1; transform: translateY(0) rotate(-45deg) scale(1); } }
+@keyframes lc-pin-pulse { 0% { opacity: .65; transform: scale(.75); } 70%, 100% { opacity: 0; transform: scale(1.65); } }
+@media(prefers-reduced-motion: reduce) { #lc-app .map-pin-body, #lc-app .map-marker-selected .map-pin-pulse { animation: none; } }
 #lc-app .location-editor { display: grid; gap: 14px; padding: 20px; border: 1px solid #dce6d7; border-radius: 17px; background: #f6f8f2; }
 #lc-app .location-heading, #lc-app .tracking-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
 #lc-app .location-heading h3, #lc-app .tracking-heading h4 { margin: 4px 0; }

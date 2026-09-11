@@ -15,9 +15,9 @@ let map
 let layer
 
 const markerStyles = {
-  shop: ['S', 'map-marker-shop'],
-  customer: ['●', 'map-marker-customer'],
-  rider: ['↟', 'map-marker-rider'],
+  shop: ['<svg viewBox="0 0 24 24"><path d="M4 10v9h16v-9M3 10l2-5h14l2 5M8 19v-5h4v5M3 10c0 1.4 1.1 2.5 2.5 2.5S8 11.4 8 10c0 1.4 1.1 2.5 2.5 2.5S13 11.4 13 10c0 1.4 1.1 2.5 2.5 2.5S18 11.4 18 10c0 1.4 1.1 2.5 2.5 2.5"/></svg>', 'map-marker-shop'],
+  customer: ['<svg viewBox="0 0 24 24"><path d="m4 11 8-7 8 7v9h-6v-6h-4v6H4z"/></svg>', 'map-marker-customer'],
+  rider: ['<svg viewBox="0 0 24 24"><path d="m5 18 3.5-12L19 3l-3 10.5-4.5-2.5z"/></svg>', 'map-marker-rider'],
 }
 
 function renderPoints() {
@@ -29,8 +29,14 @@ function renderPoints() {
     const longitude = Number(point?.longitude)
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue
     const [symbol, className] = markerStyles[point.kind] || markerStyles.customer
+    const selected = props.editable && (point.kind === 'customer' || props.points.length === 1)
     L.marker([latitude, longitude], {
-      icon: L.divIcon({ className: `map-marker ${className}`, html: `<span aria-hidden="true">${symbol}</span>`, iconSize: [38, 38], iconAnchor: [19, 38] }),
+      icon: L.divIcon({
+        className: `map-marker ${className}${selected ? ' map-marker-selected' : ''}`,
+        html: `<span class="map-pin-pulse" aria-hidden="true"></span><span class="map-pin-body" aria-hidden="true">${symbol}</span>`,
+        iconSize: [50, 58],
+        iconAnchor: [25, 55],
+      }),
       keyboard: false,
       title: String(point.label || 'Map location').slice(0, 100),
     }).addTo(layer)
