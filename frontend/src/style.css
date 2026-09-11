@@ -404,9 +404,16 @@ html { scroll-behavior: smooth; }
 }
 
 /* Shop, checkout, and live-delivery maps */
-#lc-app .lc-map-shell { overflow: hidden; border: 1px solid #dbe5d7; border-radius: 16px; background: #edf2e9; }
+#lc-app .lc-map-shell { position: relative; overflow: hidden; border: 1px solid #dbe5d7; border-radius: 16px; background: #edf2e9; }
 #lc-app .lc-map { width: 100%; min-height: 180px; z-index: 0; background: #e8eee4; }
 #lc-app .lc-map-shell footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; padding: 8px 12px; color: #667567; background: white; font-size: 10px; }
+#lc-app .map-expand-button { position: absolute; z-index: 500; top: 10px; right: 10px; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 1px solid #d4dfd1; border-radius: 11px; color: #244c39; background: #fffffff2; box-shadow: 0 4px 14px #173c3024; backdrop-filter: blur(7px); }
+#lc-app .map-expand-button:hover { color: white; border-color: #287750; background: #287750; }
+#lc-app .map-expand-button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#lc-app .lc-map-shell-expanded { position: fixed; z-index: 4000; inset: 10px; display: flex; flex-direction: column; border-radius: 19px; box-shadow: 0 24px 80px #102c2466; }
+#lc-app .lc-map-shell-expanded::before { content: ''; position: fixed; z-index: -1; inset: 0; background: #102c2473; backdrop-filter: blur(3px); }
+#lc-app .lc-map-shell-expanded .lc-map { flex: 1 1 auto; min-height: 0; height: auto !important; }
+#lc-app .lc-map-shell-expanded footer { min-height: 40px; align-items: center; }
 #lc-app .map-marker { display: block; border: 0; background: transparent; filter: drop-shadow(0 6px 7px #173c3038); }
 #lc-app .map-pin-body { position: absolute; z-index: 2; top: 1px; left: 5px; display: grid; place-items: center; width: 40px; height: 40px; border: 3px solid white; border-radius: 50% 50% 50% 12px; background: #168346; transform: rotate(-45deg); animation: lc-pin-drop .28s ease-out; }
 #lc-app .map-pin-body svg { width: 21px; height: 21px; fill: none; stroke: white; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; transform: rotate(45deg); }
@@ -424,6 +431,10 @@ html { scroll-behavior: smooth; }
 @keyframes lc-bike-drop { from { opacity: 0; transform: translateY(-8px) scale(.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes lc-pin-pulse { 0% { opacity: .65; transform: scale(.75); } 70%, 100% { opacity: 0; transform: scale(1.65); } }
 @media(prefers-reduced-motion: reduce) { #lc-app .map-pin-body, #lc-app .map-marker-selected .map-pin-pulse { animation: none; } }
+@media(max-width: 640px) {
+  #lc-app .lc-map-shell-expanded { inset: 0; border: 0; border-radius: 0; }
+  #lc-app .map-expand-button { top: 12px; right: 12px; width: 42px; height: 42px; border-radius: 13px; }
+}
 #lc-app .location-editor { display: grid; gap: 14px; padding: 20px; border: 1px solid #dce6d7; border-radius: 17px; background: #f6f8f2; }
 #lc-app .location-heading, #lc-app .tracking-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
 #lc-app .location-heading h3, #lc-app .tracking-heading h4 { margin: 4px 0; }

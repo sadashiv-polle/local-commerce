@@ -11,6 +11,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['pick'])
 const container = ref(null)
+const expanded = ref(false)
 let map
 let layer
 
@@ -47,6 +48,17 @@ function renderPoints() {
   else map.setView([15.49, 73.83], 11)
 }
 
+async function toggleExpanded() {
+  expanded.value = !expanded.value
+  await nextTick()
+  map?.invalidateSize()
+  renderPoints()
+}
+
+function closeExpanded(event) {
+  if (event.key === 'Escape' && expanded.value) toggleExpanded()
+}
+
 onMounted(async () => {
   await nextTick()
   map = L.map(container.value, { zoomControl: true, attributionControl: false })
@@ -55,15 +67,20 @@ onMounted(async () => {
   if (props.editable) map.on('click', event => emit('pick', { latitude: Number(event.latlng.lat.toFixed(6)), longitude: Number(event.latlng.lng.toFixed(6)) }))
   renderPoints()
   setTimeout(() => map?.invalidateSize(), 0)
+  window.addEventListener('keydown', closeExpanded)
 })
 
 watch(() => props.points, renderPoints, { deep: true })
-onBeforeUnmount(() => { map?.remove(); map = null; layer = null })
+onBeforeUnmount(() => { window.removeEventListener('keydown', closeExpanded); map?.remove(); map = null; layer = null })
 </script>
 
 <template>
-  <div class="lc-map-shell">
+  <div class="lc-map-shell" :class="{ 'lc-map-shell-expanded': expanded }">
     <div ref="container" class="lc-map" :style="{ height }" :aria-label="editable ? 'Choose a location on the map' : 'Delivery map'"></div>
+    <button class="map-expand-button" type="button" :aria-label="expanded ? 'Minimize map' : 'Expand map'" :title="expanded ? 'Minimize map' : 'Expand map'" @click="toggleExpanded">
+      <svg v-if="expanded" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
+      <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" /></svg>
+    </button>
     <footer><span v-if="editable">Tap the map to move the pin.</span><small><a :href="config?.attribution_url || 'https://www.openstreetmap.org/copyright'" target="_blank" rel="noopener">{{ config?.attribution || '© OpenStreetMap contributors' }}</a></small></footer>
   </div>
 </template>
