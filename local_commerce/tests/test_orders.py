@@ -216,6 +216,14 @@ class TestDeliveryOrders(FrappeTestCase):
         with self.assertRaises(frappe.ValidationError):
             self.place()
 
+    def test_catalog_returns_item_image(self):
+        frappe.set_user("Administrator")
+        frappe.db.set_value("Item", self.item, "image", "/files/catalog-product.png")
+        frappe.set_user("Guest")
+        catalog = orders.catalog(self.shop.name)
+        product = next(row for row in catalog["items"] if row["item"] == self.item)
+        self.assertEqual(product["image"], "/files/catalog-product.png")
+
     def test_owner_assigns_driver_and_delivery_posts_stock(self):
         order = self.place()
         frappe.set_user("Administrator")

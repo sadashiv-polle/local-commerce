@@ -225,6 +225,7 @@ def product_data(shop, item, browsing=False):
     return {
         "item": item.name,
         "item_name": item.item_name,
+        "image": item.image or "",
         "uom": item.stock_uom,
         "description": item.lc_description or "",
         "rate": float(checked_number(price.price_list_rate, "Price")) if price else None,

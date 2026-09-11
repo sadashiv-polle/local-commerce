@@ -17,7 +17,8 @@ No customer catalog, delivery, inventory, payment, settlement, provider, reporti
 ## Owner inventory API
 
 `local_commerce.api.owner` provides GET `catalog`, `detail`, `setup_options`,
-`history`, and POST `configure`, `update_product`, `adjust_stock`. Every method
+`history`, and POST `configure`, `update_product`, `upload_product_image`,
+`adjust_stock`. Every method
 validates shop membership; mutations require owner/platform authority. Product
 selectors must belong to the authorized shop. `adjust_stock` requires
 `request_key`, `action` (Add/Remove), `quantity`, `reason`, and positive `unit_cost`

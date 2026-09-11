@@ -1,13 +1,7 @@
 import { loginUrl } from './cart.js'
 let csrfToken = ''
 export function setCsrfToken(token) { csrfToken = token }
-export async function call(method, args = {}, mutate = false) {
-  const path = `/api/method/local_commerce.api.${method}`
-  const response = await fetch(mutate ? path : `${path}?${new URLSearchParams(args)}`, {
-    method: mutate ? 'POST' : 'GET', credentials: 'same-origin',
-    headers: mutate ? { 'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': csrfToken } : {},
-    ...(mutate ? { body: JSON.stringify(args) } : {}),
-  })
+async function result(response) {
   if (response.status === 401) { window.location.assign(loginUrl(window.location.hash.slice(1))); throw new Error('Please sign in again.') }
   if (!response.ok) {
     let message = response.status === 403 ? 'You do not have access to this operation.' : 'The request could not be completed. Please retry or contact your administrator.'
@@ -20,6 +14,25 @@ export async function call(method, args = {}, mutate = false) {
     throw error
   }
   return (await response.json()).message
+}
+export async function call(method, args = {}, mutate = false) {
+  const path = `/api/method/local_commerce.api.${method}`
+  const response = await fetch(mutate ? path : `${path}?${new URLSearchParams(args)}`, {
+    method: mutate ? 'POST' : 'GET', credentials: 'same-origin',
+    headers: mutate ? { 'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': csrfToken } : {},
+    ...(mutate ? { body: JSON.stringify(args) } : {}),
+  })
+  return result(response)
+}
+export async function upload(method, args, file) {
+  const body = new FormData()
+  for (const [key, value] of Object.entries(args)) body.append(key, String(value))
+  body.append('file', file, file.name)
+  const response = await fetch(`/api/method/local_commerce.api.${method}`, {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'X-Frappe-CSRF-Token': csrfToken }, body,
+  })
+  return result(response)
 }
 
 // Native authentication endpoint: credentials stay in memory and never enter storage.

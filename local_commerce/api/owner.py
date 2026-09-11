@@ -33,6 +33,11 @@ def update_product(
 
 
 @frappe.whitelist(methods=["POST"])
+def upload_product_image(shop, item):
+    return owner.upload_product_image(shop, item)
+
+
+@frappe.whitelist(methods=["POST"])
 def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0):
     return owner.adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost)
 

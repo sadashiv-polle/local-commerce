@@ -221,6 +221,7 @@ def serialize_product(doc, product, stock, price, currency):
             for key in (
                 "name",
                 "item_name",
+                "image",
                 "item_group",
                 "stock_uom",
                 "lc_description",
@@ -260,6 +261,7 @@ def catalog(shop, start=0, search="", status="All"):
         fields=[
             "name",
             "item_name",
+            "image",
             "item_group",
             "stock_uom",
             "lc_description",
@@ -390,6 +392,45 @@ def update_product(
     try:
         product.save(ignore_permissions=True)
         product.add_comment("Edit", "Owner updated product details, availability or selling price")
+    finally:
+        _item_creation.reset(token)
+    return detail(shop, item)
+
+
+def upload_product_image(shop, item):
+    """Attach a public storefront image after checking product ownership."""
+    _, product = own_item(shop, item, True)
+    uploaded = getattr(frappe.request, "files", {}).get("file")
+    if not uploaded or not uploaded.filename:
+        reject("Choose a product image to upload")
+    filename = uploaded.filename.strip()
+    extension = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    content_type = (uploaded.mimetype or "").lower()
+    allowed = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+    }
+    accepted_types = {allowed[extension]} if extension in allowed else set()
+    if extension in (".jpg", ".jpeg"):
+        accepted_types.add("image/jpg")
+    if not accepted_types or content_type not in accepted_types:
+        reject("Upload a JPG, PNG or WebP image")
+    content = uploaded.stream.read(5 * 1024 * 1024 + 1)
+    if not content:
+        reject("The selected image is empty")
+    if len(content) > 5 * 1024 * 1024:
+        reject("Product images must be 5 MB or smaller")
+
+    from frappe.utils.file_manager import save_file
+
+    file_doc = save_file(filename, content, "Item", product.name, is_private=0)
+    product.image = file_doc.file_url
+    token = _item_creation.set(True)
+    try:
+        product.save(ignore_permissions=True)
+        product.add_comment("Edit", "Owner updated the storefront product image")
     finally:
         _item_creation.reset(token)
     return detail(shop, item)

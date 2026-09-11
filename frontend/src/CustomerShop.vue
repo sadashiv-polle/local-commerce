@@ -26,7 +26,12 @@ const deliveryPoints = computed(() => {
 function money(value) { if (value == null) return 'Price coming soon'; return new Intl.NumberFormat(undefined, { style: 'currency', currency: catalog.value.currency }).format(value) }
 async function load(delta = 0) {
   loading.value = true; error.value = ''; start.value = Math.max(0, start.value + delta)
-  try { catalog.value = await call('orders.catalog', { shop: route.params.shop, start: start.value }) }
+  try {
+    catalog.value = await call('orders.catalog', { shop: route.params.shop, start: start.value })
+    for (const item of catalog.value.items) {
+      if (cart.value[item.item]) cart.value[item.item] = { ...cart.value[item.item], image: item.image || '' }
+    }
+  }
   catch (e) { error.value = e.message }
   finally { loading.value = false }
 }
@@ -125,7 +130,7 @@ onBeforeUnmount(() => window.removeEventListener('lc-open-cart', openCartEvent))
       <fieldset :disabled="busy || !!pending">
         <div class="lc-grid product-grid">
           <article v-for="item in catalog.items" :key="item.item" class="lc-card customer-product-card">
-            <div class="product-art" aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</div>
+            <div class="product-art"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" decoding="async" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</span></div>
             <p class="product-availability">{{ item.available }} {{ item.uom }} available</p>
             <h3>{{ item.item_name }}</h3><p class="product-description">{{ item.description || 'Fresh from your local shop.' }}</p>
             <div class="product-buy-row">
@@ -143,7 +148,7 @@ onBeforeUnmount(() => window.removeEventListener('lc-open-cart', openCartEvent))
           <header class="cart-drawer-header"><div><span class="eyebrow">YOUR BASKET</span><h2 id="cart-title">My cart</h2></div><button type="button" aria-label="Close cart" :disabled="busy" @click="closeCart">×</button></header>
           <div class="delivery-promise"><span aria-hidden="true">✓</span><div><strong>From {{ catalog.shop_name }}</strong><small>{{ catalog.accepting_orders ? 'Delivery request subject to shop confirmation' : 'Ordering opens soon' }}</small></div></div>
           <div class="cart-line-list">
-            <article v-for="item in cart" :key="item.item" class="cart-line"><div class="cart-line-art" aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</div><div><strong>{{ item.item_name }}</strong><small>{{ money(item.rate) }} / {{ item.uom }}</small></div><div class="quantity-stepper"><button type="button" :disabled="busy || !!pending" :aria-label="`Remove one ${item.item_name}`" @click="updateQuantity(item, -1)">−</button><strong>{{ item.quantity }}</strong><button type="button" :disabled="busy || !!pending || item.quantity >= item.available" :aria-label="`Add one ${item.item_name}`" @click="updateQuantity(item, 1)">+</button></div><strong>{{ money(item.rate * item.quantity) }}</strong></article>
+            <article v-for="item in cart" :key="item.item" class="cart-line"><div class="cart-line-art"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" decoding="async" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</span></div><div><strong>{{ item.item_name }}</strong><small>{{ money(item.rate) }} / {{ item.uom }}</small></div><div class="quantity-stepper"><button type="button" :disabled="busy || !!pending" :aria-label="`Remove one ${item.item_name}`" @click="updateQuantity(item, -1)">−</button><strong>{{ item.quantity }}</strong><button type="button" :disabled="busy || !!pending || item.quantity >= item.available" :aria-label="`Add one ${item.item_name}`" @click="updateQuantity(item, 1)">+</button></div><strong>{{ money(item.rate * item.quantity) }}</strong></article>
           </div>
           <section class="bill-details"><h3>Bill details</h3><p><span>Item total</span><strong>{{ money(subtotal) }}</strong></p><p><span>Delivery fee</span><strong>{{ money(catalog.delivery_fee) }}</strong></p><p class="bill-total"><span>Estimated total</span><strong>{{ money(estimatedTotal) }}</strong></p><small>ERPNext calculates applicable taxes when your request is saved.</small></section>
           <AuthChoices v-if="checkout && session.user === 'Guest'" />
