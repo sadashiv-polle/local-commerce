@@ -16,6 +16,8 @@ const next = { Ready: 'Picked Up', 'Picked Up': 'Out for Delivery', 'Out for Del
 const labels = { Ready: 'Confirm pickup', 'Picked Up': 'Start delivery', 'Out for Delivery': 'Confirm delivered' }
 
 function money(value, currency) { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value) }
+function orderLabel(value) { const name = String(value || ''); return name.length > 12 ? `#${name.slice(0, 8).toUpperCase()}` : name }
+function deliveredAt(value) { return value ? String(value).split('.')[0].replace(' ', ' · ') : '' }
 function mapPoints(order) {
   const points = []
   if (order.shop_location) points.push({ ...order.shop_location, kind: 'shop', label: order.shop_name })
@@ -127,14 +129,14 @@ onBeforeUnmount(() => stopTracking(''))
         <p v-else-if="!assignments.length" class="lc-empty">{{ view === 'active' ? 'No active deliveries right now.' : 'No completed deliveries yet.' }}</p>
         <div v-else class="delivery-list">
           <article v-for="order in assignments" :key="order.name" class="delivery-card" :class="{ finished: ['Delivered', 'Cancelled'].includes(order.status) }">
-            <header><div><span class="eyebrow">{{ order.shop_name }} · {{ order.name }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>
+            <header><div><span class="eyebrow" :title="order.name">{{ order.shop_name }} · {{ orderLabel(order.name) }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>
             <div class="delivery-address"><span aria-hidden="true">⌖</span><div><strong>{{ order.address.line1 }}</strong><p>{{ order.address.city }} · {{ order.address.postal_code }}</p><a :href="`tel:${order.phone}`">Call {{ order.phone }}</a></div></div>
             <div v-if="order.destination_location" class="delivery-map-panel"><MapView :config="order.map" :points="mapPoints(order)" height="235px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Customer</span><span v-if="order.driver_location"><i class="legend-rider"></i>You</span><a :href="mapLink(order.destination_location)" target="_blank" rel="noopener">Open destination ↗</a></div></div>
             <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
             <details><summary>{{ order.items.length }} product{{ order.items.length === 1 ? '' : 's' }} · {{ money(order.total, order.currency) }}</summary><ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }}</li></ul></details>
             <div v-if="order.status === 'Out for Delivery' && order.live_tracking_enabled" class="tracking-controls"><button v-if="trackingOrder !== order.name" type="button" @click="startTracking(order)">Share live location</button><button v-else type="button" class="tracking-stop" @click="stopTracking()">Stop sharing</button><small>Location is visible only to this customer and is removed after delivery.</small></div>
             <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="requestAdvance(order)">{{ busyOrder === order.name ? 'Updating…' : order.status === 'Out for Delivery' ? 'Collect cash & confirm delivered' : labels[order.status] }} <span>›</span></button>
-            <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered · Cash {{ order.payment_status === 'Reconciled' ? 'handed over' : 'awaiting handover' }}{{ order.delivered_at ? ` · ${order.delivered_at}` : '' }}</p>
+            <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered · Cash {{ order.payment_status === 'Reconciled' ? 'handed over' : 'awaiting handover' }}{{ order.delivered_at ? ` · ${deliveredAt(order.delivered_at)}` : '' }}</p>
             <p v-else-if="order.status === 'Cancelled'" class="muted">This order was cancelled.</p>
           </article>
         </div>
