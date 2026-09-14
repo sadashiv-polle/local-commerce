@@ -1,4 +1,5 @@
 import frappe
+from frappe.rate_limiter import rate_limit
 
 from local_commerce.services import orders
 
@@ -26,6 +27,12 @@ def list_orders(shop=None, start=0):
 @frappe.whitelist()
 def detail(order):
     return orders.detail(order)
+
+
+@frappe.whitelist(methods=["GET"])
+@rate_limit(limit=120, seconds=3600)
+def delivery_route(order):
+    return orders.delivery_route(order)
 
 
 @frappe.whitelist(methods=["POST"])

@@ -1,6 +1,6 @@
 # Shop locations, delivery pins, and rider tracking
 
-Owners configure the shop street address, map pin, delivery radius, and live
+Platform administrators configure the shop street address, map pin, delivery radius, and live
 tracking switch in **Shop workspace → Shop settings**. Customers choose their
 delivery pin during checkout. When a shop has a pin, checkout calculates a
 straight-line distance on the server and rejects destinations beyond that shop's
@@ -22,17 +22,31 @@ Tile and attribution URLs must use HTTPS. Provider credentials, quotas, and
 production tile-service terms remain the deployer's responsibility. Never put a
 secret provider key in the browser tile URL.
 
-An assigned rider can start sharing after an order reaches **Out for Delivery**.
-The server accepts an update at most once every five seconds and sends it only to
-the order's customer realtime channel. The customer order page also refreshes
-every ten seconds while delivery is active. Precise rider coordinates are cleared
-as soon as the delivery is completed.
+After pickup, the app requests a driving route from OSRM and draws it from the
+shop to the customer. Route responses are cached for one day. A deployment can
+replace the default OSRM demo endpoint with a compatible service:
+
+```json
+{
+  "lc_routing_url": "https://routing.example.com/route/v1/driving"
+}
+```
+
+The default demo endpoint is suitable for light testing and early use. Use a
+hosted or self-hosted routing service before traffic becomes significant.
+
+When an assigned rider taps **Start delivery**, the browser requests precise GPS
+permission and starts sharing automatically. The rider sends an update every 12
+seconds while the delivery page remains open. The server accepts an update at
+most once every ten seconds and sends it only to the order's customer realtime
+channel. The customer order page also refreshes every ten seconds while delivery
+is active. Precise rider coordinates are cleared as soon as delivery is completed.
 
 Browser geolocation requires HTTPS (localhost is the usual development exception).
 Manual map pin selection remains available when geolocation is unavailable. Before
 testing device GPS, deploy the site behind a valid HTTPS domain and allow location
 access in the rider/customer browser.
 
-This milestone does not calculate road routes, traffic-aware ETAs, delivery
-batches, or background tracking after the rider closes the page. Distance is the
-great-circle distance between shop and customer pins.
+The displayed duration is a routing estimate without live traffic. Browser
+tracking pauses when the operating system suspends the page and stops when the
+rider closes it; a native mobile app is required for dependable background GPS.

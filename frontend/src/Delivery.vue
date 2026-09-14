@@ -9,7 +9,9 @@ const loading = ref(false), error = ref(''), busyOrder = ref('')
 const paymentDialog = ref(null), collectingOrder = ref(null)
 const collectedAmount = ref(''), collectionNote = ref(''), collectionError = ref('')
 const trackingOrder = ref(''), locationMessage = ref(''), locationError = ref('')
-let locationWatch = null, sendingLocation = false, lastLocationSent = 0
+const routes = ref({}), routeErrors = ref({})
+const routeRequests = new Set()
+let locationWatch = null, locationTimer = null, latestPosition = null, sendingLocation = false
 const allowed = computed(() => session.value.roles.includes('LC Delivery Person') && session.value.memberships.some(member => member.membership_role === 'Driver'))
 const collectionVariance = computed(() => collectingOrder.value ? Number(collectedAmount.value || 0) - Number(collectingOrder.value.total) : 0)
 const next = { Ready: 'Picked Up', 'Picked Up': 'Out for Delivery', 'Out for Delivery': 'Delivered' }
@@ -25,12 +27,29 @@ function mapPoints(order) {
   if (order.driver_location) points.push({ ...order.driver_location, kind: 'rider', label: 'Your live location' })
   return points
 }
-function mapLink(location) { return `https://www.openstreetmap.org/?mlat=${encodeURIComponent(location.latitude)}&mlon=${encodeURIComponent(location.longitude)}#map=18/${encodeURIComponent(location.latitude)}/${encodeURIComponent(location.longitude)}` }
+function navigationLink(order) {
+  const target = order.status === 'Ready' ? order.shop_location : order.destination_location
+  if (!target) return '#'
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${target.latitude},${target.longitude}`)}&travelmode=driving&dir_action=navigate`
+}
+async function ensureRoute(order) {
+  if (!['Picked Up', 'Out for Delivery'].includes(order.status) || routes.value[order.name] || routeErrors.value[order.name] || routeRequests.has(order.name)) return
+  routeRequests.add(order.name)
+  try {
+    const result = await call('orders.delivery_route', { order: order.name })
+    routes.value = { ...routes.value, [order.name]: result }
+    const currentErrors = { ...routeErrors.value }; delete currentErrors[order.name]; routeErrors.value = currentErrors
+  } catch (e) { routeErrors.value = { ...routeErrors.value, [order.name]: e.message } }
+  finally { routeRequests.delete(order.name) }
+}
+function loadRoutes(rows) { for (const order of rows) ensureRoute(order) }
 async function load(delta = 0) {
   if (!allowed.value) return
   start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
-  try { assignments.value = await call('orders.delivery_assignments', { start: start.value, view: view.value }) }
-  catch (e) { error.value = e.message }
+  try {
+    assignments.value = await call('orders.delivery_assignments', { start: start.value, view: view.value })
+    loadRoutes(assignments.value)
+  } catch (e) { error.value = e.message }
   finally { loading.value = false }
 }
 async function loadProfile() {
@@ -43,36 +62,61 @@ async function switchView(target) { view.value = target; start.value = 0; await 
 async function advance(order, payment = {}) {
   busyOrder.value = order.name; error.value = ''
   try {
-    await call('orders.delivery_change', { order: order.name, target: next[order.status], ...payment }, true)
-    if (next[order.status] === 'Delivered' && trackingOrder.value === order.name) stopTracking('Location sharing stopped after delivery.')
+    const target = next[order.status]
+    const result = await call('orders.delivery_change', { order: order.name, target, ...payment }, true)
+    if (target === 'Delivered' && trackingOrder.value === order.name) stopTracking('Location sharing stopped after delivery.')
     await refresh()
-  } catch (e) { error.value = e.message }
+    return result
+  } catch (e) { error.value = e.message; return null }
   finally { busyOrder.value = '' }
 }
 function stopTracking(message = 'Live location sharing stopped.') {
   if (locationWatch != null) navigator.geolocation.clearWatch(locationWatch)
-  locationWatch = null; trackingOrder.value = ''; locationMessage.value = message; sendingLocation = false
+  if (locationTimer != null) window.clearInterval(locationTimer)
+  locationWatch = null; locationTimer = null; latestPosition = null
+  trackingOrder.value = ''; locationMessage.value = message; sendingLocation = false
 }
-function startTracking(order) {
+async function sendLocation(order, position) {
+  if (!position || sendingLocation || trackingOrder.value !== order.name) return
+  sendingLocation = true
+  try {
+    const result = await call('orders.update_driver_location', { order: order.name, latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy || 0 }, true)
+    locationMessage.value = 'Live location is on · updating every 12 seconds.'; locationError.value = ''
+    const current = assignments.value.find(row => row.name === order.name)
+    if (current && result.accepted) current.driver_location = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy || 0, updated_at: result.updated_at }
+  } catch (e) { locationError.value = e.message }
+  finally { sendingLocation = false }
+}
+function startTracking(order, initialPosition = null) {
   locationError.value = ''; locationMessage.value = ''
   if (!window.isSecureContext) { locationError.value = 'Live GPS needs HTTPS. Ask the administrator to enable HTTPS for this site.'; return }
   if (!navigator.geolocation) { locationError.value = 'This device does not provide browser location.'; return }
   if (trackingOrder.value && trackingOrder.value !== order.name) stopTracking('')
   trackingOrder.value = order.name
-  locationWatch = navigator.geolocation.watchPosition(async position => {
-    const now = Date.now()
-    if (sendingLocation || now - lastLocationSent < 7000) return
-    sendingLocation = true; lastLocationSent = now
-    try {
-      await call('orders.update_driver_location', { order: order.name, latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy || 0 }, true)
-      locationMessage.value = 'Live location shared just now.'; locationError.value = ''
-      const current = assignments.value.find(row => row.name === order.name)
-      if (current) current.driver_location = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy || 0, updated_at: new Date().toISOString() }
-    } catch (e) { locationError.value = e.message }
-    finally { sendingLocation = false }
+  latestPosition = initialPosition
+  if (latestPosition) sendLocation(order, latestPosition)
+  locationWatch = navigator.geolocation.watchPosition(position => {
+    const first = !latestPosition
+    latestPosition = position
+    if (first) sendLocation(order, position)
   }, () => { locationError.value = 'Location access failed. Allow precise location in your browser and try again.'; stopTracking('') }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 })
+  locationTimer = window.setInterval(() => sendLocation(order, latestPosition), 12000)
+}
+function getCurrentPosition() {
+  return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }))
+}
+async function beginDelivery(order) {
+  locationError.value = ''; locationMessage.value = 'Checking your live location…'; busyOrder.value = order.name
+  if (!window.isSecureContext || !navigator.geolocation) { busyOrder.value = ''; startTracking(order); return }
+  try {
+    const position = await getCurrentPosition()
+    const updated = await advance(order)
+    if (updated?.status === 'Out for Delivery') startTracking(updated, position)
+    else locationMessage.value = ''
+  } catch { busyOrder.value = ''; locationMessage.value = ''; locationError.value = 'Allow precise location to start delivery and share the bike position with the customer.' }
 }
 function requestAdvance(order) {
+  if (order.status === 'Picked Up' && order.live_tracking_enabled) { beginDelivery(order); return }
   if (order.status !== 'Out for Delivery') { advance(order); return }
   collectingOrder.value = order
   collectedAmount.value = String(order.total)
@@ -131,10 +175,10 @@ onBeforeUnmount(() => stopTracking(''))
           <article v-for="order in assignments" :key="order.name" class="delivery-card" :class="{ finished: ['Delivered', 'Cancelled'].includes(order.status) }">
             <header><div><span class="eyebrow" :title="order.name">{{ order.shop_name }} · {{ orderLabel(order.name) }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>
             <div class="delivery-address"><span aria-hidden="true">⌖</span><div><strong>{{ order.address.line1 }}</strong><p>{{ order.address.city }} · {{ order.address.postal_code }}</p><a :href="`tel:${order.phone}`">Call {{ order.phone }}</a></div></div>
-            <div v-if="order.destination_location" class="delivery-map-panel"><MapView :config="order.map" :points="mapPoints(order)" height="235px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Customer</span><span v-if="order.driver_location"><i class="legend-rider"></i>You</span><a :href="mapLink(order.destination_location)" target="_blank" rel="noopener">Open destination ↗</a></div></div>
+            <div v-if="order.destination_location" class="delivery-map-panel"><MapView :config="order.map" :points="mapPoints(order)" :route="routes[order.name]?.points || []" height="235px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Customer</span><span v-if="order.driver_location"><i class="legend-rider"></i>You</span><span v-if="routes[order.name]" class="route-summary">{{ routes[order.name].distance_km }} km · about {{ routes[order.name].duration_minutes }} min</span><a :href="navigationLink(order)" target="_blank" rel="noopener">{{ order.status === 'Ready' ? 'Navigate to shop' : 'Start navigation' }} ↗</a></div><small v-if="routes[order.name]" class="route-attribution"><a :href="routes[order.name].attribution_url" target="_blank" rel="noopener">{{ routes[order.name].attribution }}</a></small><p v-if="routeErrors[order.name]" class="route-error">{{ routeErrors[order.name] }}</p></div>
             <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
             <details><summary>{{ order.items.length }} product{{ order.items.length === 1 ? '' : 's' }} · {{ money(order.total, order.currency) }}</summary><ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }}</li></ul></details>
-            <div v-if="order.status === 'Out for Delivery' && order.live_tracking_enabled" class="tracking-controls"><button v-if="trackingOrder !== order.name" type="button" @click="startTracking(order)">Share live location</button><button v-else type="button" class="tracking-stop" @click="stopTracking()">Stop sharing</button><small>Location is visible only to this customer and is removed after delivery.</small></div>
+            <div v-if="order.status === 'Out for Delivery' && order.live_tracking_enabled" class="tracking-controls"><button v-if="trackingOrder !== order.name" type="button" @click="startTracking(order)">Resume live tracking</button><button v-else type="button" class="tracking-stop" @click="stopTracking()">Stop sharing</button><small>Your bike updates for the customer every 12 seconds and is removed after delivery.</small></div>
             <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="requestAdvance(order)">{{ busyOrder === order.name ? 'Updating…' : order.status === 'Out for Delivery' ? 'Collect cash & confirm delivered' : labels[order.status] }} <span>›</span></button>
             <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered · Cash {{ order.payment_status === 'Reconciled' ? 'handed over' : 'awaiting handover' }}{{ order.delivered_at ? ` · ${deliveredAt(order.delivered_at)}` : '' }}</p>
             <p v-else-if="order.status === 'Cancelled'" class="muted">This order was cancelled.</p>

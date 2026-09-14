@@ -8,6 +8,8 @@ const session = inject('session')
 const props = defineProps({ shop: { type: String, default: '' }, editable: Boolean })
 const orders = ref([]), drivers = ref([]), selectedDrivers = ref({}), start = ref(0)
 const error = ref(''), loading = ref(false), busy = ref(false), reasons = ref({})
+const routes = ref({}), routeErrors = ref({})
+const routeRequests = new Set()
 const next = { Requested: 'Accepted', Accepted: 'Preparing', Preparing: 'Ready' }
 const nextLabel = { Requested: 'Accept order', Accepted: 'Start preparing', Preparing: 'Mark ready' }
 const cancellable = new Set(['Requested', 'Accepted', 'Preparing', 'Ready'])
@@ -23,6 +25,16 @@ function mapPoints(order) {
   if (order.driver_location) points.push({ ...order.driver_location, kind: 'rider', label: order.delivery_name || 'Rider' })
   return points
 }
+async function ensureRoute(order) {
+  if (!['Picked Up', 'Out for Delivery'].includes(order.status) || routes.value[order.name] || routeErrors.value[order.name] || routeRequests.has(order.name)) return
+  routeRequests.add(order.name)
+  try {
+    const result = await call('orders.delivery_route', { order: order.name })
+    routes.value = { ...routes.value, [order.name]: result }
+  } catch (e) { routeErrors.value = { ...routeErrors.value, [order.name]: e.message } }
+  finally { routeRequests.delete(order.name) }
+}
+function loadRoutes(rows) { for (const order of rows) ensureRoute(order) }
 async function load(delta = 0) {
   if (session.value.user === 'Guest') return
   const current = ++generation
@@ -33,6 +45,7 @@ async function load(delta = 0) {
     const [result, availableDrivers = []] = await Promise.all(requests)
     if (current === generation) {
       orders.value = result
+      loadRoutes(result)
       drivers.value = availableDrivers
       selectedDrivers.value = Object.fromEntries(result.map(order => [order.name, order.delivery_user || '']))
     }
@@ -73,7 +86,7 @@ onBeforeUnmount(() => window.clearInterval(refreshTimer))
       <p class="payment-summary"><span><small>PAYMENT METHOD</small><strong>{{ order.payment_method }}</strong></span><span><small>PAYMENT STATUS</small><strong :class="{ paid: order.payment_status === 'Reconciled' }">{{ order.payment_status }}</strong></span></p>
       <details><summary>Delivery details</summary><p>{{ order.address.line1 }}<br>{{ order.address.city }} · {{ order.address.postal_code }}<br><a :href="`tel:${order.phone}`">{{ order.phone }}</a></p></details>
       <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
-      <section v-if="order.destination_location && (shop || order.status === 'Out for Delivery')" class="order-tracking-panel"><div class="tracking-heading"><div><span class="eyebrow">{{ order.status === 'Out for Delivery' ? 'LIVE DELIVERY' : 'DELIVERY MAP' }}</span><h4>{{ order.status === 'Out for Delivery' ? 'Track your rider' : 'Route locations' }}</h4></div><span v-if="order.delivery_distance_km != null">{{ Number(order.delivery_distance_km).toFixed(1) }} km from shop</span></div><MapView :config="order.map" :points="mapPoints(order)" height="250px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Delivery</span><span v-if="order.driver_location"><i class="legend-rider"></i>Rider</span></div><p v-if="order.status === 'Out for Delivery' && order.driver_location" class="map-confirmation">Rider location updated {{ order.driver_location.updated_at }}</p><p v-else-if="order.status === 'Out for Delivery'" class="muted">Waiting for the rider to start live location sharing. This page refreshes automatically.</p></section>
+      <section v-if="order.destination_location && (shop || order.status === 'Out for Delivery')" class="order-tracking-panel"><div class="tracking-heading"><div><span class="eyebrow">{{ order.status === 'Out for Delivery' ? 'LIVE DELIVERY' : 'DELIVERY MAP' }}</span><h4>{{ order.status === 'Out for Delivery' ? 'Track your rider' : 'Delivery route' }}</h4></div><span v-if="routes[order.name]">{{ routes[order.name].distance_km }} km · about {{ routes[order.name].duration_minutes }} min</span><span v-else-if="order.delivery_distance_km != null">{{ Number(order.delivery_distance_km).toFixed(1) }} km from shop</span></div><MapView :config="order.map" :points="mapPoints(order)" :route="routes[order.name]?.points || []" height="250px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Delivery</span><span v-if="order.driver_location"><i class="legend-rider"></i>Rider</span></div><small v-if="routes[order.name]" class="route-attribution"><a :href="routes[order.name].attribution_url" target="_blank" rel="noopener">{{ routes[order.name].attribution }}</a></small><p v-if="routeErrors[order.name]" class="route-error">{{ routeErrors[order.name] }}</p><p v-if="order.status === 'Out for Delivery' && order.driver_location" class="map-confirmation">Rider location updated {{ order.driver_location.updated_at }}</p><p v-else-if="order.status === 'Out for Delivery'" class="muted">Waiting for the rider to start live location sharing. This page refreshes automatically.</p></section>
       <p v-if="order.delivery_user" class="rider-summary"><span aria-hidden="true">●</span><strong>{{ order.delivery_name }}</strong> is assigned to this delivery.</p>
       <p v-if="order.reason">Cancellation: {{ order.reason }}</p>
       <p v-if="order.status === 'Requested'" class="muted">The shop will check stock before accepting this order.</p>

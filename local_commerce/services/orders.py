@@ -541,6 +541,24 @@ def detail(order):
     return serialize(doc)
 
 
+def delivery_route(order):
+    doc = frappe.get_doc("LC Order", order)
+    authorize(doc)
+    if doc.status not in {"Picked Up", "Out for Delivery"}:
+        reject("The delivery route appears after pickup")
+    shop = frappe.get_doc("LC Shop", doc.shop)
+    origin = shop_location(shop)
+    try:
+        destination = point(doc.destination_latitude, doc.destination_longitude, required=True)
+    except ValueError as exc:
+        reject(str(exc))
+    if not origin:
+        reject("Set the shop map location before starting delivery")
+    from local_commerce.services.routing import road_route
+
+    return road_route(origin, destination)
+
+
 def list_orders(shop=None, start=0):
     if shop:
         require_shop(shop)
@@ -908,7 +926,7 @@ def update_driver_location(order, latitude, longitude, accuracy=None):
     if location_accuracy < 0 or location_accuracy > 5000:
         reject("Location accuracy is too low; move outdoors and try again")
     now = now_datetime()
-    if doc.driver_location_at and time_diff_in_seconds(now, doc.driver_location_at) < 5:
+    if doc.driver_location_at and time_diff_in_seconds(now, doc.driver_location_at) < 10:
         return {"accepted": False, "updated_at": str(doc.driver_location_at)}
     token = _order_operation.set(True)
     try:

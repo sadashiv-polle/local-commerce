@@ -468,6 +468,10 @@ html { scroll-behavior: smooth; }
 #lc-app .legend-shop { background: #f2b934; }
 #lc-app .legend-customer { background: #168346; }
 #lc-app .legend-rider { background: #286dcc; }
+#lc-app .map-marker-rider { transition: transform 1.2s linear; will-change: transform; }
+#lc-app .route-summary { padding: 4px 8px; border-radius: 8px; color: #245b91; background: #e8f1fb; font-weight: 750; }
+#lc-app .route-attribution { display: block; margin-top: 6px; color: #7b867d; font-size: 9px; text-align: right; }
+#lc-app .route-error { margin: 8px 0 0; color: #8a5949; font-size: 11px; }
 #lc-app .delivery-instructions { display: grid; gap: 3px; padding: 12px 14px; border-left: 3px solid #f0bb34; border-radius: 7px; background: #fff8df; color: #5e644e; }
 #lc-app .tracking-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 15px 0; padding: 13px; border-radius: 12px; background: #edf5ff; }
 #lc-app .tracking-controls button { color: white; background: #286dcc; border-color: #286dcc; }

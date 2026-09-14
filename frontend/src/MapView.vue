@@ -7,6 +7,7 @@ import { call } from './api.js'
 const props = defineProps({
   config: { type: Object, default: () => ({}) },
   points: { type: Array, default: () => [] },
+  route: { type: Array, default: () => [] },
   editable: Boolean,
   height: { type: String, default: '260px' },
 })
@@ -16,6 +17,8 @@ const expanded = ref(false)
 const searchQuery = ref(''), searchResults = ref([]), searchError = ref(''), searching = ref(false)
 let map
 let layer
+let routeLayer
+const markers = new Map()
 
 const markerStyles = {
   shop: ['<svg viewBox="0 0 24 24"><path d="M4 10v9h16v-9M3 10l2-5h14l2 5M8 19v-5h4v5M3 10c0 1.4 1.1 2.5 2.5 2.5S8 11.4 8 10c0 1.4 1.1 2.5 2.5 2.5S13 11.4 13 10c0 1.4 1.1 2.5 2.5 2.5S18 11.4 18 10c0 1.4 1.1 2.5 2.5 2.5"/></svg>', 'map-marker-shop'],
@@ -24,26 +27,44 @@ const markerStyles = {
 }
 
 function renderPoints() {
-  if (!map || !layer) return
-  layer.clearLayers()
+  if (!map || !layer || !routeLayer) return
+  routeLayer.clearLayers()
   const bounds = []
-  for (const point of props.points) {
+  const route = props.route
+    .map(point => [Number(point?.latitude), Number(point?.longitude)])
+    .filter(point => point.every(Number.isFinite))
+  if (route.length > 1) {
+    L.polyline(route, { color: '#286dcc', weight: 6, opacity: .86, lineCap: 'round', lineJoin: 'round' }).addTo(routeLayer)
+    L.polyline(route, { color: '#fff', weight: 2, opacity: .82, dashArray: '2 10', lineCap: 'round' }).addTo(routeLayer)
+    bounds.push(...route)
+  }
+  const activeMarkers = new Set()
+  for (const [index, point] of props.points.entries()) {
     const latitude = Number(point?.latitude)
     const longitude = Number(point?.longitude)
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue
+    const key = `${point.kind || 'customer'}:${index}`
+    activeMarkers.add(key)
     const [symbol, className] = markerStyles[point.kind] || markerStyles.customer
     const selected = props.editable && (point.kind === 'customer' || props.points.length === 1)
-    L.marker([latitude, longitude], {
-      icon: L.divIcon({
-        className: `map-marker ${className}${selected ? ' map-marker-selected' : ''}`,
-        html: `<span class="map-pin-pulse" aria-hidden="true"></span><span class="map-pin-body" aria-hidden="true">${symbol}</span>`,
-        iconSize: [50, 58],
-        iconAnchor: [25, 55],
-      }),
-      keyboard: false,
-      title: String(point.label || 'Map location').slice(0, 100),
-    }).addTo(layer)
+    let marker = markers.get(key)
+    if (!marker) {
+      marker = L.marker([latitude, longitude], {
+        icon: L.divIcon({
+          className: `map-marker ${className}${selected ? ' map-marker-selected' : ''}`,
+          html: `<span class="map-pin-pulse" aria-hidden="true"></span><span class="map-pin-body" aria-hidden="true">${symbol}</span>`,
+          iconSize: [50, 58],
+          iconAnchor: [25, 55],
+        }),
+        keyboard: false,
+        title: String(point.label || 'Map location').slice(0, 100),
+      }).addTo(layer)
+      markers.set(key, marker)
+    } else marker.setLatLng([latitude, longitude])
     bounds.push([latitude, longitude])
+  }
+  for (const [key, marker] of markers) {
+    if (!activeMarkers.has(key)) { layer.removeLayer(marker); markers.delete(key) }
   }
   if (bounds.length === 1) map.setView(bounds[0], 15)
   else if (bounds.length > 1) map.fitBounds(bounds, { padding: [38, 38], maxZoom: 16 })
@@ -83,6 +104,7 @@ onMounted(async () => {
   await nextTick()
   map = L.map(container.value, { zoomControl: true, attributionControl: false })
   L.tileLayer(props.config?.tile_url || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map)
+  routeLayer = L.layerGroup().addTo(map)
   layer = L.layerGroup().addTo(map)
   if (props.editable) map.on('click', event => emit('pick', { latitude: Number(event.latlng.lat.toFixed(6)), longitude: Number(event.latlng.lng.toFixed(6)) }))
   renderPoints()
@@ -90,8 +112,8 @@ onMounted(async () => {
   window.addEventListener('keydown', closeExpanded)
 })
 
-watch(() => props.points, renderPoints, { deep: true })
-onBeforeUnmount(() => { window.removeEventListener('keydown', closeExpanded); map?.remove(); map = null; layer = null })
+watch([() => props.points, () => props.route], renderPoints, { deep: true })
+onBeforeUnmount(() => { window.removeEventListener('keydown', closeExpanded); map?.remove(); map = null; layer = null; routeLayer = null; markers.clear() })
 </script>
 
 <template>
