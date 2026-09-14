@@ -435,6 +435,7 @@ html { scroll-behavior: smooth; }
 #lc-app .map-marker-rider .map-pin-body { top: 8px; left: 7px; width: 36px; height: 36px; border-width: 2px; border-radius: 13px; background: #2877dc; transform: none; animation: lc-bike-drop .28s ease-out; }
 #lc-app .map-marker-rider .map-pin-body::after { content: ''; position: absolute; z-index: -1; left: 50%; bottom: -5px; width: 10px; height: 10px; border-right: 2px solid white; border-bottom: 2px solid white; border-radius: 1px; background: #2877dc; transform: translateX(-50%) rotate(45deg); }
 #lc-app .map-marker-rider .map-pin-body svg { width: 25px; height: 19px; fill: none; stroke: white; stroke-width: 2; transform: none; }
+#lc-app .map-marker-rider .map-bike-emoji { display: block; font-size: 23px; line-height: 1; filter: drop-shadow(0 1px 1px #173c3040); }
 #lc-app .map-marker-rider .map-pin-pulse { left: 15px; width: 20px; background: #286dcc38; }
 @keyframes lc-pin-drop { from { opacity: 0; transform: translateY(-10px) rotate(-45deg) scale(.8); } to { opacity: 1; transform: translateY(0) rotate(-45deg) scale(1); } }
 @keyframes lc-bike-drop { from { opacity: 0; transform: translateY(-8px) scale(.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
