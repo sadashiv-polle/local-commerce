@@ -37,10 +37,13 @@ hosted or self-hosted routing service before traffic becomes significant.
 
 When an assigned rider taps **Start delivery**, the browser requests precise GPS
 permission and starts sharing automatically. The rider sends an update every 12
-seconds while the delivery page remains open. The server accepts an update at
-most once every ten seconds and sends it only to the order's customer realtime
-channel. The customer order page also refreshes every ten seconds while delivery
-is active. Precise rider coordinates are cleared as soon as delivery is completed.
+seconds while the delivery page remains open. The active order is remembered on
+that device, so reloading the delivery page resumes sharing automatically. It is
+forgotten only when the rider stops sharing or completes the delivery. The server
+accepts an update at most once every ten seconds and sends it only to the order's
+customer realtime channel. The customer order page also refreshes every ten
+seconds while delivery is active. Precise rider coordinates are cleared as soon
+as delivery is completed.
 
 Browser geolocation requires HTTPS (localhost is the usual development exception).
 Manual map pin selection remains available when geolocation is unavailable. Before

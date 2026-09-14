@@ -2,6 +2,7 @@
 import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import { call } from './api.js'
 import MapView from './MapView.vue'
+import { forgetTracking, rememberTracking, savedTracking } from './tracking.js'
 
 const session = inject('session')
 const profile = ref(null), assignments = ref([]), view = ref('active'), start = ref(0)
@@ -44,12 +45,13 @@ async function ensureRoute(order) {
 }
 function loadRoutes(rows) { for (const order of rows) ensureRoute(order) }
 async function load(delta = 0) {
-  if (!allowed.value) return
+  if (!allowed.value) return false
   start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
   try {
     assignments.value = await call('orders.delivery_assignments', { start: start.value, view: view.value })
     loadRoutes(assignments.value)
-  } catch (e) { error.value = e.message }
+    return true
+  } catch (e) { error.value = e.message; return false }
   finally { loading.value = false }
 }
 async function loadProfile() {
@@ -70,11 +72,12 @@ async function advance(order, payment = {}) {
   } catch (e) { error.value = e.message; return null }
   finally { busyOrder.value = '' }
 }
-function stopTracking(message = 'Live location sharing stopped.') {
+function stopTracking(message = 'Live location sharing stopped.', clearSaved = true) {
   if (locationWatch != null) navigator.geolocation.clearWatch(locationWatch)
   if (locationTimer != null) window.clearInterval(locationTimer)
   locationWatch = null; locationTimer = null; latestPosition = null
   trackingOrder.value = ''; locationMessage.value = message; sendingLocation = false
+  if (clearSaved) forgetTracking(window.localStorage, session.value.user)
 }
 async function sendLocation(order, position) {
   if (!position || sendingLocation || trackingOrder.value !== order.name) return
@@ -93,13 +96,14 @@ function startTracking(order, initialPosition = null) {
   if (!navigator.geolocation) { locationError.value = 'This device does not provide browser location.'; return }
   if (trackingOrder.value && trackingOrder.value !== order.name) stopTracking('')
   trackingOrder.value = order.name
+  rememberTracking(window.localStorage, session.value.user, order.name)
   latestPosition = initialPosition
   if (latestPosition) sendLocation(order, latestPosition)
   locationWatch = navigator.geolocation.watchPosition(position => {
     const first = !latestPosition
     latestPosition = position
     if (first) sendLocation(order, position)
-  }, () => { locationError.value = 'Location access failed. Allow precise location in your browser and try again.'; stopTracking('') }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 })
+  }, () => { locationError.value = 'Location access failed. Allow precise location in your browser and try again.'; stopTracking('', false) }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 })
   locationTimer = window.setInterval(() => sendLocation(order, latestPosition), 12000)
 }
 function getCurrentPosition() {
@@ -134,8 +138,21 @@ async function confirmCollection() {
   collectingOrder.value = null
   await advance(order, { collected_amount: amount, note: collectionNote.value.trim() })
 }
-onMounted(refresh)
-onBeforeUnmount(() => stopTracking(''))
+async function initialize() {
+  const [loaded] = await Promise.all([load(), loadProfile()])
+  if (!loaded) return
+  const savedOrder = savedTracking(window.localStorage, session.value.user)
+  if (!savedOrder) return
+  let order = assignments.value.find(row => row.name === savedOrder)
+  if (!order) {
+    try { order = await call('orders.detail', { order: savedOrder }) }
+    catch (e) { locationError.value = `Live tracking could not resume: ${e.message}`; return }
+  }
+  if (order.status === 'Out for Delivery' && order.live_tracking_enabled) startTracking(order)
+  else forgetTracking(window.localStorage, session.value.user)
+}
+onMounted(initialize)
+onBeforeUnmount(() => stopTracking('', false))
 </script>
 
 <template>
