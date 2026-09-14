@@ -2,6 +2,7 @@
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { call } from './api.js'
 
 const props = defineProps({
   config: { type: Object, default: () => ({}) },
@@ -12,6 +13,7 @@ const props = defineProps({
 const emit = defineEmits(['pick'])
 const container = ref(null)
 const expanded = ref(false)
+const searchQuery = ref(''), searchResults = ref([]), searchError = ref(''), searching = ref(false)
 let map
 let layer
 
@@ -59,6 +61,24 @@ function closeExpanded(event) {
   if (event.key === 'Escape' && expanded.value) toggleExpanded()
 }
 
+async function searchPlaces() {
+  searchError.value = ''; searchResults.value = []
+  if (searchQuery.value.trim().length < 3) { searchError.value = 'Enter at least 3 characters.'; return }
+  searching.value = true
+  try {
+    searchResults.value = await call('locations.search', { query: searchQuery.value.trim() })
+    if (!searchResults.value.length) searchError.value = 'No matching places found.'
+  } catch (error) { searchError.value = error.message }
+  finally { searching.value = false }
+}
+
+function choosePlace(place) {
+  searchQuery.value = place.label
+  searchResults.value = []; searchError.value = ''
+  map?.setView([place.latitude, place.longitude], 17)
+  emit('pick', place)
+}
+
 onMounted(async () => {
   await nextTick()
   map = L.map(container.value, { zoomControl: true, attributionControl: false })
@@ -77,6 +97,18 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', closeExpanded); ma
 <template>
   <div class="lc-map-shell" :class="{ 'lc-map-shell-expanded': expanded }">
     <div ref="container" class="lc-map" :style="{ height }" :aria-label="editable ? 'Choose a location on the map' : 'Delivery map'"></div>
+    <div v-if="editable" class="map-place-search" role="search">
+      <input v-model="searchQuery" type="search" maxlength="120" autocomplete="off" placeholder="Search area, street or landmark" aria-label="Search for a place" @keydown.enter.prevent="searchPlaces">
+      <button type="button" :disabled="searching" aria-label="Search map" @click="searchPlaces">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg>
+      </button>
+      <div v-if="searchResults.length || searchError" class="map-search-results">
+        <p v-if="searchError" role="status">{{ searchError }}</p>
+        <button v-for="place in searchResults" :key="`${place.latitude}:${place.longitude}`" type="button" @click="choosePlace(place)">
+          <span aria-hidden="true">⌖</span><strong>{{ place.label }}</strong>
+        </button>
+      </div>
+    </div>
     <button class="map-expand-button" type="button" :aria-label="expanded ? 'Minimize map' : 'Expand map'" :title="expanded ? 'Minimize map' : 'Expand map'" @click="toggleExpanded">
       <svg v-if="expanded" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
       <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" /></svg>

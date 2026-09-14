@@ -25,7 +25,12 @@ function newAddress() { form.value = emptyAddress(); editing.value = true; saved
 async function openNewAddress() { newAddress(); await nextTick(); editor.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 function editAddress(address) { form.value = { ...address }; editing.value = true; saved.value = ''; error.value = '' }
 function cancelEdit() { editing.value = false; form.value = emptyAddress() }
-function pickLocation(point) { form.value.latitude = point.latitude; form.value.longitude = point.longitude; error.value = '' }
+function pickLocation(point) {
+  form.value.latitude = point.latitude; form.value.longitude = point.longitude; error.value = ''
+  if (point.address_line1) form.value.line1 = point.address_line1
+  if (point.city) form.value.city = point.city
+  if (point.postal_code) form.value.postal_code = point.postal_code
+}
 function useLocation() {
   error.value = ''
   if (!navigator.geolocation) { error.value = 'Location is unavailable. Tap the map to choose the location.'; return }

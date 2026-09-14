@@ -50,7 +50,12 @@ async function save() {
   } catch (e) { if (current === request) error.value = e.message }
   finally { saving.value = false }
 }
-function pickShopLocation(point) { shop.value.latitude = point.latitude; shop.value.longitude = point.longitude; locationError.value = '' }
+function pickShopLocation(point) {
+  shop.value.latitude = point.latitude; shop.value.longitude = point.longitude; locationError.value = ''
+  if (point.address_line1) shop.value.address_line1 = point.address_line1
+  if (point.city) shop.value.city = point.city
+  if (point.postal_code) shop.value.postal_code = point.postal_code
+}
 function clearShopLocation() { shop.value.latitude = null; shop.value.longitude = null; locationError.value = '' }
 function useShopLocation() {
   locationError.value = ''

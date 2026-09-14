@@ -48,7 +48,12 @@ function openCartEvent() { openCart() }
 function closeCart() {
   if (!busy.value) cartOpen.value = false
 }
-function pickDeliveryLocation(point) { address.value.latitude = point.latitude; address.value.longitude = point.longitude; locationError.value = ''; error.value = '' }
+function pickDeliveryLocation(point) {
+  address.value.latitude = point.latitude; address.value.longitude = point.longitude; locationError.value = ''; error.value = ''
+  if (point.address_line1) address.value.line1 = point.address_line1
+  if (point.city) address.value.city = point.city
+  if (point.postal_code) address.value.postal_code = point.postal_code
+}
 function useDeliveryLocation() {
   locationError.value = ''
   if (!navigator.geolocation) { locationError.value = 'Location is not available in this browser. Tap the map to place your pin.'; return }

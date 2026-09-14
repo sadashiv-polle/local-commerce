@@ -410,6 +410,15 @@ html { scroll-behavior: smooth; }
 #lc-app .map-expand-button { position: absolute; z-index: 500; top: 10px; right: 10px; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 1px solid #d4dfd1; border-radius: 11px; color: #244c39; background: #fffffff2; box-shadow: 0 4px 14px #173c3024; backdrop-filter: blur(7px); }
 #lc-app .map-expand-button:hover { color: white; border-color: #287750; background: #287750; }
 #lc-app .map-expand-button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#lc-app .map-place-search { position: absolute; z-index: 600; top: 10px; right: 58px; left: 52px; display: grid; grid-template-columns: minmax(0, 1fr) 42px; max-width: 520px; border: 1px solid #d4dfd1; border-radius: 12px; background: #fffffff5; box-shadow: 0 5px 18px #173c3029; backdrop-filter: blur(8px); }
+#lc-app .map-place-search > input { min-width: 0; height: 40px; padding: 0 13px; border: 0; outline: 0; background: transparent; font-size: 13px; }
+#lc-app .map-place-search > button { display: grid; place-items: center; width: 42px; min-height: 40px; padding: 0; border: 0; border-left: 1px solid #dbe4d8; border-radius: 0 11px 11px 0; color: #fff; background: #287750; }
+#lc-app .map-place-search > button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#lc-app .map-search-results { position: absolute; top: calc(100% + 6px); right: 0; left: 0; overflow: hidden; border: 1px solid #d9e2d5; border-radius: 12px; background: white; box-shadow: 0 12px 30px #173c3030; }
+#lc-app .map-search-results > button { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 7px; width: 100%; padding: 10px 12px; border: 0; border-bottom: 1px solid #edf1ea; border-radius: 0; color: #2c4337; background: white; text-align: left; }
+#lc-app .map-search-results > button:hover { color: #1f6844; background: #f2f7ee; }
+#lc-app .map-search-results strong { overflow: hidden; font-size: 11px; font-weight: 650; line-height: 1.35; text-overflow: ellipsis; }
+#lc-app .map-search-results p { margin: 0; padding: 11px 13px; color: #725447; font-size: 11px; }
 #lc-app .lc-map-shell-expanded { position: fixed; z-index: 4000; inset: 10px; display: flex; flex-direction: column; border-radius: 19px; box-shadow: 0 24px 80px #102c2466; }
 #lc-app .lc-map-shell-expanded::before { content: ''; position: fixed; z-index: -1; inset: 0; background: #102c2473; backdrop-filter: blur(3px); }
 #lc-app .lc-map-shell-expanded .lc-map { flex: 1 1 auto; min-height: 0; height: auto !important; }
@@ -434,6 +443,7 @@ html { scroll-behavior: smooth; }
 @media(max-width: 640px) {
   #lc-app .lc-map-shell-expanded { inset: 0; border: 0; border-radius: 0; }
   #lc-app .map-expand-button { top: 12px; right: 12px; width: 42px; height: 42px; border-radius: 13px; }
+  #lc-app .map-place-search { top: 12px; right: 62px; left: 48px; }
 }
 #lc-app .location-editor { display: grid; gap: 14px; padding: 20px; border: 1px solid #dce6d7; border-radius: 17px; background: #f6f8f2; }
 #lc-app .location-heading, #lc-app .tracking-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
