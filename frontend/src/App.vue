@@ -7,6 +7,7 @@ import { currentSubscription, disablePush, enablePush, pushSupported } from './p
 const session = ref(null), error = ref(''), loggingOut = ref(false), logoutError = ref('')
 const route = useRoute(), router = useRouter()
 const logoutDialog = ref(null), headerAddressMenu = ref(null), notificationMenu = ref(null)
+const installDialog = ref(null), installPrompt = ref(null), installAvailable = ref(false)
 const savedCart = ref(null)
 const headerAddresses = ref([]), headerAddress = ref(null)
 const notifications = ref([]), unreadNotifications = ref(0), notificationsLoading = ref(false)
@@ -40,6 +41,27 @@ const canManage = computed(() => session.value && (session.value.platform_admin 
 const canDeliver = computed(() => session.value?.roles.includes('LC Delivery Person') && session.value.memberships.some(m => m.membership_role === 'Driver'))
 let notificationTimer
 provide('session', session)
+function isInstalledApp() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+}
+function isAppleMobile() {
+  return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+function captureInstallPrompt(event) {
+  event.preventDefault()
+  installPrompt.value = event
+  installAvailable.value = !isInstalledApp() && isAppleMobile()
+}
+function installedApp() { installAvailable.value = false; installPrompt.value = null }
+async function installApp() {
+  if (installPrompt.value) {
+    await installPrompt.value.prompt()
+    const choice = await installPrompt.value.userChoice
+    if (choice.outcome === 'accepted') installedApp()
+    return
+  }
+  installDialog.value?.showModal()
+}
 async function loadHeaderAddress(preferred = '') {
   headerAddresses.value = []; headerAddress.value = null
   if (!session.value || session.value.user === 'Guest' || !session.value.roles.includes('LC Customer')) return
@@ -157,6 +179,9 @@ async function logout() {
   finally { loggingOut.value = false }
 }
 onMounted(() => {
+  installAvailable.value = !isInstalledApp()
+  window.addEventListener('beforeinstallprompt', captureInstallPrompt)
+  window.addEventListener('appinstalled', installedApp)
   syncSavedCart()
   window.addEventListener('storage', syncSavedCart)
   window.addEventListener('lc-cart-change', syncSavedCart)
@@ -166,6 +191,8 @@ onMounted(() => {
   load()
 })
 onBeforeUnmount(() => {
+  window.removeEventListener('beforeinstallprompt', captureInstallPrompt)
+  window.removeEventListener('appinstalled', installedApp)
   window.removeEventListener('storage', syncSavedCart)
   window.removeEventListener('lc-cart-change', syncSavedCart)
   window.removeEventListener('lc-address-change', syncHeaderAddress)
@@ -182,6 +209,7 @@ onBeforeUnmount(() => {
       <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><RouterLink v-if="canDeliver" to="/delivery">Deliveries</RouterLink><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><details v-else-if="session" ref="notificationMenu" class="notification-menu" @toggle="toggleNotifications"><summary aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><span v-if="unreadNotifications" class="notification-badge">{{ unreadNotifications > 99 ? '99+' : unreadNotifications }}</span></summary><section class="notification-panel"><header><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2></div><button type="button" :disabled="!unreadNotifications" @click="markAllNotifications">Mark all read</button></header><div v-if="pushState !== 'loading'" class="push-settings"><div><strong>{{ pushState === 'enabled' ? 'Phone alerts are on' : 'Get phone alerts' }}</strong><small v-if="pushState === 'available'">Receive order updates when this app is closed.</small><small v-else-if="pushState === 'enabled'">This device can receive background order alerts.</small><small v-else-if="pushState === 'unconfigured'">The server needs its free push key configured.</small><small v-else-if="pushState === 'denied'">Allow notifications in your phone or browser settings.</small><small v-else-if="pushState === 'unsupported'">On iPhone, add Local to your Home Screen, then open it there.</small><small v-else>Phone alerts are unavailable right now.</small></div><button v-if="pushState === 'available'" type="button" :disabled="pushBusy" @click="turnOnPush">{{ pushBusy ? 'Enabling…' : 'Enable' }}</button><button v-else-if="pushState === 'enabled'" type="button" :disabled="pushBusy" @click="turnOffPush">{{ pushBusy ? 'Turning off…' : 'Turn off' }}</button></div><p v-if="pushMessage" class="push-message" role="status">{{ pushMessage }}</p><p v-if="notificationsLoading && !notifications.length" role="status">Checking updates…</p><p v-else-if="!notifications.length" class="notification-empty">No order updates yet.</p><button v-for="notification in notifications" :key="notification.name" type="button" class="notification-item" :class="{ unread: !notification.read }" @click="openNotification(notification)"><span class="notification-dot" aria-hidden="true"></span><span><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small><time>{{ notificationTime(notification.creation) }}</time></span></button></section></details><RouterLink v-if="session" class="account" :to="session.roles.includes('LC Customer') ? '/account' : canDeliver ? '/delivery' : '/shop'"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink><button v-if="session && session.user !== 'Guest'" class="logout-button" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg>Log out</button></nav>
     </header>
     <main>
+      <aside v-if="installAvailable" class="install-app-banner"><div class="install-app-icon" aria-hidden="true">L<span>●</span></div><div><strong>Get the Local app</strong><small>Add it to your Home Screen for quicker ordering and phone alerts.</small></div><button type="button" @click="installApp">Install app</button></aside>
       <div v-if="error" class="page-state" role="alert"><h1>Let's try that again.</h1><p>{{ error }}</p><button @click="load">Retry</button></div>
       <div v-else-if="!session" class="page-state" role="status"><span class="brand">local<span>●</span></span><p>Opening your neighbourhood…</p></div>
       <RouterView v-else />
@@ -194,6 +222,15 @@ onBeforeUnmount(() => {
       <p id="logout-description">You’ll return to the public store. Your cart will stay saved on this device.</p>
       <p v-if="logoutError" class="lc-notice" role="alert">{{ logoutError }}</p>
       <div class="logout-actions"><button :disabled="loggingOut" autofocus @click="cancelLogout">Stay logged in</button><button class="logout-confirm" :disabled="loggingOut" @click="logout">{{ loggingOut ? 'Logging out…' : 'Yes, log out' }}</button></div>
+    </dialog>
+    <dialog ref="installDialog" class="install-dialog" aria-labelledby="install-title">
+      <button class="install-dialog-close" type="button" aria-label="Close" @click="installDialog.close()">×</button>
+      <div class="install-app-icon" aria-hidden="true">L<span>●</span></div>
+      <span class="eyebrow">LOCAL ON YOUR PHONE</span>
+      <h2 id="install-title">Add Local to your Home Screen</h2>
+      <ol><li><span aria-hidden="true">⇧</span><div><strong>Tap the Share button</strong><small>It is in Safari’s bottom toolbar.</small></div></li><li><span aria-hidden="true">＋</span><div><strong>Choose Add to Home Screen</strong><small>Then tap Add to finish.</small></div></li></ol>
+      <p>Open Local from the new Home Screen icon, then enable phone alerts from the notification bell.</p>
+      <button class="install-dialog-done" type="button" @click="installDialog.close()">Got it</button>
     </dialog>
     <footer class="app-footer"><span class="brand">local<span>●</span></span><span>A little closer to your neighbourhood.</span><small>Local Commerce</small></footer>
   </div>
