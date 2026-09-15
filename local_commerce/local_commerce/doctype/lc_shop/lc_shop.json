@@ -199,7 +199,7 @@
       "label": "Order Tax Template",
       "fieldtype": "Link",
       "options": "Sales Taxes and Charges Template",
-      "description": "ERPNext calculates taxes. Required when enabling delivery; use an explicitly configured zero-tax template if applicable."
+      "description": "Optional. Select a template from this Company when ERPNext should calculate taxes for customer orders."
     },
     {
       "fieldname": "payment_section",

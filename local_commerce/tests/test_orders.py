@@ -216,6 +216,26 @@ class TestDeliveryOrders(FrappeTestCase):
         with self.assertRaises(frappe.ValidationError):
             self.place()
 
+    def test_shop_can_order_without_a_tax_template(self):
+        frappe.set_user("Administrator")
+        self.shop.reload()
+        self.shop.order_tax_template = None
+        self.shop.save()
+        frappe.set_user(self.customer.name)
+        self.assertEqual(self.place(key="order-without-tax-template")["status"], "Requested")
+
+    def test_delivery_fee_uses_company_default_income_account(self):
+        frappe.set_user("Administrator")
+        self.shop.reload()
+        self.shop.delivery_fee = 10
+        self.shop.delivery_account = None
+        self.shop.save()
+        self.assertTrue(self.shop.delivery_account)
+        self.assertEqual(
+            frappe.db.get_value("Account", self.shop.delivery_account, "company"),
+            self.shop.company,
+        )
+
     def test_catalog_returns_item_image(self):
         frappe.set_user("Administrator")
         frappe.db.set_value("Item", self.item, "image", "/files/catalog-product.png")

@@ -46,6 +46,14 @@ def is_shop_driver(user, shop):
     )
 
 
+def default_delivery_account(company):
+    account = frappe.db.get_value("Company", company, "default_income_account")
+    filters = {"company": company, "is_group": 0, "disabled": 0}
+    if account and frappe.db.exists("Account", {"name": account, **filters}):
+        return account
+    return frappe.db.get_value("Account", {**filters, "root_type": "Income"}, "name")
+
+
 def validate_delivery(doc, method=None):
     try:
         location = point(doc.latitude, doc.longitude)
@@ -73,7 +81,7 @@ def validate_delivery(doc, method=None):
             "Set warehouse, selling price list and delivery postal codes before enabling delivery"
         )
     company_link("Warehouse", doc.warehouse, doc.company, {"is_group": 0, "disabled": 0})
-    if not frappe.db.exists(
+    if doc.order_tax_template and not frappe.db.exists(
         "Sales Taxes and Charges Template",
         {
             "name": doc.order_tax_template,
@@ -84,6 +92,10 @@ def validate_delivery(doc, method=None):
         reject("Select an order tax template belonging to the shop Company")
     fee = checked_number(doc.delivery_fee or 0, "Delivery fee")
     if fee:
+        if not doc.delivery_account:
+            doc.delivery_account = default_delivery_account(doc.company)
+        if not doc.delivery_account:
+            reject("Select a delivery charge account belonging to the shop Company")
         company_link("Account", doc.delivery_account, doc.company, {"is_group": 0, "disabled": 0})
 
 
@@ -422,10 +434,13 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
         )
         from erpnext.controllers.accounts_controller import get_taxes_and_charges
 
-        so.set(
-            "taxes",
-            get_taxes_and_charges("Sales Taxes and Charges Template", doc.order_tax_template),
-        )
+        if doc.order_tax_template:
+            so.set(
+                "taxes",
+                get_taxes_and_charges(
+                    "Sales Taxes and Charges Template", doc.order_tax_template
+                ),
+            )
         so.flags.ignore_permissions = True
         so.set_missing_values()
         if doc.delivery_fee:
