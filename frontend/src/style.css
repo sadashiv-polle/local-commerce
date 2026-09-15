@@ -325,6 +325,12 @@ html { scroll-behavior: smooth; }
 #lc-app .payment-summary > span { display: flex; flex-direction: column; min-width: 150px; padding: 12px 15px; border-radius: 10px; background: #f4f6ef; }
 #lc-app .payment-summary small { color: #7c877b; font-size: 9px; letter-spacing: 1px; }
 #lc-app .payment-summary strong.paid { color: #258257; }
+#lc-app .customer-delivery-otp { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin: 18px 0; padding: 18px 20px; border: 1px solid #cfe2c8; border-radius: 15px; background: linear-gradient(135deg, #edf7e8, #f8f7df); }
+#lc-app .customer-delivery-otp > div { display: flex; align-items: center; gap: 13px; flex: 0 0 auto; }
+#lc-app .customer-delivery-otp > div > span { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; color: white; background: #247a52; font-size: 20px; font-weight: 800; }
+#lc-app .customer-delivery-otp small { display: block; color: #637766; font-size: 9px; font-weight: 800; letter-spacing: 1.2px; }
+#lc-app .customer-delivery-otp strong { display: block; margin-top: 2px; color: #193c2d; font-size: 28px; letter-spacing: 5px; font-variant-numeric: tabular-nums; }
+#lc-app .customer-delivery-otp p { max-width: 420px; margin: 0; color: #627267; font-size: 12px; }
 #lc-app .payment-dialog { width: min(450px, calc(100vw - 28px)); padding: 30px; border: 0; border-radius: 22px; color: var(--lc-ink); box-shadow: 0 28px 100px #102c2550; }
 #lc-app .payment-dialog::backdrop { background: #16342c8c; backdrop-filter: blur(4px); }
 #lc-app .payment-dialog h2 { margin: 8px 0; font-size: 28px; }
@@ -332,6 +338,7 @@ html { scroll-behavior: smooth; }
 #lc-app .cash-field { margin-top: 18px; font-weight: 700; }
 #lc-app .cash-field small { display: block; color: #748174; font-weight: 500; }
 #lc-app .cash-field textarea { min-height: 82px; resize: vertical; }
+#lc-app .delivery-otp-field input { height: 58px; text-align: center; color: #173c2e; font-size: 26px; font-weight: 800; letter-spacing: 8px; font-variant-numeric: tabular-nums; }
 #lc-app .variance-note { padding: 10px 13px; border-radius: 9px; color: #765d20; background: #fff3ce; font-weight: 700; }
 #lc-app .variance-note.shortage { color: #933e2c; background: #fdebe5; }
 #lc-app .rider-cash-summary { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 14px; padding: 16px 18px; border-radius: 14px; color: #614d1b; background: #fff4d2; border: 1px solid #f0dfaa; }
@@ -394,6 +401,7 @@ html { scroll-behavior: smooth; }
   #lc-app .rider-cash-lines { text-align: left; }
   #lc-app .cash-amounts { grid-template-columns: minmax(0, 1fr); }
   #lc-app .cash-card > footer button { width: 100%; }
+  #lc-app .customer-delivery-otp { align-items: stretch; flex-direction: column; gap: 10px; }
   #lc-app .commerce-app.delivery-view .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 0; padding: 12px 16px; }
   #lc-app .commerce-app.delivery-view .brand-stack { min-width: 0; }
   #lc-app .commerce-app.delivery-view .brand { font-size: 34px; }

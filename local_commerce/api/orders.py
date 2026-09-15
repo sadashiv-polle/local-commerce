@@ -71,8 +71,8 @@ def delivery_assignments(start=0, view="active"):
 
 
 @frappe.whitelist(methods=["POST"])
-def delivery_change(order, target, collected_amount=None, note=""):
-    return orders.delivery_change(order, target, collected_amount, note)
+def delivery_change(order, target, collected_amount=None, note="", delivery_otp=""):
+    return orders.delivery_change(order, target, collected_amount, note, delivery_otp)
 
 
 @frappe.whitelist(methods=["POST"])

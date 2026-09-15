@@ -9,6 +9,7 @@ const profile = ref(null), assignments = ref([]), view = ref('active'), start = 
 const loading = ref(false), error = ref(''), busyOrder = ref('')
 const paymentDialog = ref(null), collectingOrder = ref(null)
 const collectedAmount = ref(''), collectionNote = ref(''), collectionError = ref('')
+const deliveryOtp = ref('')
 const trackingOrder = ref(''), locationMessage = ref(''), locationError = ref('')
 const routes = ref({}), routeErrors = ref({})
 const routeRequests = new Set()
@@ -61,7 +62,7 @@ async function loadProfile() {
 }
 async function refresh() { await Promise.all([load(), loadProfile()]) }
 async function switchView(target) { view.value = target; start.value = 0; await load() }
-async function advance(order, payment = {}) {
+async function advance(order, payment = {}, showCollectionError = false) {
   busyOrder.value = order.name; error.value = ''
   try {
     const target = next[order.status]
@@ -69,7 +70,11 @@ async function advance(order, payment = {}) {
     if (target === 'Delivered' && trackingOrder.value === order.name) stopTracking('Location sharing stopped after delivery.')
     await refresh()
     return result
-  } catch (e) { error.value = e.message; return null }
+  } catch (e) {
+    if (showCollectionError) collectionError.value = e.message
+    else error.value = e.message
+    return null
+  }
   finally { busyOrder.value = '' }
 }
 function stopTracking(message = 'Live location sharing stopped.', clearSaved = true) {
@@ -126,18 +131,24 @@ function requestAdvance(order) {
   collectingOrder.value = order
   collectedAmount.value = String(order.total)
   collectionNote.value = ''
+  deliveryOtp.value = ''
   collectionError.value = ''
   paymentDialog.value.showModal()
 }
-function cancelCollection() { paymentDialog.value.close(); collectingOrder.value = null; collectionNote.value = ''; collectionError.value = '' }
+function cancelCollection() { paymentDialog.value.close(); collectingOrder.value = null; collectionNote.value = ''; deliveryOtp.value = ''; collectionError.value = '' }
 async function confirmCollection() {
   const order = collectingOrder.value
   const amount = Number(collectedAmount.value)
   if (!Number.isFinite(amount) || amount < 0) { collectionError.value = 'Enter the cash amount you received.'; return }
   if (collectionVariance.value !== 0 && collectionNote.value.trim().length < 3) { collectionError.value = 'Add a short note explaining the cash difference.'; return }
+  if (!/^\d{6}$/.test(deliveryOtp.value)) { collectionError.value = 'Enter the six-digit OTP shown on the customer’s order.'; return }
+  collectionError.value = ''
+  const result = await advance(order, { collected_amount: amount, note: collectionNote.value.trim(), delivery_otp: deliveryOtp.value }, true)
+  if (!result) return
   paymentDialog.value.close()
   collectingOrder.value = null
-  await advance(order, { collected_amount: amount, note: collectionNote.value.trim() })
+  collectionNote.value = ''
+  deliveryOtp.value = ''
 }
 async function initialize() {
   const [loaded] = await Promise.all([load(), loadProfile()])
@@ -212,9 +223,10 @@ onBeforeUnmount(() => stopTracking('', false))
       <label class="cash-field">Cash received<input v-model="collectedAmount" type="number" min="0" step="0.01" inputmode="decimal" required></label>
       <p v-if="collectingOrder && collectionVariance" class="variance-note" :class="{ shortage: collectionVariance < 0 }">{{ collectionVariance < 0 ? 'Short' : 'Extra' }} by {{ money(Math.abs(collectionVariance), collectingOrder.currency) }}</p>
       <label v-if="collectionVariance" class="cash-field">Reason for difference<textarea v-model="collectionNote" maxlength="500" placeholder="Explain why the amount is different" required></textarea></label>
+      <label class="cash-field delivery-otp-field">Customer delivery OTP<input v-model="deliveryOtp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required @input="deliveryOtp = deliveryOtp.replace(/\D/g, '').slice(0, 6)"><small>Ask the customer for the code shown in My orders. It is not sent by email.</small></label>
       <p v-if="collectionError" class="lc-notice" role="alert">{{ collectionError }}</p>
       <p class="muted">The shop owner will confirm your cash handover later. This step records the amount you received and submits the Sales Invoice.</p>
-      <div class="logout-actions"><button @click="cancelCollection">Go back</button><button class="logout-confirm" @click="confirmCollection">Cash received</button></div>
+      <div class="logout-actions"><button :disabled="!!busyOrder" @click="cancelCollection">Go back</button><button class="logout-confirm" :disabled="!!busyOrder" @click="confirmCollection">{{ busyOrder ? 'Verifying…' : 'Verify OTP & deliver' }}</button></div>
     </dialog>
   </section>
 </template>

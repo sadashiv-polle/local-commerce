@@ -267,11 +267,30 @@ class TestDeliveryOrders(FrappeTestCase):
         self.assertEqual(frappe.db.get_value("Delivery Note", doc.delivery_note, "docstatus"), 1)
         self.assertEqual(owner.balance(self.item, self.warehouse.name)["actual"], 3)
         out_for_delivery = orders.delivery_change(order["name"], "Out for Delivery")
+        self.assertIsNone(out_for_delivery["delivery_otp"])
         location = orders.update_driver_location(order["name"], 15.5, 73.8, 12)
         self.assertTrue(location["accepted"])
         self.assertEqual(orders.detail(order["name"])["driver_location"]["latitude"], 15.5)
+        frappe.set_user(self.customer.name)
+        customer_order = orders.detail(order["name"])
+        self.assertRegex(customer_order["delivery_otp"], r"^\d{6}$")
+        frappe.set_user(driver.name)
+        with self.assertRaises(frappe.ValidationError):
+            orders.delivery_change(
+                order["name"],
+                "Delivered",
+                collected_amount=out_for_delivery["total"],
+                delivery_otp_value="00000",
+            )
+        self.assertEqual(
+            frappe.db.get_value("LC Order", order["name"], "status"),
+            "Out for Delivery",
+        )
         delivered = orders.delivery_change(
-            order["name"], "Delivered", collected_amount=out_for_delivery["total"]
+            order["name"],
+            "Delivered",
+            collected_amount=out_for_delivery["total"],
+            delivery_otp_value=customer_order["delivery_otp"],
         )
         self.assertEqual(delivered["status"], "Delivered")
         self.assertTrue(delivered["delivered_at"])

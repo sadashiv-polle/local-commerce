@@ -1,6 +1,7 @@
 """Delivery orders backed by ERPNext Sales Orders and Delivery Notes; no online payment."""
 
 import hashlib
+import hmac
 import json
 from contextvars import ContextVar
 from html import escape
@@ -23,6 +24,45 @@ from local_commerce.services.owner import (
 )
 
 _order_operation = ContextVar("lc_order_operation", default=False)
+_DELIVERY_OTP_ATTEMPTS = 5
+_DELIVERY_OTP_LOCK_SECONDS = 300
+
+
+def delivery_otp(doc):
+    """Return an order-specific OTP without storing or emailing the raw code."""
+    secret = str(frappe.conf.get("encryption_key") or "")
+    if not secret:
+        reject("Delivery confirmation is not configured securely; contact the administrator")
+    payload = f"local-commerce-delivery:{doc.name}:{doc.customer_user}:{doc.request_hash}"
+    digest = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).digest()
+    return f"{int.from_bytes(digest[:8], 'big') % 1_000_000:06d}"
+
+
+def verify_delivery_otp(doc, supplied):
+    attempt_key = "lc-delivery-otp-attempts:" + hashlib.sha256(
+        f"{doc.name}:{doc.delivery_user}".encode()
+    ).hexdigest()
+    lock_key = attempt_key + ":lock"
+    with frappe.cache.lock(lock_key, timeout=10, blocking_timeout=3):
+        attempts = int(frappe.cache.get_value(attempt_key) or 0)
+        if attempts >= _DELIVERY_OTP_ATTEMPTS:
+            reject("Too many incorrect OTP attempts. Wait 5 minutes and try again")
+        value = str(supplied or "").strip()
+        if len(value) != 6 or not value.isdigit() or not hmac.compare_digest(
+            value, delivery_otp(doc)
+        ):
+            attempts += 1
+            frappe.cache.set_value(
+                attempt_key, attempts, expires_in_sec=_DELIVERY_OTP_LOCK_SECONDS
+            )
+            remaining = _DELIVERY_OTP_ATTEMPTS - attempts
+            suffix = (
+                f" {remaining} attempt{'s' if remaining != 1 else ''} remaining."
+                if remaining
+                else " Wait 5 minutes before trying again."
+            )
+            reject("Incorrect delivery OTP." + suffix)
+        frappe.cache.delete_value(attempt_key)
 
 
 def customer_access():
@@ -494,6 +534,9 @@ def serialize(doc):
         )
     except ValueError:
         driver_location = None
+    is_customer = (
+        frappe.session.user != "Guest" and doc.customer_user == frappe.session.user
+    )
     return {
         "name": doc.name,
         "shop": doc.shop,
@@ -532,6 +575,9 @@ def serialize(doc):
         "payment_status": doc.payment_status,
         "sales_invoice": doc.sales_invoice,
         "payment_entry": doc.payment_entry,
+        "delivery_otp": (
+            delivery_otp(doc) if is_customer and doc.status == "Out for Delivery" else None
+        ),
         "collected_at": str(doc.collected_at) if doc.collected_at else None,
         "currency": so.currency,
         "total": so.grand_total,
@@ -847,7 +893,7 @@ def create_cod_collection(doc, collected_amount, driver_note=""):
     return invoice.name, collection.name
 
 
-def delivery_change(order, target, collected_amount=None, note=""):
+def delivery_change(order, target, collected_amount=None, note="", delivery_otp_value=""):
     doc = frappe.get_doc("LC Order", order)
     if doc.delivery_user != frappe.session.user or not is_shop_driver(
         frappe.session.user, doc.shop
@@ -894,6 +940,7 @@ def delivery_change(order, target, collected_amount=None, note=""):
                 or frappe.db.get_value("Delivery Note", doc.delivery_note, "docstatus") != 1
             ):
                 reject("The submitted delivery note is missing; contact the shop")
+            verify_delivery_otp(doc, delivery_otp_value)
             invoice, collection = create_cod_collection(doc, collected_amount, note)
             doc.sales_invoice = invoice
             doc.payment_status = "Collected"
