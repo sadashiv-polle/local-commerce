@@ -256,6 +256,7 @@ class TestDeliveryOrders(FrappeTestCase):
         frappe.set_user("Administrator")
         driver = create_user("LC Delivery Person")
         add_member(self.shop, driver, "Driver")
+        add_member(self.other, driver, "Driver")
         frappe.set_user(self.user.name)
         orders.change(order["name"], "Accepted")
         orders.change(order["name"], "Preparing")
@@ -265,7 +266,11 @@ class TestDeliveryOrders(FrappeTestCase):
         frappe.set_user(driver.name)
         profile = orders.delivery_profile()
         self.assertEqual(profile["metrics"]["active"], 1)
-        self.assertEqual(profile["metrics"]["shops"], 1)
+        self.assertEqual(profile["metrics"]["shops"], 2)
+        self.assertEqual(
+            {shop["name"] for shop in profile["shops"]},
+            {self.shop.name, self.other.name},
+        )
         self.assertEqual(len(orders.delivery_assignments()), 1)
         picked_up = orders.delivery_change(order["name"], "Picked Up")
         self.assertEqual(picked_up["status"], "Picked Up")

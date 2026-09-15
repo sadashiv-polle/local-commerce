@@ -16,6 +16,7 @@ def memberships(user):
         "LC Shop Member",
         filters={"user": user, "enabled": 1},
         fields=["shop", "user", "membership_role", "enabled"],
+        limit_page_length=0,
     )
 
 

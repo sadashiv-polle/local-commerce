@@ -635,6 +635,7 @@ def drivers(shop):
         filters={"shop": shop, "membership_role": "Driver", "enabled": 1},
         pluck="user",
         order_by="user asc",
+        limit_page_length=0,
     )
     result = []
     for user in members:
@@ -729,7 +730,7 @@ def driver_shops(user=None):
         {
             member.shop
             for member in memberships(user)
-            if member.membership_role == "Driver" and is_shop_driver(user, member.shop)
+            if member.membership_role == "Driver"
         }
     )
 
@@ -746,6 +747,7 @@ def delivery_profile():
             filters={"name": ["in", shops]},
             fields=["name", "shop_name", "status"],
             order_by="shop_name asc",
+            limit_page_length=0,
         )
         if shops
         else []
