@@ -1,9 +1,19 @@
 import unittest
 
-from local_commerce.services.location_rules import delivery_match, distance_km, point
+from local_commerce.services.location_rules import accuracy_metres, delivery_match, distance_km, point
 
 
 class LocationRulesTests(unittest.TestCase):
+    def test_browser_accuracy_accepts_extra_decimal_places(self):
+        self.assertEqual(accuracy_metres(12.3456789012345), 12.346)
+        self.assertEqual(accuracy_metres(0.000000123), 0)
+        self.assertEqual(accuracy_metres(5000), 5000)
+
+    def test_accuracy_rejects_invalid_or_over_limit_measurements(self):
+        for value in ["NaN", "Infinity", -1, 5000.0000001, "invalid", ""]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                accuracy_metres(value)
+
     def test_point_accepts_signed_coordinates_and_uses_schema_precision(self):
         self.assertEqual(
             point("15.49888888", "-73.82777777", required=True),

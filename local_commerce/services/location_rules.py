@@ -4,6 +4,19 @@ import math
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 
+def accuracy_metres(value):
+    """Browser GPS measurements may have many decimal places; normalize for storage."""
+    try:
+        result = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        raise ValueError("Enter a valid location accuracy") from None
+    if not result.is_finite() or result < 0:
+        raise ValueError("Enter a valid location accuracy")
+    if result > 5000:
+        raise ValueError("Location accuracy is too low; move outdoors and try again")
+    return float(result.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP))
+
+
 def coordinate(value, label, minimum, maximum):
     try:
         result = Decimal(str(value))

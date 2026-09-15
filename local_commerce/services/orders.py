@@ -12,7 +12,7 @@ from frappe.utils import getdate, now_datetime, nowdate, time_diff_in_seconds
 from local_commerce.permissions.policy import can_access_shop
 from local_commerce.permissions.scope import identity, memberships, require_shop, shop_query
 from local_commerce.services import order_rules
-from local_commerce.services.location_rules import delivery_match, distance_km, point
+from local_commerce.services.location_rules import accuracy_metres, delivery_match, distance_km, point
 from local_commerce.services.locations import map_config, shop_location
 from local_commerce.services.owner import (
     _owner_operation,
@@ -976,9 +976,10 @@ def update_driver_location(order, latitude, longitude, accuracy=None):
         location = point(latitude, longitude, required=True)
     except ValueError as exc:
         reject(str(exc))
-    location_accuracy = checked_number(accuracy or 0, "Location accuracy")
-    if location_accuracy < 0 or location_accuracy > 5000:
-        reject("Location accuracy is too low; move outdoors and try again")
+    try:
+        location_accuracy = accuracy_metres(accuracy if accuracy is not None else 0)
+    except ValueError as exc:
+        reject(str(exc))
     now = now_datetime()
     if doc.driver_location_at and time_diff_in_seconds(now, doc.driver_location_at) < 10:
         return {"accepted": False, "updated_at": str(doc.driver_location_at)}
