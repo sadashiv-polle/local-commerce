@@ -1,6 +1,11 @@
 import unittest
 
-from local_commerce.services.location_rules import accuracy_metres, delivery_match, distance_km, point
+from local_commerce.services.location_rules import (
+    accuracy_metres,
+    delivery_match,
+    distance_km,
+    point,
+)
 
 
 class LocationRulesTests(unittest.TestCase):

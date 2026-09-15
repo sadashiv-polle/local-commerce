@@ -3,7 +3,7 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from local_commerce.services import customers, orders, owner
+from local_commerce.services import customers, notifications, orders, owner
 from local_commerce.tests.helpers import add_member, create_user
 from local_commerce.tests.test_owner_inventory import TestOwnerInventory
 
@@ -131,6 +131,27 @@ class TestDeliveryOrders(FrappeTestCase):
         self.assertEqual(
             orders.change(order["name"], "Cancelled", "No longer required")["status"], "Cancelled"
         )
+
+    def test_order_notifications_are_scoped_and_readable(self):
+        order = self.place()
+        frappe.set_user(self.user.name)
+        owner_feed = notifications.list_notifications()
+        self.assertEqual(owner_feed["unread"], 1)
+        self.assertEqual(owner_feed["items"][0]["order"], order["name"])
+        self.assertIn("New order", owner_feed["items"][0]["title"])
+        notifications.mark_read(owner_feed["items"][0]["name"])
+        self.assertEqual(notifications.list_notifications()["unread"], 0)
+        orders.change(order["name"], "Accepted")
+
+        frappe.set_user(self.customer.name)
+        customer_feed = notifications.list_notifications()
+        self.assertEqual(customer_feed["unread"], 1)
+        self.assertEqual(customer_feed["items"][0]["target"], "/orders")
+        notifications.mark_all_read()
+        self.assertEqual(notifications.list_notifications()["unread"], 0)
+
+        frappe.set_user(self.stranger.name)
+        self.assertEqual(notifications.list_notifications()["items"], [])
 
     def test_replay_payload_and_postal_code_does_not_limit_delivery(self):
         self.place()
@@ -264,6 +285,9 @@ class TestDeliveryOrders(FrappeTestCase):
         assigned = orders.assign_driver(order["name"], driver.name)
         self.assertEqual(assigned["delivery_user"], driver.name)
         frappe.set_user(driver.name)
+        driver_feed = notifications.list_notifications()
+        self.assertEqual(driver_feed["unread"], 1)
+        self.assertEqual(driver_feed["items"][0]["target"], "/delivery")
         profile = orders.delivery_profile()
         self.assertEqual(profile["metrics"]["active"], 1)
         self.assertEqual(profile["metrics"]["shops"], 2)

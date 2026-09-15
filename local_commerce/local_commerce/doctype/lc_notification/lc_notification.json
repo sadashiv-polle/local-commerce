@@ -1,0 +1,104 @@
+{
+  "doctype": "DocType",
+  "name": "LC Notification",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "track_changes": 0,
+  "title_field": "title",
+  "field_order": [
+    "recipient_user",
+    "order",
+    "shop",
+    "audience",
+    "title",
+    "message",
+    "target",
+    "read",
+    "read_at"
+  ],
+  "fields": [
+    {
+      "fieldname": "recipient_user",
+      "label": "Recipient User",
+      "fieldtype": "Link",
+      "options": "User",
+      "reqd": 1,
+      "read_only": 1,
+      "search_index": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "order",
+      "label": "Order",
+      "fieldtype": "Link",
+      "options": "LC Order",
+      "reqd": 1,
+      "read_only": 1,
+      "search_index": 1
+    },
+    {
+      "fieldname": "shop",
+      "label": "Shop",
+      "fieldtype": "Link",
+      "options": "LC Shop",
+      "reqd": 1,
+      "read_only": 1,
+      "search_index": 1
+    },
+    {
+      "fieldname": "audience",
+      "label": "Audience",
+      "fieldtype": "Select",
+      "options": "Customer\nOwner\nDriver",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "title",
+      "label": "Title",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "message",
+      "label": "Message",
+      "fieldtype": "Small Text",
+      "read_only": 1
+    },
+    {
+      "fieldname": "target",
+      "label": "App Target",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "read",
+      "label": "Read",
+      "fieldtype": "Check",
+      "default": "0",
+      "read_only": 1,
+      "search_index": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "read_at",
+      "label": "Read At",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1,
+      "report": 1,
+      "export": 1
+    }
+  ],
+  "sort_field": "creation",
+  "sort_order": "DESC"
+}

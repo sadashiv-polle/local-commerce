@@ -11,8 +11,14 @@ from frappe.utils import getdate, now_datetime, nowdate, time_diff_in_seconds
 
 from local_commerce.permissions.policy import can_access_shop
 from local_commerce.permissions.scope import identity, memberships, require_shop, shop_query
+from local_commerce.services import notifications as order_notifications
 from local_commerce.services import order_rules
-from local_commerce.services.location_rules import accuracy_metres, delivery_match, distance_km, point
+from local_commerce.services.location_rules import (
+    accuracy_metres,
+    delivery_match,
+    distance_km,
+    point,
+)
 from local_commerce.services.locations import map_config, shop_location
 from local_commerce.services.owner import (
     _owner_operation,
@@ -491,6 +497,7 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 reject("ERPNext quantity precision changed this order; use a supported quantity")
         order.sales_order = so.name
         order.save(ignore_permissions=True)
+        order_notifications.order_created(order)
         return detail(order.name)
     finally:
         _owner_operation.reset(owner_token)
@@ -717,6 +724,7 @@ def assign_driver(order, delivery_user):
         label = frappe.db.get_value("User", delivery_user, "full_name") or delivery_user
         action = "Reassigned" if previous else "Assigned"
         doc.add_comment("Info", escape(f"{action} delivery to {label}."))
+        order_notifications.driver_assigned(doc, previous)
         return serialize(doc)
     finally:
         _order_operation.reset(token)
@@ -947,6 +955,7 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
         doc.status = target
         doc.save(ignore_permissions=True)
         doc.add_comment("Info", escape(f"{previous} → {target}."))
+        order_notifications.status_changed(doc, previous)
         return serialize(doc)
     finally:
         _owner_operation.reset(owner_token)
@@ -1158,6 +1167,7 @@ def change(order, target, reason=""):
         doc.status, doc.reason = target, str(reason).strip() if target == "Cancelled" else ""
         doc.save(ignore_permissions=True)
         doc.add_comment("Info", escape(f"{previous} → {target}. {doc.reason}"))
+        order_notifications.status_changed(doc, previous)
         return serialize(doc)
     finally:
         _owner_operation.reset(owner_token)

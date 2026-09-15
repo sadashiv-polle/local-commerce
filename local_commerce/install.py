@@ -17,6 +17,7 @@ def before_install():
         "LC Customer Account",
         "LC Customer Address",
         "LC COD Collection",
+        "LC Notification",
     ):
         if frappe.db.exists("DocType", name):
             frappe.throw(f"DocType collision: {name}; inspect ownership before installing")
@@ -200,6 +201,7 @@ def before_migrate():
         "LC Customer Account",
         "LC Customer Address",
         "LC COD Collection",
+        "LC Notification",
     ):
         module = frappe.db.get_value("DocType", name, "module")
         if module and module != "Local Commerce":

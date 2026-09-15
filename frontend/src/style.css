@@ -66,6 +66,25 @@ html { scroll-behavior: smooth; }
 #lc-app nav { display: flex; align-items: center; gap: 25px; margin-left: auto; font-weight: 600; }
 #lc-app .account { display: flex; gap: 10px; align-items: center; }
 #lc-app .account>span:first-child { background: #eff2e8; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; }
+#lc-app .notification-menu { position: relative; }
+#lc-app .notification-menu > summary { position: relative; display: grid; place-items: center; width: 42px; height: 42px; list-style: none; cursor: pointer; border: 1px solid #d7e3d8; border-radius: 50%; color: #24533b; background: #f0f5ec; }
+#lc-app .notification-menu > summary::-webkit-details-marker { display: none; }
+#lc-app .notification-menu > summary svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#lc-app .notification-menu[open] > summary { color: white; border-color: #176547; background: #176547; }
+#lc-app .notification-badge { position: absolute; top: -6px; right: -7px; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border: 2px solid white; border-radius: 12px; color: white; background: #d94b35; font-size: 9px; font-weight: 800; }
+#lc-app .notification-panel { position: absolute; z-index: 1200; top: calc(100% + 12px); right: 0; overflow: hidden; width: min(390px, calc(100vw - 24px)); max-height: min(560px, calc(100vh - 100px)); border: 1px solid #d9e4d8; border-radius: 18px; background: white; box-shadow: 0 22px 65px #17392d38; overflow-y: auto; }
+#lc-app .notification-panel > header { position: sticky; z-index: 1; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px; border-bottom: 1px solid #e6ebe3; background: #fffefc; }
+#lc-app .notification-panel h2 { margin: 3px 0 0; font-size: 21px; }
+#lc-app .notification-panel header button { padding: 7px 9px; border: 0; color: #176547; background: transparent; font-size: 10px; font-weight: 750; }
+#lc-app .notification-item { display: grid; grid-template-columns: 9px minmax(0, 1fr); align-items: start; gap: 11px; width: 100%; padding: 15px 18px; border: 0; border-bottom: 1px solid #edf0eb; border-radius: 0; color: #294034; background: white; text-align: left; }
+#lc-app .notification-item:hover, #lc-app .notification-item.unread { background: #f2f7ed; }
+#lc-app .notification-item > span:last-child { display: grid; gap: 3px; min-width: 0; }
+#lc-app .notification-item strong, #lc-app .notification-item small { overflow-wrap: anywhere; }
+#lc-app .notification-item small { color: #68766c; font-weight: 500; line-height: 1.45; }
+#lc-app .notification-item time { margin-top: 3px; color: #89938b; font-size: 9px; }
+#lc-app .notification-dot { width: 7px; height: 7px; margin-top: 6px; border-radius: 50%; background: transparent; }
+#lc-app .notification-item.unread .notification-dot { background: #22a66b; box-shadow: 0 0 0 4px #dff2e6; }
+#lc-app .notification-empty, #lc-app .notification-panel > p { margin: 0; padding: 28px 18px; color: #748176; text-align: center; }
 #lc-app main { padding: 0; max-width: none; }
 #lc-app .store-page { max-width: 1320px; padding: 38px 40px; margin: auto; }
 #lc-app .eyebrow { display: block; font-size: 10px; letter-spacing: 2px; font-weight: 750; color: #5b7661; }
@@ -118,6 +137,7 @@ html { scroll-behavior: smooth; }
 #lc-app .page-state { padding: 80px 30px; text-align: center; min-height: 65vh; }
 @media(max-width: 900px) { #lc-app .header-note { display: none; } #lc-app .category-grid { grid-template-columns: repeat(4, 1fr); } #lc-app .store-hero { padding: 30px; } #lc-app .hero-art { transform: scale(.85); } #lc-app .owner-page { grid-template-columns: 180px 1fr; } #lc-app .owner-content { padding: 30px; } }
 @media(max-width: 600px) { #lc-app .topbar { gap: 10px; padding: 18px 20px; } #lc-app .brand small { font-size: 6px; } #lc-app nav { gap: 12px; font-size: 11px; } #lc-app .account>span:last-child { display: none; } #lc-app .store-page { padding: 20px 16px; } #lc-app .store-hero { grid-template-columns: 1fr; padding: 28px; } #lc-app .hero-art { min-height: 255px; width: 270px; max-width: 100%; margin: auto; } #lc-app .store-hero h1 { font-size: 37px; } #lc-app .category-grid { gap: 5px; } #lc-app .category-grid button>span { height: 70px; font-size: 32px; } #lc-app .category-grid strong { font-size: 10px; } #lc-app .section-title>.muted { display: none; } #lc-app .opening-card { padding: 22px; gap: 16px; } #lc-app .opening-icon { display: none; } #lc-app .values { grid-template-columns: 1fr; gap: 10px; } #lc-app .owner-page { grid-template-columns: 1fr; } #lc-app .owner-sidebar { display: none; } #lc-app .owner-content { padding: 25px 18px; } #lc-app .owner-content h1 { font-size: 30px; } #lc-app .app-footer { flex-wrap: wrap; gap: 15px; } #lc-app .app-footer small { margin-left: 0; } }
+@media(max-width: 600px) { #lc-app .notification-menu > summary { width: 38px; height: 38px; } #lc-app .notification-panel { position: fixed; top: 72px; right: 12px; left: 12px; width: auto; max-height: calc(100vh - 90px); } }
 @media(prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } #lc-app * { transition: none !important; } }
 #lc-app .products-panel { margin: 30px 0; border-top: 1px solid var(--lc-line); }
 #lc-app .product-grid { margin-top: 25px; }

@@ -32,7 +32,9 @@ def _result(row):
     number = _clean(address.get("house_number"), 20)
     line1 = " ".join(part for part in (number, street) if part)
     if not line1:
-        line1 = _clean(address.get("amenity") or address.get("shop") or address.get("building"), 140)
+        line1 = _clean(
+            address.get("amenity") or address.get("shop") or address.get("building"), 140
+        )
     city = _clean(
         address.get("city")
         or address.get("town")

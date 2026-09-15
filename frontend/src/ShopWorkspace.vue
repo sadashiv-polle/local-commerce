@@ -10,6 +10,7 @@ const session = inject('session'), route = useRoute()
 const shop = ref(null), loading = ref(false), error = ref(''), saved = ref(''), saving = ref(false)
 const payment = ref(null), paymentSaved = ref(''), paymentSaving = ref(false)
 const tab = ref('inventory')
+const tabs = new Set(['orders', 'cash', 'inventory', 'settings'])
 const locationError = ref(''), locating = ref(false)
 const canEdit = computed(() => shop.value && (session.value.platform_admin || session.value.memberships.some(m => m.shop === shop.value.name && m.membership_role === 'Owner')))
 const canEditLocation = computed(() => shop.value && session.value.platform_admin)
@@ -20,7 +21,7 @@ const shopPoints = computed(() => {
 let request = 0
 async function load() {
   const current = ++request
-  shop.value = null; payment.value = null; loading.value = true; error.value = ''; saved.value = ''; tab.value = 'inventory'
+  shop.value = null; payment.value = null; loading.value = true; error.value = ''; saved.value = ''; tab.value = tabs.has(route.query.tab) ? route.query.tab : 'inventory'
   try {
     const result = await call('shops.get_shop', { shop: route.params.shop })
     if (current === request) {
@@ -68,6 +69,7 @@ function useShopLocation() {
   )
 }
 watch(() => route.params.shop, load, { immediate: true })
+watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value })
 </script>
 
 <template>
