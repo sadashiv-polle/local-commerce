@@ -1,0 +1,15 @@
+{
+  "id": "/local-commerce",
+  "name": "Local Commerce",
+  "short_name": "Local",
+  "description": "Your neighbourhood shops and deliveries",
+  "start_url": "/local-commerce#/store",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffef9",
+  "theme_color": "#176547",
+  "icons": [
+    {"src": "/assets/local_commerce/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/assets/local_commerce/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

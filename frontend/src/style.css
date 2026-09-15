@@ -85,6 +85,12 @@ html { scroll-behavior: smooth; }
 #lc-app .notification-dot { width: 7px; height: 7px; margin-top: 6px; border-radius: 50%; background: transparent; }
 #lc-app .notification-item.unread .notification-dot { background: #22a66b; box-shadow: 0 0 0 4px #dff2e6; }
 #lc-app .notification-empty, #lc-app .notification-panel > p { margin: 0; padding: 28px 18px; color: #748176; text-align: center; }
+#lc-app .push-settings { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #e4eadf; background: #fbf8df; }
+#lc-app .push-settings > div { display: grid; gap: 3px; }
+#lc-app .push-settings small { color: #69766b; line-height: 1.35; }
+#lc-app .push-settings button { padding: 9px 13px; border: 0; color: white; background: #176547; }
+#lc-app .push-settings > span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: white; background: #22a66b; }
+#lc-app .notification-panel .push-message { padding: 10px 18px; color: #315b43; background: #eef7ec; font-size: 10px; }
 #lc-app main { padding: 0; max-width: none; }
 #lc-app .store-page { max-width: 1320px; padding: 38px 40px; margin: auto; }
 #lc-app .eyebrow { display: block; font-size: 10px; letter-spacing: 2px; font-weight: 750; color: #5b7661; }

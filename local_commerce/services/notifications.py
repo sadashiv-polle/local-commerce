@@ -38,7 +38,7 @@ def _create(user, order, audience, title, message, target, seen):
     seen.add(user)
     token = _notification_operation.set(True)
     try:
-        frappe.get_doc(
+        notification = frappe.get_doc(
             {
                 "doctype": "LC Notification",
                 "recipient_user": user,
@@ -51,6 +51,12 @@ def _create(user, order, audience, title, message, target, seen):
                 "read": 0,
             }
         ).insert(ignore_permissions=True)
+        frappe.enqueue(
+            "local_commerce.services.push.send_notification",
+            notification=notification.name,
+            enqueue_after_commit=True,
+            queue="short",
+        )
     finally:
         _notification_operation.reset(token)
 

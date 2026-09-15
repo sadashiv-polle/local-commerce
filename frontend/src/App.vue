@@ -3,12 +3,14 @@ import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
 import { activeCart, loginUrl } from './cart.js'
+import { currentSubscription, disablePush, enablePush, pushSupported } from './push.js'
 const session = ref(null), error = ref(''), loggingOut = ref(false), logoutError = ref('')
 const route = useRoute(), router = useRouter()
 const logoutDialog = ref(null), headerAddressMenu = ref(null), notificationMenu = ref(null)
 const savedCart = ref(null)
 const headerAddresses = ref([]), headerAddress = ref(null)
 const notifications = ref([]), unreadNotifications = ref(0), notificationsLoading = ref(false)
+const pushState = ref('loading'), pushMessage = ref(''), pushBusy = ref(false), pushPublicKey = ref('')
 const savedCartLines = computed(() => Object.keys(savedCart.value?.cart || {}).length)
 const savedCartTotal = computed(() => Object.values(savedCart.value?.cart || {}).reduce((sum, item) => sum + Number(item.rate) * Number(item.quantity), 0))
 const savedCartCurrency = computed(() => Object.values(savedCart.value?.cart || {})[0]?.currency)
@@ -80,6 +82,35 @@ async function loadNotifications() {
   } catch { /* Notifications retry automatically without blocking the app. */ }
   finally { notificationsLoading.value = false }
 }
+async function loadPushState() {
+  if (!session.value || session.value.user === 'Guest') return
+  if (!pushSupported()) { pushState.value = 'unsupported'; return }
+  try {
+    const [server, subscription] = await Promise.all([call('push.status'), currentSubscription()])
+    pushPublicKey.value = server.public_key || ''
+    pushState.value = !server.configured ? 'unconfigured' : subscription ? 'enabled' : Notification.permission === 'denied' ? 'denied' : 'available'
+  } catch { pushState.value = 'unavailable' }
+}
+async function turnOnPush() {
+  if (pushBusy.value) return
+  pushBusy.value = true; pushMessage.value = ''
+  try {
+    const subscription = await enablePush(pushPublicKey.value)
+    await call('push.subscribe', { subscription: subscription.toJSON() }, true)
+    pushState.value = 'enabled'; pushMessage.value = 'Phone notifications are on for this device.'
+  } catch (error) { pushMessage.value = error.message }
+  finally { pushBusy.value = false }
+}
+async function turnOffPush() {
+  if (pushBusy.value) return
+  pushBusy.value = true; pushMessage.value = ''
+  try {
+    const endpoint = await disablePush()
+    if (endpoint) await call('push.unsubscribe', { endpoint }, true)
+    pushState.value = 'available'; pushMessage.value = 'Phone notifications are off for this device.'
+  } catch { pushMessage.value = 'Could not turn off phone notifications. Please retry.' }
+  finally { pushBusy.value = false }
+}
 function notificationTime(value) {
   const parsed = new Date(String(value || '').replace(' ', 'T'))
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
@@ -107,6 +138,7 @@ async function load() {
   try {
     session.value = await call('session.context'); setCsrfToken(session.value.csrf_token)
     await loadNotifications()
+    await loadPushState()
     if (session.value.roles.includes('LC Customer')) {
       // Account linking is a POST; public browsing remains usable if setup needs attention.
       try { await call('customers.ensure', {}, true); await loadHeaderAddress() } catch { /* Account/checkout show actionable errors. */ }
@@ -147,7 +179,7 @@ onBeforeUnmount(() => {
     <header class="topbar">
       <div class="brand-stack"><RouterLink class="brand" to="/store">local<span>●</span><small v-if="ownerView || deliveryView">{{ ownerView ? 'BUSINESS' : 'DELIVERY' }}</small></RouterLink><details v-if="!ownerView && !deliveryView" ref="headerAddressMenu" class="header-address-menu"><summary class="header-delivery-address"><small>DELIVERING TO</small><strong v-if="headerAddress">{{ headerAddress.address_label }} · {{ headerAddress.line1 }}</strong><strong v-else>{{ session?.user === 'Guest' ? 'Choose delivery location' : 'Add delivery address' }}</strong><span aria-hidden="true">⌄</span></summary><div class="header-address-options"><span class="eyebrow">SAVED ADDRESSES</span><button v-for="address in headerAddresses" :key="address.name" type="button" :class="{ selected: address.name === headerAddress?.name }" @click="chooseHeaderAddress(address)"><span class="address-icon" aria-hidden="true">{{ address.address_type === 'Home' ? '⌂' : address.address_type === 'Work' ? '▦' : '⌖' }}</span><span><strong>{{ address.address_label }}</strong><small>{{ address.line1 }} · {{ address.city }}</small></span><b v-if="address.name === headerAddress?.name">✓</b></button><p v-if="!headerAddresses.length">No saved addresses yet.</p><button type="button" class="header-add-address" @click="addHeaderAddress">+ {{ session?.user === 'Guest' ? 'Login to add address' : 'Add address' }}</button></div></details></div>
       <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : deliveryView ? 'Your rider workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : deliveryView ? 'Every order, right on track.' : 'Delivery from your local shops' }}</small></div></div>
-      <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><RouterLink v-if="canDeliver" to="/delivery">Deliveries</RouterLink><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><details v-else-if="session" ref="notificationMenu" class="notification-menu" @toggle="toggleNotifications"><summary aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><span v-if="unreadNotifications" class="notification-badge">{{ unreadNotifications > 99 ? '99+' : unreadNotifications }}</span></summary><section class="notification-panel"><header><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2></div><button type="button" :disabled="!unreadNotifications" @click="markAllNotifications">Mark all read</button></header><p v-if="notificationsLoading && !notifications.length" role="status">Checking updates…</p><p v-else-if="!notifications.length" class="notification-empty">No order updates yet.</p><button v-for="notification in notifications" :key="notification.name" type="button" class="notification-item" :class="{ unread: !notification.read }" @click="openNotification(notification)"><span class="notification-dot" aria-hidden="true"></span><span><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small><time>{{ notificationTime(notification.creation) }}</time></span></button></section></details><RouterLink v-if="session" class="account" :to="session.roles.includes('LC Customer') ? '/account' : canDeliver ? '/delivery' : '/shop'"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink><button v-if="session && session.user !== 'Guest'" class="logout-button" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg>Log out</button></nav>
+      <nav aria-label="Main navigation"><RouterLink v-if="canManage" :to="ownerView ? '/store' : '/shop'">{{ ownerView ? 'View storefront ↗' : 'Shop workspace ↗' }}</RouterLink><RouterLink v-if="canDeliver" to="/delivery">Deliveries</RouterLink><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><details v-else-if="session" ref="notificationMenu" class="notification-menu" @toggle="toggleNotifications"><summary aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><span v-if="unreadNotifications" class="notification-badge">{{ unreadNotifications > 99 ? '99+' : unreadNotifications }}</span></summary><section class="notification-panel"><header><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2></div><button type="button" :disabled="!unreadNotifications" @click="markAllNotifications">Mark all read</button></header><div v-if="pushState !== 'loading'" class="push-settings"><div><strong>{{ pushState === 'enabled' ? 'Phone alerts are on' : 'Get phone alerts' }}</strong><small v-if="pushState === 'available'">Receive order updates when this app is closed.</small><small v-else-if="pushState === 'enabled'">This device can receive background order alerts.</small><small v-else-if="pushState === 'unconfigured'">The server needs its free push key configured.</small><small v-else-if="pushState === 'denied'">Allow notifications in your phone or browser settings.</small><small v-else-if="pushState === 'unsupported'">On iPhone, add Local to your Home Screen, then open it there.</small><small v-else>Phone alerts are unavailable right now.</small></div><button v-if="pushState === 'available'" type="button" :disabled="pushBusy" @click="turnOnPush">{{ pushBusy ? 'Enabling…' : 'Enable' }}</button><button v-else-if="pushState === 'enabled'" type="button" :disabled="pushBusy" @click="turnOffPush">{{ pushBusy ? 'Turning off…' : 'Turn off' }}</button></div><p v-if="pushMessage" class="push-message" role="status">{{ pushMessage }}</p><p v-if="notificationsLoading && !notifications.length" role="status">Checking updates…</p><p v-else-if="!notifications.length" class="notification-empty">No order updates yet.</p><button v-for="notification in notifications" :key="notification.name" type="button" class="notification-item" :class="{ unread: !notification.read }" @click="openNotification(notification)"><span class="notification-dot" aria-hidden="true"></span><span><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small><time>{{ notificationTime(notification.creation) }}</time></span></button></section></details><RouterLink v-if="session" class="account" :to="session.roles.includes('LC Customer') ? '/account' : canDeliver ? '/delivery' : '/shop'"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink><button v-if="session && session.user !== 'Guest'" class="logout-button" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg>Log out</button></nav>
     </header>
     <main>
       <div v-if="error" class="page-state" role="alert"><h1>Let's try that again.</h1><p>{{ error }}</p><button @click="load">Retry</button></div>

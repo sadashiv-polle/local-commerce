@@ -5,7 +5,7 @@ description = "Multi-shop commerce for Frappe and ERPNext"
 requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
-dependencies = []
+dependencies = ["pywebpush>=2.0.0,<3"]
 license = {text = "MIT"}
 
 [build-system]

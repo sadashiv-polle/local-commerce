@@ -1,0 +1,21 @@
+{
+  "doctype": "DocType",
+  "name": "LC Push Subscription",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "field_order": ["user", "endpoint_hash", "endpoint", "p256dh", "auth", "user_agent", "enabled", "last_success_at"],
+  "fields": [
+    {"fieldname": "user", "label": "User", "fieldtype": "Link", "options": "User", "reqd": 1, "read_only": 1, "search_index": 1},
+    {"fieldname": "endpoint_hash", "label": "Endpoint Hash", "fieldtype": "Data", "reqd": 1, "read_only": 1, "unique": 1},
+    {"fieldname": "endpoint", "label": "Endpoint", "fieldtype": "Long Text", "reqd": 1, "read_only": 1},
+    {"fieldname": "p256dh", "label": "P256DH", "fieldtype": "Long Text", "reqd": 1, "read_only": 1},
+    {"fieldname": "auth", "label": "Auth", "fieldtype": "Password", "reqd": 1, "read_only": 1},
+    {"fieldname": "user_agent", "label": "User Agent", "fieldtype": "Small Text", "read_only": 1},
+    {"fieldname": "enabled", "label": "Enabled", "fieldtype": "Check", "default": "1", "read_only": 1, "search_index": 1},
+    {"fieldname": "last_success_at", "label": "Last Success At", "fieldtype": "Datetime", "read_only": 1}
+  ],
+  "permissions": [{"role": "LC Platform Administrator", "read": 1, "report": 1}],
+  "sort_field": "modified",
+  "sort_order": "DESC"
+}
