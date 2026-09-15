@@ -67,7 +67,7 @@ async function assign(order) {
   finally { busy.value = false }
 }
 watch(() => props.shop, () => { start.value = 0; load() }, { immediate: true })
-onMounted(() => { refreshTimer = window.setInterval(() => { if (!props.shop && orders.value.some(order => order.status === 'Out for Delivery')) load() }, 10000) })
+onMounted(() => { refreshTimer = window.setInterval(() => { if (!props.shop && !loading.value && !busy.value && orders.value.some(order => !['Delivered', 'Cancelled'].includes(order.status))) load() }, 10000) })
 onBeforeUnmount(() => window.clearInterval(refreshTimer))
 </script>
 

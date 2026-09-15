@@ -88,12 +88,13 @@ async function sendLocation(order, position) {
   if (!position || sendingLocation || trackingOrder.value !== order.name) return
   sendingLocation = true
   const current = assignments.value.find(row => row.name === order.name)
-  if (current) current.driver_location = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy || 0, updated_at: 'Sharing now' }
   try {
     const result = await call('orders.update_driver_location', { order: order.name, latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy || 0 }, true)
-    locationMessage.value = 'Live location is on · updating every 12 seconds.'; locationError.value = ''
-    if (current && result.accepted) current.driver_location.updated_at = result.updated_at
-  } catch (e) { locationError.value = e.message }
+    if (result.accepted) {
+      locationMessage.value = 'Location shared with the customer · updating every 12 seconds.'; locationError.value = ''
+      if (current) current.driver_location = { latitude: result.latitude, longitude: result.longitude, accuracy: result.accuracy, updated_at: result.updated_at }
+    }
+  } catch (e) { locationMessage.value = ''; locationError.value = e.message }
   finally { sendingLocation = false }
 }
 function startTracking(order, initialPosition = null) {
