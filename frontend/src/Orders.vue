@@ -66,9 +66,16 @@ async function assign(order) {
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
+function refreshOrders() { load() }
 watch(() => props.shop, () => { start.value = 0; load() }, { immediate: true })
-onMounted(() => { refreshTimer = window.setInterval(() => { if (!props.shop && !loading.value && !busy.value && orders.value.some(order => !['Delivered', 'Cancelled'].includes(order.status))) load() }, 10000) })
-onBeforeUnmount(() => window.clearInterval(refreshTimer))
+onMounted(() => {
+  window.addEventListener('lc-orders-change', refreshOrders)
+  refreshTimer = window.setInterval(() => { if (!props.shop && !loading.value && !busy.value && orders.value.some(order => !['Delivered', 'Cancelled'].includes(order.status))) load() }, 10000)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('lc-orders-change', refreshOrders)
+  window.clearInterval(refreshTimer)
+})
 </script>
 
 <template>

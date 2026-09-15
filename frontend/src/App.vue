@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
 import { activeCart, loginUrl } from './cart.js'
 import { currentSubscription, disablePush, enablePush, pushSupported } from './push.js'
+import IncomingOrders from './IncomingOrders.vue'
 const session = ref(null), error = ref(''), loggingOut = ref(false), logoutError = ref('')
 const route = useRoute(), router = useRouter()
 const logoutDialog = ref(null), headerAddressMenu = ref(null), notificationMenu = ref(null)
@@ -39,6 +40,7 @@ const ownerView = computed(() => route.path === '/shop' || route.path.startsWith
 const deliveryView = computed(() => route.path === '/delivery')
 const canManage = computed(() => session.value && (session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role))))
 const canDeliver = computed(() => session.value?.roles.includes('LC Delivery Person') && session.value.memberships.some(m => m.membership_role === 'Driver'))
+const ownerShops = computed(() => [...new Set(session.value?.memberships.filter(m => m.membership_role === 'Owner').map(m => m.shop) || [])])
 let notificationTimer
 provide('session', session)
 function isInstalledApp() {
@@ -233,5 +235,6 @@ onBeforeUnmount(() => {
       <button class="install-dialog-done" type="button" @click="installDialog.close()">Got it</button>
     </dialog>
     <footer class="app-footer"><span class="brand">local<span>●</span></span><span>A little closer to your neighbourhood.</span><small>Local Commerce</small></footer>
+    <IncomingOrders v-if="ownerShops.length" :shops="ownerShops" />
   </div>
 </template>

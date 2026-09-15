@@ -107,6 +107,30 @@ html { scroll-behavior: smooth; }
 #lc-app .install-dialog li small, #lc-app .install-dialog > p { color: #728077; }
 #lc-app .install-dialog > p { line-height: 1.55; }
 #lc-app .install-dialog-done { width: 100%; color: white; background: #176547; }
+#lc-app .incoming-order { position: fixed; z-index: 5000; inset: 0; display: grid; place-items: center; padding: 24px; background: #102d22e8; backdrop-filter: blur(9px); }
+#lc-app .incoming-order-card { overflow: hidden; width: min(560px, 100%); max-height: calc(100vh - 32px); border-radius: 28px; background: #fffef9; box-shadow: 0 35px 100px #071b13aa; overflow-y: auto; animation: incoming-rise .3s ease-out; }
+#lc-app .incoming-order-card > header { display: flex; align-items: center; gap: 13px; padding: 20px 24px; color: white; background: #176547; }
+#lc-app .incoming-order-card > header > div { display: grid; gap: 3px; }
+#lc-app .incoming-order-card > header .eyebrow { color: #bde0c7; }
+#lc-app .incoming-order-card > header time { margin-left: auto; padding: 8px 12px; border-radius: 18px; color: #17392c; background: #f9d760; font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; }
+#lc-app .incoming-pulse { width: 13px; height: 13px; border-radius: 50%; background: #f9d760; box-shadow: 0 0 0 0 #f9d76088; animation: incoming-pulse 1.4s infinite; }
+#lc-app .incoming-order-body { padding: 27px 28px 20px; }
+#lc-app .incoming-order-body h1 { margin: 7px 0; font-size: clamp(30px, 7vw, 42px); line-height: 1.05; }
+#lc-app .incoming-order-body > p { color: #68796e; }
+#lc-app .incoming-order-body ul { display: grid; gap: 0; padding: 0; margin: 22px 0; border-top: 1px solid #e1e8df; list-style: none; }
+#lc-app .incoming-order-body li { display: flex; justify-content: space-between; gap: 18px; padding: 13px 0; border-bottom: 1px solid #e1e8df; }
+#lc-app .incoming-address { display: flex; gap: 13px; padding: 16px; border-radius: 16px; background: #eef4e9; }
+#lc-app .incoming-address > span { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #176547; }
+#lc-app .incoming-address > div { display: grid; gap: 3px; }
+#lc-app .incoming-address small { color: #728077; font-size: 9px; letter-spacing: 1.4px; }
+#lc-app .incoming-order-card > footer { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; padding: 18px 28px 26px; }
+#lc-app .incoming-order-card > footer button { min-height: 54px; border: 0; font-weight: 750; }
+#lc-app .incoming-accept { color: white; background: #198754; }
+#lc-app .incoming-reject { color: #a4362b; background: #f9e9e5; }
+#lc-app .incoming-order-card > footer.incoming-reject-confirm { grid-template-columns: 1fr 1fr; }
+#lc-app .incoming-reject-confirm label { grid-column: 1 / -1; }
+@keyframes incoming-pulse { 70% { box-shadow: 0 0 0 11px #f9d76000; } 100% { box-shadow: 0 0 0 0 #f9d76000; } }
+@keyframes incoming-rise { from { opacity: 0; transform: translateY(18px) scale(.98); } }
 #lc-app .store-page { max-width: 1320px; padding: 38px 40px; margin: auto; }
 #lc-app .eyebrow { display: block; font-size: 10px; letter-spacing: 2px; font-weight: 750; color: #5b7661; }
 #lc-app .store-hero { overflow: hidden; background: #edf2dc; border-radius: 22px; min-height: 360px; padding: 48px; display: grid; grid-template-columns: 1.35fr 1fr; align-items: center; gap: 20px; }

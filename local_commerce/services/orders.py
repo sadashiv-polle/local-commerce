@@ -617,13 +617,18 @@ def delivery_route(order):
     return road_route(origin, destination)
 
 
-def list_orders(shop=None, start=0):
+def list_orders(shop=None, start=0, status=None):
     if shop:
         require_shop(shop)
         filters = {"shop": shop}
     else:
         customer_access()
         filters = {"customer_user": frappe.session.user}
+    if status:
+        valid_statuses = set(order_rules.TRANSITIONS) | set(order_rules.DELIVERY_TRANSITIONS)
+        if status not in valid_statuses:
+            reject("Invalid order status")
+        filters["status"] = status
     names = frappe.get_all(
         "LC Order",
         filters=filters,
