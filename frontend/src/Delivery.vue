@@ -86,11 +86,14 @@ function stopTracking(message = 'Live location sharing stopped.', clearSaved = t
 }
 async function sendLocation(order, position) {
   if (!position || sendingLocation || trackingOrder.value !== order.name) return
+  if (Date.now() - position.timestamp > 30000) { locationMessage.value = 'Waiting for a fresh GPS position…'; return }
+  if (position.coords.accuracy > 5000) { locationMessage.value = ''; locationError.value = 'GPS is too approximate to share. Enable precise location and move outdoors. Tracking will retry automatically.'; return }
   sendingLocation = true
-  const current = assignments.value.find(row => row.name === order.name)
   try {
     const result = await call('orders.update_driver_location', { order: order.name, latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy || 0 }, true)
+    if (trackingOrder.value !== order.name) return
     if (result.accepted) {
+      const current = assignments.value.find(row => row.name === order.name)
       locationMessage.value = 'Location shared with the customer · updating every 12 seconds.'; locationError.value = ''
       if (current) current.driver_location = { latitude: result.latitude, longitude: result.longitude, accuracy: result.accuracy, updated_at: result.updated_at }
     }
@@ -101,16 +104,24 @@ function startTracking(order, initialPosition = null) {
   locationError.value = ''; locationMessage.value = ''
   if (!window.isSecureContext) { locationError.value = 'Live GPS needs HTTPS. Ask the administrator to enable HTTPS for this site.'; return }
   if (!navigator.geolocation) { locationError.value = 'This device does not provide browser location.'; return }
-  if (trackingOrder.value && trackingOrder.value !== order.name) stopTracking('')
+  if (locationWatch != null || locationTimer != null) stopTracking('')
   trackingOrder.value = order.name
   rememberTracking(window.localStorage, session.value.user, order.name)
   latestPosition = initialPosition
+  locationMessage.value = 'Finding your GPS position… Keep this page open.'
   if (latestPosition) sendLocation(order, latestPosition)
   locationWatch = navigator.geolocation.watchPosition(position => {
-    const first = !latestPosition
     latestPosition = position
-    if (first) sendLocation(order, position)
-  }, () => { locationError.value = 'Location access failed. Allow precise location in your browser and try again.'; stopTracking('', false) }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 })
+    sendLocation(order, position)
+  }, error => {
+    if (error.code === 1) {
+      stopTracking('', false)
+      locationError.value = 'Location permission is blocked. Allow precise location, then tap Resume live tracking.'
+    } else {
+      locationMessage.value = 'Waiting for GPS signal… Tracking is still on.'
+      locationError.value = 'Keep this page open and move outdoors. GPS will retry automatically.'
+    }
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 })
   locationTimer = window.setInterval(() => sendLocation(order, latestPosition), 12000)
 }
 function getCurrentPosition() {

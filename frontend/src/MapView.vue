@@ -57,6 +57,7 @@ function renderPoints() {
           iconAnchor: [25, 55],
         }),
         keyboard: false,
+        zIndexOffset: point.kind === 'rider' ? 1000 : 0,
         title: String(point.label || 'Map location').slice(0, 100),
       }).addTo(layer)
       markers.set(key, marker)
