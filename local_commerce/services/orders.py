@@ -116,10 +116,10 @@ def validate_delivery(doc, method=None):
             reject("Select a valid cash Mode of Payment")
     if not doc.delivery_enabled:
         return
-    if not doc.delivery_postcodes or not doc.warehouse or not doc.selling_price_list:
-        reject(
-            "Set warehouse, selling price list and delivery postal codes before enabling delivery"
-        )
+    if not location:
+        reject("Set the shop location on the map before enabling delivery")
+    if not doc.warehouse or not doc.selling_price_list:
+        reject("Set warehouse and selling price list before enabling delivery")
     company_link("Warehouse", doc.warehouse, doc.company, {"is_group": 0, "disabled": 0})
     if doc.order_tax_template and not frappe.db.exists(
         "Sales Taxes and Charges Template",
@@ -186,7 +186,6 @@ def nearby_shops(address, start=0):
         destination = point(address.get("latitude"), address.get("longitude"), required=True)
     except ValueError as exc:
         reject(str(exc))
-    postal_code = str(address.get("postal_code") or "").strip().upper()
     rows = frappe.get_all(
         "LC Shop",
         filters={"status": "Active"},
@@ -194,7 +193,6 @@ def nearby_shops(address, start=0):
             *SHOP_LISTING_FIELDS,
             "service_radius_km",
             "delivery_enabled",
-            "delivery_postcodes",
             "cod_enabled",
         ],
         limit_page_length=1001,
@@ -206,14 +204,9 @@ def nearby_shops(address, start=0):
         radius = float(row.service_radius_km or 0)
         public = serialize_public_shop(row)
         location = public.location
-        postcodes = {
-            value.strip().upper()
-            for value in str(public.delivery_postcodes or "").splitlines()
-            if value.strip()
-        }
         accepting = bool(public.delivery_enabled and public.cod_enabled)
-        match = delivery_match(location, destination, radius, postcodes, postal_code, accepting)
-        for internal in ("delivery_enabled", "delivery_postcodes", "cod_enabled"):
+        match = delivery_match(location, destination, radius, accepting)
+        for internal in ("delivery_enabled", "cod_enabled"):
             public.pop(internal, None)
         public.update(
             {
@@ -288,6 +281,7 @@ def product_data(shop, item, browsing=False):
 
 def catalog(shop, start=0):
     doc = public_shop(shop, browsing=True)
+    location = shop_location(doc)
     names = frappe.get_all(
         "Item",
         filters={
@@ -311,13 +305,12 @@ def catalog(shop, start=0):
         products.append(product_data(doc, item, browsing=True))
     return {
         "shop_name": doc.shop_name,
-        "shop_location": shop_location(doc),
+        "shop_location": location,
         "map": map_config(),
-        "accepting_orders": bool(doc.delivery_enabled and doc.cod_enabled),
+        "accepting_orders": bool(doc.delivery_enabled and doc.cod_enabled and location),
         "items": products,
         "has_more": len(names) == 20,
         "delivery_fee": doc.delivery_fee or 0,
-        "postal_codes": doc.delivery_postcodes,
         "currency": frappe.db.get_value("Company", doc.company, "default_currency"),
         "payment_methods": ["Cash on Delivery"] if doc.cod_enabled else [],
         "payment_message": (
@@ -364,9 +357,6 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
     doc = public_shop(shop)
     if not doc.cod_enabled:
         reject("Cash on Delivery is not configured for this shop")
-    allowed = {p.strip().upper() for p in doc.delivery_postcodes.splitlines() if p.strip()}
-    if address["postal_code"] not in allowed:
-        reject("This shop does not deliver to that postal code")
     origin = shop_location(doc)
     destination = point(address["latitude"], address["longitude"])
     delivery_distance = None

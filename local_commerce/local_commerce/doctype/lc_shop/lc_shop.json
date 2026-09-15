@@ -27,7 +27,6 @@
     "selling_price_list",
     "delivery_section",
     "delivery_enabled",
-    "delivery_postcodes",
     "delivery_fee",
     "delivery_account",
     "order_tax_template",
@@ -175,12 +174,6 @@
       "label": "Enable Delivery Requests",
       "fieldtype": "Check",
       "default": "0"
-    },
-    {
-      "fieldname": "delivery_postcodes",
-      "label": "Delivery Postal Codes",
-      "fieldtype": "Small Text",
-      "description": "One postal code per line. Exact matches only."
     },
     {
       "fieldname": "delivery_fee",

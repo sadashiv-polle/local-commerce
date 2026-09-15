@@ -130,7 +130,7 @@ onBeforeUnmount(() => window.removeEventListener('lc-open-cart', openCartEvent))
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p><p v-if="loading" role="status">Loading products…</p>
     <template v-if="catalog">
       <h1>{{ catalog.shop_name }}</h1><p>{{ catalog.accepting_orders ? 'Delivery requests · Shop confirmation required' : 'Browse our products · Ordering opens soon' }}</p>
-      <p v-if="catalog.accepting_orders" class="muted">Delivery postal codes: {{ catalog.postal_codes }} · Delivery fee: {{ money(catalog.delivery_fee) }}</p>
+      <p v-if="catalog.accepting_orders" class="muted">Delivery within {{ Number(catalog.shop_location.service_radius_km).toFixed(1) }} km · Delivery fee: {{ money(catalog.delivery_fee) }}</p>
       <p v-if="pending" class="lc-notice">Your last request is not confirmed. Retry it below before starting another.</p>
       <fieldset :disabled="busy || !!pending">
         <div class="lc-grid product-grid">

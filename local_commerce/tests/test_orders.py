@@ -54,7 +54,12 @@ class TestDeliveryOrders(FrappeTestCase):
             {
                 "status": "Active",
                 "delivery_enabled": 1,
-                "delivery_postcodes": "403001",
+                "address_line1": "Test market",
+                "city": "Panaji",
+                "postal_code": "403001",
+                "latitude": 15.4909,
+                "longitude": 73.8278,
+                "service_radius_km": 5,
                 "order_tax_template": template.name,
                 "cod_enabled": 1,
                 "cod_cash_account": self.cash_account,
@@ -76,6 +81,8 @@ class TestDeliveryOrders(FrappeTestCase):
             line1="Test street",
             city="Panaji",
             postal_code="403001",
+            latitude=15.4989,
+            longitude=73.8278,
         )
         frappe.set_user(self.customer.name)
 
@@ -125,13 +132,13 @@ class TestDeliveryOrders(FrappeTestCase):
             orders.change(order["name"], "Cancelled", "No longer required")["status"], "Cancelled"
         )
 
-    def test_replay_payload_and_postal_validation(self):
+    def test_replay_payload_and_postal_code_does_not_limit_delivery(self):
         self.place()
         with self.assertRaises(frappe.ValidationError):
             self.place(quantity=3)
         self.address["postal_code"] = "999999"
-        with self.assertRaises(frappe.ValidationError):
-            self.place(key="outside-delivery-zone")
+        placed = self.place(key="different-postal-code")
+        self.assertEqual(placed["address"]["postal_code"], "999999")
 
     def test_shop_radius_requires_and_checks_customer_map_pin(self):
         frappe.set_user("Administrator")

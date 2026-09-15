@@ -19,11 +19,11 @@ It never accepts another User's saved address. Active shops are ordered as:
 2. Shortest straight-line distance from the address.
 3. Shop name.
 
-A shop is serviceable only when Cash on Delivery and delivery are enabled, the
-customer postal code is listed by the shop, both map pins are present, and the
-distance is inside the shop's configured radius. Checkout repeats the postal-code
-and radius validations, so storefront labels are informational and cannot bypass
-order validation.
+A shop is serviceable only when Cash on Delivery and delivery are enabled, both
+map pins are present, and the distance is inside the shop's configured radius.
+Checkout repeats the radius validation, so storefront labels are informational
+and cannot bypass order validation. Postal codes remain part of the delivery
+address but do not decide whether a shop can deliver.
 
 Checkout pre-fills the selected saved address. The order continues to store an
 immutable address snapshot, so later edits to the saved address do not change

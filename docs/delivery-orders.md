@@ -6,11 +6,12 @@ last-mile delivery system. Default installation leaves delivery requests disable
 
 ## Configure a shop
 
-Complete Inventory setup first. In LC Shop, set Active, configure exact postal
-codes (one per line), and select a company-specific Sales Taxes and Charges
-Template. Set a delivery fee and same-company account if needed, then enable
-Delivery Requests. Configure Customer Group and Territory defaults in Selling
-Settings. Customers can sign up publicly and are linked automatically after authentication.
+Complete Inventory setup first. In LC Shop, set Active, choose the shop location
+on the map, set its delivery radius, and select a company-specific Sales Taxes
+and Charges Template when taxes apply. Set a delivery fee and same-company account
+if needed, then enable Delivery Requests. Configure Customer Group and Territory
+defaults in Selling Settings. Customers can sign up publicly and are linked
+automatically after authentication.
 Existing users can order after login without manual Customer assignment.
 
 The configured tax template is copied to each Sales Order. The delivery fee is an
@@ -60,7 +61,7 @@ Standalone rules cover cart validation, invalid quantities, state transitions,
 customer cancellation limits, required addresses and whole UOM quantities.
 `local_commerce.tests.test_orders` adds five ERP integration cases for pricing,
 replay, actual Sales Order submission/cancellation, stock rechecks, customer
-isolation, postal validation and raw mutation denial. These require a disposable
+isolation, radius validation and raw mutation denial. These require a disposable
 ERPNext site and have not run in the local workspace:
 
 ```bash

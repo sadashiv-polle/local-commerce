@@ -26,18 +26,18 @@ class LocationRulesTests(unittest.TestCase):
         )
         self.assertAlmostEqual(distance, 0.89, places=2)
 
-    def test_nearby_match_requires_radius_and_postal_code(self):
+    def test_nearby_match_uses_delivery_radius(self):
         origin = {"latitude": 15.4909, "longitude": 73.8278}
         destination = {"latitude": 15.4989, "longitude": 73.8278}
-        available = delivery_match(origin, destination, 2, ["403001"], "403001")
+        available = delivery_match(origin, destination, 2)
         self.assertTrue(available["serviceable"])
         self.assertEqual(available["message"], "Delivers to this address")
         self.assertFalse(
-            delivery_match(origin, destination, 0.5, ["403001"], "403001")["serviceable"]
+            delivery_match(origin, destination, 0.5)["serviceable"]
         )
         self.assertEqual(
-            delivery_match(origin, destination, 2, ["403002"], "403001")["message"],
-            "Postal code not served",
+            delivery_match(origin, destination, 0.5)["message"],
+            "Outside delivery radius",
         )
 
 
