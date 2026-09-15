@@ -44,6 +44,7 @@
       "label": "Membership Role",
       "fieldtype": "Select",
       "options": "Owner\nStaff\nDriver",
+      "description": "The matching Local Commerce role is assigned to the User automatically.",
       "reqd": 1,
       "in_list_view": 1
     },

@@ -16,12 +16,19 @@ class LCShopMember(Document):
         if not frappe.db.get_value("User", self.user, "enabled"):
             frappe.throw("Membership requires an enabled user")
         role = MEMBER_ROLES.get(self.membership_role)
-        if not role or role not in frappe.get_roles(self.user):
-            frappe.throw("Assign the matching LC role to this user before adding membership")
+        if not role:
+            frappe.throw("Select a valid membership role")
         if frappe.db.exists(
             "LC Shop Member", {"shop": self.shop, "user": self.user, "name": ["!=", self.name]}
         ):
             frappe.throw("This user already has a membership in this shop")
+        if role not in frappe.get_roles(self.user):
+            # Platform access was verified above. Keep authentication roles and shop
+            # membership in the same transaction so administrators cannot create a
+            # membership that is unusable until a separate User edit is performed.
+            user = frappe.get_doc("User", self.user)
+            user.append("roles", {"role": role})
+            user.save(ignore_permissions=True)
 
     def on_trash(self):
         require_platform()

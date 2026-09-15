@@ -20,10 +20,17 @@ class TestLCShopMember(FrappeTestCase):
         with self.assertRaises(frappe.ValidationError):
             add_member(self.shop, self.user)
 
-    def test_membership_does_not_grant_roles(self):
+    def test_membership_assigns_matching_role(self):
         user = create_user("LC Customer")
-        with self.assertRaises(frappe.ValidationError):
-            add_member(self.shop, user)
+        member = add_member(self.shop, user, "Driver")
+        self.assertEqual(member.membership_role, "Driver")
+        self.assertIn("LC Delivery Person", frappe.get_roles(user.name))
+        self.assertEqual(
+            frappe.db.count(
+                "Has Role", {"parent": user.name, "role": "LC Delivery Person"}
+            ),
+            1,
+        )
 
     def test_membership_title_follows_shop_name(self):
         member = add_member(self.shop, self.user)

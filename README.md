@@ -45,7 +45,7 @@ The root `build` npm script is invoked by Bench's app build workflow. It emits c
 2. As Administrator, assign `LC Platform Administrator` to a named platform administrator.
 3. Create an `LC Shop` in Desk and choose its Company. Each Company has at most one shop.
 4. Create named Frappe Users and assign `LC Shop Owner`, `LC Shop Staff`, `LC Delivery Person`, or `LC Customer` as appropriate. Use standard password reset/invitation and authentication settings; no passwords are seeded.
-5. Create an `LC Shop Member` for each owner, staff member or driver, selecting the corresponding membership role. Users must already have its matching LC Role.
+5. Create an `LC Shop Member` for each owner, staff member or driver. Selecting the membership role automatically assigns its matching LC Role to the User.
 6. Sign in through `/login`, then visit `/local-commerce`.
 
 Shop owners may update name, status and description. Only platform administrators can create shops, change Company or manage membership. Disable membership to revoke shop access immediately. Staff is read-only in this milestone; configurable staff operations come with later domain services. Driver and customer accounts authenticate but have no operational features yet.
