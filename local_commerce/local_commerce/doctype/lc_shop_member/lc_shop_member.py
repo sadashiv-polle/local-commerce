@@ -8,6 +8,9 @@ from local_commerce.permissions.scope import require_platform
 class LCShopMember(Document):
     def validate(self):
         require_platform()
+        self.shop_name = frappe.db.get_value("LC Shop", self.shop, "shop_name")
+        if not self.shop_name:
+            frappe.throw("Membership requires a valid shop")
         if self.user in {"Guest", "Administrator"}:
             frappe.throw("Use a named, enabled user for shop membership")
         if not frappe.db.get_value("User", self.user, "enabled"):

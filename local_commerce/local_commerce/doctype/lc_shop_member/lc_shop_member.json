@@ -7,6 +7,7 @@
   "track_changes": 1,
   "field_order": [
     "shop",
+    "shop_name",
     "user",
     "membership_role",
     "enabled"
@@ -19,6 +20,16 @@
       "options": "LC Shop",
       "reqd": 1,
       "in_list_view": 1
+    },
+    {
+      "fieldname": "shop_name",
+      "label": "Shop Name",
+      "fieldtype": "Data",
+      "fetch_from": "shop.shop_name",
+      "fetch_if_empty": 1,
+      "read_only": 1,
+      "hidden": 1,
+      "search_index": 1
     },
     {
       "fieldname": "user",
@@ -56,5 +67,8 @@
   ],
   "sort_field": "modified",
   "sort_order": "DESC",
-  "autoname": "hash"
+  "autoname": "hash",
+  "title_field": "shop_name",
+  "search_fields": "shop_name,user,membership_role",
+  "show_title_field_in_link": 1
 }

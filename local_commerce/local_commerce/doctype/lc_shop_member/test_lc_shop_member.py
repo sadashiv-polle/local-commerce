@@ -15,7 +15,8 @@ class TestLCShopMember(FrappeTestCase):
         frappe.db.rollback()
 
     def test_duplicate_membership_rejected(self):
-        add_member(self.shop, self.user)
+        member = add_member(self.shop, self.user)
+        self.assertEqual(member.shop_name, self.shop.shop_name)
         with self.assertRaises(frappe.ValidationError):
             add_member(self.shop, self.user)
 
@@ -23,6 +24,13 @@ class TestLCShopMember(FrappeTestCase):
         user = create_user("LC Customer")
         with self.assertRaises(frappe.ValidationError):
             add_member(self.shop, user)
+
+    def test_membership_title_follows_shop_name(self):
+        member = add_member(self.shop, self.user)
+        self.shop.shop_name = "Readable shop title"
+        self.shop.save()
+        member.reload()
+        self.assertEqual(member.shop_name, "Readable shop title")
 
     def test_owner_cannot_grant_membership(self):
         add_member(self.shop, self.user)

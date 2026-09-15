@@ -77,3 +77,12 @@ class LCShop(Document):
         self.shop_name = (self.shop_name or "").strip()
         if not self.shop_name:
             frappe.throw("Shop name is required")
+
+    def on_update(self):
+        if frappe.db.has_column("LC Shop Member", "shop_name"):
+            frappe.db.sql(
+                """update `tabLC Shop Member`
+                set shop_name=%s
+                where shop=%s and coalesce(shop_name, '')!=%s""",
+                (self.shop_name, self.name, self.shop_name),
+            )

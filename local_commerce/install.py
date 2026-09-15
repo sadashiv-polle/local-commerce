@@ -181,6 +181,13 @@ def after_migrate():
             set payment_status='Reconciled'
             where payment_status='Paid' and coalesce(payment_entry, '')!=''"""
         )
+    if frappe.db.has_column("LC Shop Member", "shop_name"):
+        frappe.db.sql(
+            """update `tabLC Shop Member` m
+            inner join `tabLC Shop` s on s.name=m.shop
+            set m.shop_name=s.shop_name
+            where coalesce(m.shop_name, '')!=coalesce(s.shop_name, '')"""
+        )
     frappe.db.add_unique("LC Shop Member", ["shop", "user"], "lc_shop_member_unique")
 
 

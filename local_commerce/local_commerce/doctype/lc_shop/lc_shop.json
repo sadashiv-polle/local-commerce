@@ -256,5 +256,6 @@
   "sort_field": "modified",
   "sort_order": "DESC",
   "autoname": "hash",
-  "title_field": "shop_name"
+  "title_field": "shop_name",
+  "show_title_field_in_link": 1
 }
