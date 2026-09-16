@@ -603,3 +603,18 @@
   #lc-app .address-editor-page .section-title { align-items: center; flex-direction: row; gap: 12px; }
   #lc-app .address-editor-page .section-title h2 { font-size: 24px; overflow-wrap: anywhere; }
 }
+
+/* Bound the scrolling admin tabs; global nav auto margins must not size this strip. */
+#lc-app .admin-navigation-wrapper { min-width: 0; width: 100%; position: sticky; top: 24px; }
+#lc-app .master-admin-sidebar nav { width: 100%; max-width: 100%; min-width: 0; margin: 0; position: static; }
+#lc-app .admin-section-picker { display: none; }
+@media (max-width: 760px) {
+  #lc-app .admin-navigation-wrapper { display: flex; gap: 8px; position: static; align-items: stretch; }
+  #lc-app .master-admin-sidebar nav { flex: 1 1 0; width: 0; overflow-x: auto; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
+  #lc-app .master-admin-sidebar nav > a { flex-shrink: 0; }
+  #lc-app .admin-section-picker { position: relative; display: grid; justify-items: center; align-content: center; gap: 5px; flex: 0 0 58px; margin: 8px 0; border-left: 1px solid #ffffff25; background: #173c2d; color: #eaf0db; }
+  #lc-app .admin-section-picker svg { width: 20px; height: 20px; }
+  #lc-app .admin-section-picker small { font-size: 10px; }
+  #lc-app .admin-section-picker select { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 44px; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
+  #lc-app .admin-section-picker:focus-within { outline: 2px solid #d7aa2c; outline-offset: -2px; border-radius: 8px; }
+}

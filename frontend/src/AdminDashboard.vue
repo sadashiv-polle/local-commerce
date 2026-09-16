@@ -22,6 +22,7 @@ const modules = [
 const section = computed(() => modules.find(module => module.id === route.params.section)?.id || 'overview')
 const currentModule = computed(() => modules.find(module => module.id === section.value))
 const selectedShop = computed(() => typeof route.query.shop === 'string' ? route.query.shop : '')
+const adminNavigation = ref(null)
 const summary = ref(null), rows = ref([]), recent = ref([]), loading = ref(false), rowsLoading = ref(false), error = ref(''), rowError = ref(''), busy = ref('')
 const search = ref(''), status = ref(''), start = ref(0), hasMore = ref(false)
 const embedded = computed(() => selectedShop.value && ['orders', 'inventory', 'payments'].includes(section.value))
@@ -84,6 +85,14 @@ watch(userSearch, () => {
     catch (e) { if (current === userGeneration) setupError.value = e.message }
   }, 250)
 })
+async function revealSection() {
+  await nextTick()
+  const nav = adminNavigation.value, active = nav?.querySelector('[aria-current="page"]')
+  if (!nav || !active || nav.scrollWidth <= nav.clientWidth) return
+  const rect = active.getBoundingClientRect(), viewport = nav.getBoundingClientRect()
+  nav.scrollTo({ left: nav.scrollLeft + rect.left - viewport.left - (nav.clientWidth - rect.width) / 2, behavior: 'smooth' })
+}
+watch(section, revealSection, { flush: 'post' })
 function go(target, shop = '', filter = '') { router.push({ path: `/admin/${target}`, query: { ...(shop ? { shop } : {}), ...(filter ? { status: filter } : {}) } }) }
 function chooseShop(event) { go(section.value, event.target.value) }
 function money(value, currency) { return value == null || !currency ? '—' : new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(value)) }
@@ -115,13 +124,13 @@ async function toggleShop(row) {
 }
 watch([section, selectedShop, () => route.query.status], () => { window.clearTimeout(searchTimer); search.value = ''; status.value = statuses.value.includes(route.query.status) ? route.query.status : ''; start.value = 0; rows.value = []; rowError.value = ''; loadRows() }, { immediate: true })
 watch([search, status], () => { window.clearTimeout(searchTimer); generation++; start.value = 0; searchTimer = window.setTimeout(() => loadRows(), 300) })
-onMounted(() => { refresh(); refreshTimer = window.setInterval(() => { if (document.visibilityState === 'visible' && !busy.value && section.value === 'overview') refresh() }, 30000) })
+onMounted(() => { revealSection(); refresh(); refreshTimer = window.setInterval(() => { if (document.visibilityState === 'visible' && !busy.value && section.value === 'overview') refresh() }, 30000) })
 onBeforeUnmount(() => { generation++; window.clearTimeout(searchTimer); window.clearInterval(refreshTimer); window.clearTimeout(userTimer); userGeneration++ })
 </script>
 <template>
   <section v-if="!session.platform_admin" class="admin-access-denied"><AdminIcon name="settings" /><h1>Administrator access required</h1><p>This dashboard is available to platform administrators.</p><RouterLink to="/store">Back to store</RouterLink></section>
   <div v-else class="master-admin">
-    <aside class="master-admin-sidebar"><div class="admin-sidebar-heading"><span class="admin-platform-mark">L<span>●</span></span><div><strong>Local control</strong><small>PLATFORM ADMIN</small></div></div><nav aria-label="Administration"><RouterLink v-for="module in modules" :key="module.id" :to="`/admin/${module.id}`" :class="{ active: section === module.id }" :aria-current="section === module.id ? 'page' : undefined"><AdminIcon :name="module.id" /><span>{{ module.title }}</span><b v-if="module.id === 'orders' && summary?.pending_orders">{{ summary.pending_orders }}</b></RouterLink></nav><div class="admin-sidebar-bottom"><span class="admin-avatar">{{ session.full_name.slice(0, 1) }}</span><div><strong>{{ session.full_name }}</strong><small>Platform administrator</small></div></div></aside>
+    <aside class="master-admin-sidebar"><div class="admin-sidebar-heading"><span class="admin-platform-mark">L<span>●</span></span><div><strong>Local control</strong><small>PLATFORM ADMIN</small></div></div><div class="admin-navigation-wrapper"><nav ref="adminNavigation" aria-label="Administration"><RouterLink v-for="module in modules" :key="module.id" :to="`/admin/${module.id}`" :class="{ active: section === module.id }" :aria-current="section === module.id ? 'page' : undefined"><AdminIcon :name="module.id" /><span>{{ module.title }}</span><b v-if="module.id === 'orders' && summary?.pending_orders">{{ summary.pending_orders }}</b></RouterLink></nav><label class="admin-section-picker"><span class="admin-sr-only">All dashboard sections</span><AdminIcon name="overview" /><small>Menu</small><select :value="section" @change="go($event.target.value)"><option v-for="module in modules" :key="module.id" :value="module.id">{{ module.title }}</option></select></label></div><div class="admin-sidebar-bottom"><span class="admin-avatar">{{ session.full_name.slice(0, 1) }}</span><div><strong>{{ session.full_name }}</strong><small>Platform administrator</small></div></div></aside>
     <div class="master-admin-content">
       <header class="admin-page-header"><div><span class="eyebrow">PLATFORM / {{ currentModule.title.toUpperCase() }}</span><h1>{{ currentModule.title }}</h1><p>{{ currentModule.description }}</p></div><div class="admin-header-actions"><RouterLink to="/store">View store ↗</RouterLink><button type="button" :disabled="loading" @click="refresh"><span aria-hidden="true">↻</span>{{ loading ? 'Refreshing…' : 'Refresh' }}</button></div></header>
       <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
