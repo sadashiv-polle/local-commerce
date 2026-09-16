@@ -16,30 +16,23 @@ const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code
 const productDialog = ref(null), selectedProduct = ref(null), selectedPhoto = ref(0)
 const productPhotos = computed(() => selectedProduct.value?.images?.length ? selectedProduct.value.images : selectedProduct.value?.image ? [selectedProduct.value.image] : [])
 async function openProduct(item) {
-  photoGesture = null
   selectedProduct.value = item
   selectedPhoto.value = 0
   await nextTick()
   productDialog.value.showModal()
+  photoViewport.value?.scrollTo({ left: 0, behavior: 'instant' })
 }
-function closeProduct() { photoGesture = null; productDialog.value.close() }
-let photoGesture = null
-function changePhoto(direction) {
-  selectedPhoto.value = Math.max(0, Math.min(productPhotos.value.length - 1, selectedPhoto.value + direction))
+const photoViewport = ref(null)
+function closeProduct() { productDialog.value.close() }
+function selectPhoto(index) {
+  const viewport = photoViewport.value
+  selectedPhoto.value = Math.max(0, Math.min(productPhotos.value.length - 1, index))
+  viewport?.scrollTo({ left: selectedPhoto.value * viewport.clientWidth, behavior: 'smooth' })
 }
-function startPhotoSwipe(event) {
-  if (!event.isPrimary || event.button !== 0 || productPhotos.value.length < 2) return
-  photoGesture = { id: event.pointerId, x: event.clientX, y: event.clientY }
-  event.currentTarget.setPointerCapture(event.pointerId)
-}
-function finishPhotoSwipe(event) {
-  const start = photoGesture
-  photoGesture = null
-  if (!start || start.id !== event.pointerId) return
-  const horizontal = event.clientX - start.x, vertical = event.clientY - start.y
-  if (Math.abs(horizontal) >= 40 && Math.abs(horizontal) > Math.abs(vertical) * 1.5) {
-    changePhoto(horizontal < 0 ? 1 : -1)
-  }
+function changePhoto(direction) { selectPhoto(selectedPhoto.value + direction) }
+function syncPhoto(event) {
+  const viewport = event.currentTarget
+  if (viewport.clientWidth) selectedPhoto.value = Math.round(viewport.scrollLeft / viewport.clientWidth)
 }
 const savedAddresses = ref([]), selectedAddress = ref('')
 const locationError = ref(''), locating = ref(false)
@@ -224,17 +217,19 @@ onBeforeUnmount(() => { window.removeEventListener('lc-open-cart', openCartEvent
         <template v-if="selectedProduct">
           <button type="button" class="product-detail-close" aria-label="Close product details" autofocus @click="closeProduct">×</button>
           <div class="product-detail-gallery">
-            <div class="product-detail-photo" @pointerdown="startPhotoSwipe" @pointerup="finishPhotoSwipe" @pointercancel="photoGesture = null">
-              <img v-if="productPhotos.length" :src="productPhotos[selectedPhoto]" :alt="`${selectedProduct.item_name} photo ${selectedPhoto + 1}`" draggable="false">
-              <div v-else class="product-no-photo"><span aria-hidden="true">{{ selectedProduct.item_name.slice(0, 1).toUpperCase() }}</span><small>Photo coming soon</small></div>
+            <div v-if="productPhotos.length" ref="photoViewport" class="product-photo-viewport" aria-label="Product image gallery" tabindex="0" @scroll.passive="syncPhoto" @keydown.left.prevent="changePhoto(-1)" @keydown.right.prevent="changePhoto(1)">
+              <div v-for="(photo, index) in productPhotos" :key="photo" class="product-detail-photo"><img :src="photo" :alt="`${selectedProduct.item_name} photo ${index + 1}`" draggable="false"></div>
+            </div>
+            <div v-else class="product-detail-photo">
+              <div class="product-no-photo"><span aria-hidden="true">{{ selectedProduct.item_name.slice(0, 1).toUpperCase() }}</span><small>Photo coming soon</small></div>
             </div>
             <div v-if="productPhotos.length > 1" class="product-photo-navigation">
               <button type="button" aria-label="Previous product photo" :disabled="selectedPhoto === 0" @click="changePhoto(-1)">‹</button>
-              <span aria-live="polite">{{ selectedPhoto + 1 }} / {{ productPhotos.length }} <small>Swipe to explore</small></span>
+              <span aria-live="polite">{{ selectedPhoto + 1 }} / {{ productPhotos.length }} </span>
               <button type="button" aria-label="Next product photo" :disabled="selectedPhoto === productPhotos.length - 1" @click="changePhoto(1)">›</button>
             </div>
             <div v-if="productPhotos.length > 1" class="product-photo-thumbnails" aria-label="Product photos">
-              <button v-for="(photo, index) in productPhotos" :key="photo" type="button" :class="{ selected: selectedPhoto === index }" :aria-label="`View photo ${index + 1}`" :aria-pressed="selectedPhoto === index" @click="selectedPhoto = index"><img :src="photo" alt="" loading="lazy"></button>
+              <button v-for="(photo, index) in productPhotos" :key="photo" type="button" :class="{ selected: selectedPhoto === index }" :aria-label="`View photo ${index + 1}`" :aria-pressed="selectedPhoto === index" @click="selectPhoto(index)"><img :src="photo" alt="" loading="lazy"></button>
             </div>
           </div>
           <div class="product-detail-info">

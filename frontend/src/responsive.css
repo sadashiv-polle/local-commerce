@@ -304,11 +304,23 @@
 #lc-app .saved-list-toggle.enabled { color: #176547; background: #edf6e7; border-color: #bad1b3; }
 @media (max-width: 600px) { #lc-app .saved-product-lists { padding: 14px; } #lc-app .saved-product-lists > article { flex-wrap: wrap; } }
 
-/* Horizontal gallery gestures preserve page scrolling and pinch zoom. */
-#lc-app .product-detail-photo { touch-action: pan-y pinch-zoom; }
+/* Native scrolling follows the finger and gently settles on each image. */
+#lc-app .product-photo-viewport { display: flex; width: 100%; min-width: 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+#lc-app .product-photo-viewport::-webkit-scrollbar { display: none; }
+#lc-app .product-photo-viewport .product-detail-photo { flex: 0 0 100%; min-width: 0; box-sizing: border-box; scroll-snap-align: center; scroll-snap-stop: always; }
 #lc-app .product-detail-photo img { user-select: none; -webkit-user-drag: none; }
-#lc-app .product-photo-navigation { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 0 20px 18px; }
-#lc-app .product-photo-navigation button { width: 44px; height: 44px; border-radius: 50%; border: 1px solid #dbe5d8; background: white; color: #285f46; font-size: 28px; cursor: pointer; }
+#lc-app .product-photo-navigation { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 0 20px 14px; }
+#lc-app .product-photo-navigation button { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 1px solid #dbe5d8; background: white; color: #285f46; font-size: 26px; cursor: pointer; }
 #lc-app .product-photo-navigation button:disabled { opacity: .35; cursor: default; }
-#lc-app .product-photo-navigation span { text-align: center; font-size: 14px; color: #285f46; }
-#lc-app .product-photo-navigation small { display: block; margin-top: 3px; font-size: 11px; color: #718073; }
+#lc-app .product-photo-navigation span { min-width: 48px; text-align: center; font-size: 12px; font-weight: 600; color: #285f46; }
+@media (max-width: 600px) {
+  #lc-app .product-detail-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 24px); border-radius: 22px; }
+  #lc-app .product-photo-viewport .product-detail-photo { min-height: 240px; padding: 32px 20px 12px; }
+  #lc-app .product-detail-photo img { height: clamp(190px, 58vw, 280px); }
+  #lc-app .product-photo-thumbnails { gap: 8px; padding: 0 16px 16px; }
+  #lc-app .product-photo-thumbnails button { flex-basis: 52px; height: 52px; border: 1px solid #dbe5d8; background: white; }
+  #lc-app .product-detail-info { padding: 20px; }
+  #lc-app .product-detail-info h2 { font-size: 24px; margin-top: 8px; }
+  #lc-app .product-detail-buy { margin-top: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { #lc-app .product-photo-viewport { scroll-behavior: auto; } }
