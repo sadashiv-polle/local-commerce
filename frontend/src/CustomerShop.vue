@@ -10,9 +10,11 @@ const route = useRoute(), router = useRouter(), session = inject('session')
 const catalog = ref(null), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
 const cart = ref({}), pending = ref(null), checkout = ref(false), cartOpen = ref(false)
 const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '', latitude: null, longitude: null, delivery_instructions: '' })
-const productDialog = ref(null), selectedProduct = ref(null)
+const productDialog = ref(null), selectedProduct = ref(null), selectedPhoto = ref(0)
+const productPhotos = computed(() => selectedProduct.value?.images?.length ? selectedProduct.value.images : selectedProduct.value?.image ? [selectedProduct.value.image] : [])
 async function openProduct(item) {
   selectedProduct.value = item
+  selectedPhoto.value = 0
   await nextTick()
   productDialog.value.showModal()
 }
@@ -160,7 +162,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-open-cart', openCartEvent
       <fieldset :disabled="busy || !!pending">
         <div class="lc-grid product-grid">
           <article v-for="item in catalog.items" :key="item.item" class="lc-card customer-product-card">
-            <button type="button" class="product-art product-preview-button" :aria-label="`View ${item.item_name}`" aria-haspopup="dialog" @click="openProduct(item)"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" decoding="async" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</span><small class="photo-hint">View details ↗</small></button>
+            <button type="button" class="product-art product-preview-button" :aria-label="`View ${item.item_name}`" aria-haspopup="dialog" @click="openProduct(item)"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" decoding="async" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</span><small class="photo-hint">{{ item.images?.length > 1 ? `${item.images.length} photos` : 'View details ↗' }}</small></button>
             <p class="product-availability">{{ item.available }} {{ item.uom }} available</p>
             <h3><button type="button" class="product-name-button" @click="openProduct(item)">{{ item.item_name }}</button></h3><p class="product-description">{{ item.description || 'Fresh from your local shop.' }}</p>
             <div class="product-buy-row">
@@ -176,7 +178,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-open-cart', openCartEvent
       <dialog ref="productDialog" class="product-detail-dialog" aria-labelledby="product-detail-title">
         <template v-if="selectedProduct">
           <button type="button" class="product-detail-close" aria-label="Close product details" autofocus @click="closeProduct">×</button>
-          <div class="product-detail-photo"><img v-if="selectedProduct.image" :src="selectedProduct.image" :alt="selectedProduct.item_name" @error="selectedProduct.image = ''"><div v-else class="product-no-photo"><span aria-hidden="true">{{ selectedProduct.item_name.slice(0, 1).toUpperCase() }}</span><small>Photo coming soon</small></div></div>
+          <div class="product-detail-gallery"><div class="product-detail-photo"><img v-if="productPhotos.length" :src="productPhotos[selectedPhoto]" :alt="`${selectedProduct.item_name} photo ${selectedPhoto + 1}`"><div v-else class="product-no-photo"><span aria-hidden="true">{{ selectedProduct.item_name.slice(0, 1).toUpperCase() }}</span><small>Photo coming soon</small></div></div><div v-if="productPhotos.length > 1" class="product-photo-thumbnails" aria-label="Product photos"><button v-for="(photo, index) in productPhotos" :key="photo" type="button" :class="{ selected: selectedPhoto === index }" :aria-label="`View photo ${index + 1}`" :aria-pressed="selectedPhoto === index" @click="selectedPhoto = index"><img :src="photo" alt="" loading="lazy"></button></div></div>
           <div class="product-detail-info">
             <span class="eyebrow">{{ catalog.shop_name }}</span><h2 id="product-detail-title">{{ selectedProduct.item_name }}</h2><span class="product-detail-unit">{{ selectedProduct.uom }}</span><p class="product-detail-description">{{ selectedProduct.description || 'From your local shop.' }}</p><p class="product-detail-stock">{{ selectedProduct.available > 0 ? `${selectedProduct.available} ${selectedProduct.uom} available` : 'Currently sold out' }}</p>
             <div class="product-detail-buy"><strong>{{ money(selectedProduct.rate) }}<small v-if="selectedProduct.rate != null">per {{ selectedProduct.uom }}</small></strong><div v-if="cart[selectedProduct.item]" class="quantity-stepper"><button type="button" :disabled="busy || !!pending" aria-label="Remove one item" @click="updateQuantity(selectedProduct, -1)">−</button><strong aria-live="polite">{{ cart[selectedProduct.item].quantity }}</strong><button type="button" :disabled="busy || !!pending || cart[selectedProduct.item].quantity >= selectedProduct.available" aria-label="Add one item" @click="updateQuantity(selectedProduct, 1)">+</button></div><button v-else type="button" class="add-item-button" :disabled="busy || !!pending || selectedProduct.available <= 0 || selectedProduct.rate == null" @click="updateQuantity(selectedProduct, 1)">{{ selectedProduct.rate == null ? 'Price coming soon' : selectedProduct.available > 0 ? 'Add to cart +' : 'Sold out' }}</button></div>

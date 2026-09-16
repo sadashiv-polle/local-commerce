@@ -136,3 +136,8 @@
   #lc-app .product-detail-photo img { height: 230px; }
   #lc-app .product-detail-info { padding: 24px; }
 }
+#lc-app .product-detail-gallery { min-width: 0; background: #fafcf7; }
+#lc-app .product-photo-thumbnails { display: flex; overflow-x: auto; gap: 10px; padding: 0 24px 24px; }
+#lc-app .product-photo-thumbnails button { flex: 0 0 64px; height: 64px; padding: 5px; border-radius: 11px; }
+#lc-app .product-photo-thumbnails button.selected { border: 2px solid #176547; background: #edf5e8; }
+#lc-app .product-photo-thumbnails img { width: 100%; height: 100%; object-fit: contain; }

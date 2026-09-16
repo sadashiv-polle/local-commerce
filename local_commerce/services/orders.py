@@ -29,6 +29,7 @@ from local_commerce.services.owner import (
     get_price,
     reject,
 )
+from local_commerce.services.product_images import gallery_urls
 from local_commerce.services.shop_hours import availability as shop_availability
 
 _order_operation = ContextVar("lc_order_operation", default=False)
@@ -298,10 +299,22 @@ def product_data(shop, item, browsing=False):
     currency = frappe.db.get_value("Company", shop.company, "default_currency")
     if price and price.currency != currency:
         reject("Product currency does not match this shop")
+    images = gallery_urls(
+        item.image,
+        frappe.get_all(
+            "File",
+            filters={"attached_to_doctype": "Item", "attached_to_name": item.name,
+                     "is_private": 0, "is_folder": 0},
+            pluck="file_url",
+            order_by="creation asc, name asc",
+            limit_page_length=0,
+        ) if browsing else [],
+    )
     return {
         "item": item.name,
         "item_name": item.item_name,
-        "image": item.image or "",
+        "image": images[0] if images else "",
+        "images": images,
         "uom": item.stock_uom,
         "description": item.lc_description or "",
         "rate": float(checked_number(price.price_list_rate, "Price")) if price else None,
