@@ -117,6 +117,7 @@ def update_shop(
         "delivery_fee": delivery_fee,
     }.items():
         if value is not None:
+            require_platform()
             setattr(doc, field, float(checked_number(value, field.replace("_", " "))))
     if address_line1 is not None:
         require_platform()

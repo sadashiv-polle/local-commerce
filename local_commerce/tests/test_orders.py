@@ -10,6 +10,27 @@ from local_commerce.tests.test_owner_inventory import TestOwnerInventory
 
 
 class TestDeliveryOrders(FrappeTestCase):
+    def test_delivery_pricing_requires_platform_admin(self):
+        from local_commerce.services import shops
+
+        frappe.set_user(self.user.name)
+        with self.assertRaises(frappe.PermissionError):
+            shops.update_shop(
+                self.shop.name, self.shop.shop_name, self.shop.status, delivery_fee=25
+            )
+        self.shop.reload()
+        self.shop.minimum_order_amount = 100
+        with self.assertRaises(frappe.PermissionError):
+            self.shop.save()
+        self.shop.reload()
+        self.shop.description = "Owner can still update shop details"
+        self.shop.save()
+        frappe.set_user("Administrator")
+        self.shop.minimum_order_amount = 100
+        self.shop.delivery_fee = 25
+        self.shop.save()
+        self.assertEqual(self.shop.minimum_order_amount, 100)
+
     def setUp(self):
         TestOwnerInventory.setUp(self)
         owner.adjust_stock(

@@ -46,6 +46,10 @@ frappe.ui.form.on('LC Shop', {
   },
 
   refresh(frm) {
+    const pricingAdmin = frappe.session.user === "Administrator" || frappe.user.has_role("LC Platform Administrator");
+    for (const field of ["minimum_order_amount", "free_delivery_above", "delivery_fee", "delivery_fee_per_km", "delivery_included_km"]) {
+      frm.toggle_enable(field, pricingAdmin);
+    }
     const enabled = Boolean(frm.doc.company);
     for (const field of ['warehouse', 'stock_adjustment_account', 'cost_center', 'delivery_account', 'cod_cash_account', 'order_tax_template']) {
       frm.toggle_enable(field, enabled);
