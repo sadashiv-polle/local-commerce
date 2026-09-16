@@ -11,6 +11,7 @@ import Login from './Login.vue'
 import Account from './Account.vue'
 import Delivery from './Delivery.vue'
 import './style.css'
+import './responsive.css'
 const router = createRouter({ history: createWebHashHistory(), scrollBehavior: () => ({ top: 0 }), routes: [
   { path: '/', component: Store },
   { path: '/store', component: Store },

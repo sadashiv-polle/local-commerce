@@ -1,0 +1,107 @@
+/* Shared finishing styles for storefront, shop workspace, and rider screens. */
+#lc-app { --lc-line: #dfe7e0; --lc-shadow: 0 8px 28px #203a2c08; background: #f8faf7; }
+#lc-app h1, #lc-app h2, #lc-app h3 { text-wrap: balance; }
+#lc-app .muted, #lc-app label small { color: #65746b; }
+#lc-app button, #lc-app a.primary { transition: background .15s, border-color .15s, box-shadow .15s; }
+#lc-app input:not([type=checkbox]), #lc-app select, #lc-app textarea { min-height: 46px; padding: 11px 13px; border-radius: 11px; background: #fff; color: var(--lc-ink); }
+#lc-app input:disabled, #lc-app select:disabled, #lc-app textarea:disabled { color: #65746b; background: #f0f3ef; opacity: 1; }
+#lc-app label { font-weight: 600; }
+#lc-app label small { display: block; margin-top: 5px; font-size: 12px; font-weight: 400; line-height: 1.5; }
+#lc-app .topbar { padding-inline: max(24px, calc((100vw - 1320px) / 2)); gap: 28px; }
+#lc-app .topbar nav { gap: 14px; }
+#lc-app .topbar nav > a:not(.account) { padding: 9px 12px; border-radius: 10px; }
+#lc-app .topbar nav > a.router-link-active:not(.account) { background: #edf5ec; }
+#lc-app .lc-card, #lc-app .address-card, #lc-app .delivery-card, #lc-app .rider-profile-card, #lc-app .lc-form { box-shadow: var(--lc-shadow); }
+#lc-app .lc-card { border: 1px solid var(--lc-line); background: white; }
+#lc-app .lc-card h3 { overflow-wrap: anywhere; }
+#lc-app .section-title, #lc-app .lc-section-heading, #lc-app .workspace-heading { gap: 16px; }
+#lc-app .lc-pagination { gap: 8px; }
+#lc-app .lc-pagination button { min-height: 42px; }
+#lc-app .workspace-fields { gap: 24px; }
+#lc-app .workspace-fields > label { margin-bottom: 0; }
+#lc-app .shop-hours, #lc-app .location-editor { padding: 24px; border-radius: 18px; background: #f8faf6; }
+#lc-app .shop-hours h3 { margin: 4px 0 8px; }
+#lc-app .shop-hours > .form-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+#lc-app .shop-hours .form-columns label { margin: 0; }
+#lc-app .shop-hours-row { padding-block: 10px; border-bottom: 1px solid #e5ebe2; }
+#lc-app .shop-hours-row:last-of-type { border-bottom: 0; }
+#lc-app .shop-hours-row .check-label input { width: 18px; height: 18px; flex: 0 0 auto; accent-color: #176547; }
+#lc-app .free-delivery-progress { padding: 10px 12px; border-radius: 10px; color: #176547; background: #eef7e8; font-weight: 650; }
+#lc-app .cart-drawer { overscroll-behavior: contain; }
+#lc-app .account-heading p, #lc-app .profile-details dd { overflow-wrap: anywhere; }
+@media (hover: hover) {
+  #lc-app a.lc-card:hover { border-color: #a6c4ad; box-shadow: 0 12px 32px #203a2c12; }
+  #lc-app button:not(:disabled):hover { box-shadow: 0 3px 10px #203a2c0c; }
+}
+@media (min-width: 1000px) {
+  #lc-app .owner-page { max-width: 1440px; margin-inline: auto; grid-template-columns: 230px minmax(0, 1fr); }
+  #lc-app .owner-sidebar { border-left: 1px solid var(--lc-line); }
+  #lc-app .owner-content { padding: 40px; }
+  #lc-app .owner-content > .lc-form { max-width: 860px; }
+  #lc-app .product-grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+  #lc-app .store-page { padding-block: 32px 52px; }
+  #lc-app .customer-product-card { min-height: 320px; }
+  #lc-app .account-page { padding-inline: 32px; }
+}
+@media (max-width: 800px) {
+  #lc-app .topbar { flex-wrap: wrap; padding: 16px 20px; gap: 16px; }
+  #lc-app .topbar nav { flex-wrap: wrap; font-size: 12px; gap: 7px; }
+  #lc-app .owner-page { grid-template-columns: minmax(0, 1fr); }
+  #lc-app .owner-sidebar { display: none; }
+  #lc-app .owner-page:has(.workspace-back) .owner-sidebar { display: block; padding: 18px 20px; border-right: 0; border-bottom: 1px solid var(--lc-line); }
+  #lc-app .owner-page:has(.workspace-back) .owner-sidebar > p, #lc-app .owner-page:has(.workspace-back) .sidebar-bottom { display: none; }
+  #lc-app .workspace-nav { display: flex; overflow-x: auto; gap: 8px; margin: 16px 0 0; padding-bottom: 2px; scrollbar-width: thin; }
+  #lc-app .workspace-nav button { flex: 0 0 auto; white-space: nowrap; padding: 10px 14px; border: 1px solid var(--lc-line); font-size: 12px; }
+  #lc-app .workspace-nav button.sidebar-active { margin-top: 0; border-color: #b7d3bd; }
+  #lc-app .workspace-back { margin-bottom: 12px; }
+  #lc-app .owner-content { padding: 26px 20px; }
+  #lc-app .rider-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+  #lc-app .rider-profile-card { position: static; }
+  #lc-app .workspace-heading { flex-wrap: wrap; }
+}
+@media (max-width: 600px) {
+  #lc-app { font-size: 14px; }
+  #lc-app .commerce-app.customer-view .topbar { gap: 10px; padding: 14px 16px; }
+  #lc-app .commerce-app.customer-view .brand-stack { max-width: 100%; }
+  #lc-app .commerce-app.customer-view .brand { font-size: 40px; }
+  #lc-app .commerce-app.customer-view .header-delivery-address small { font-size: 8px; letter-spacing: 1px; }
+  #lc-app .commerce-app.customer-view .header-delivery-address strong { font-size: 12px; }
+  #lc-app .commerce-app.customer-view .topbar nav { flex-wrap: wrap; justify-content: flex-end; max-width: 150px; gap: 6px; }
+  #lc-app .topbar nav > a:not(.account) { padding: 6px 8px; font-size: 11px; }
+  #lc-app .notification-menu > summary { width: 36px; height: 36px; }
+  #lc-app .notification-panel { position: fixed; top: 100px; right: 12px; width: calc(100vw - 24px); max-height: calc(100dvh - 125px); }
+  #lc-app .store-hero { padding: 24px; border-radius: 22px; }
+  #lc-app .store-hero h1 { font-size: 34px; letter-spacing: -1.3px; }
+  #lc-app .hero-art { min-height: 200px; }
+  #lc-app .section-title h2, #lc-app .lc-section-heading h2 { font-size: 23px; }
+  #lc-app .lc-section-heading { margin-top: 28px; flex-wrap: wrap; }
+  #lc-app .lc-grid:not(.product-grid) { grid-template-columns: minmax(0, 1fr); }
+  #lc-app .lc-card { padding: 20px; }
+  #lc-app .customer-product-card { padding: 12px; min-height: 290px; }
+  #lc-app .customer-product-card h3 { font-size: 15px; line-height: 1.4; }
+  #lc-app .product-buy-row { gap: 6px; flex-wrap: wrap; }
+  #lc-app .product-art { height: 120px; }
+  #lc-app .quantity-stepper { grid-template-columns: 30px minmax(24px, auto) 30px; }
+  #lc-app .lc-form, #lc-app .location-editor, #lc-app .shop-hours { padding: 18px; }
+  #lc-app .shop-hours > .form-columns { grid-template-columns: minmax(0, 1fr); }
+  #lc-app input:not([type=checkbox]), #lc-app select, #lc-app textarea { font-size: 16px; }
+  #lc-app .shop-hours-row { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; }
+  #lc-app .shop-hours-row .check-label { grid-column: 1 / -1; }
+  #lc-app .shop-hours-save { flex-wrap: wrap; }
+  #lc-app .shop-hours-save button { width: 100%; }
+  #lc-app .delivery-page { padding: 24px 16px 40px; }
+  #lc-app .delivery-hero { padding: 24px; gap: 14px; }
+  #lc-app .delivery-hero h1 { font-size: 32px; }
+  #lc-app .rider-avatar { width: 52px; height: 52px; flex-basis: 52px; border-radius: 16px; font-size: 25px; }
+  #lc-app .delivery-card { padding: 18px; }
+  #lc-app .delivery-card > header { flex-wrap: wrap; gap: 10px; }
+  #lc-app .rider-metrics { gap: 10px; }
+  #lc-app .account-heading h1 { font-size: 32px; }
+  #lc-app .cart-drawer { width: 100%; padding: 20px 16px max(24px, env(safe-area-inset-bottom)); }
+  #lc-app .cart-drawer-header { position: sticky; top: -20px; z-index: 2; padding-top: 14px; background: #f6f8f3; }
+  #lc-app .floating-cart-bar { bottom: max(12px, env(safe-area-inset-bottom)); border-radius: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  #lc-app button, #lc-app a.primary { transition: none; }
+}
