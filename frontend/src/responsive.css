@@ -382,3 +382,32 @@
   #lc-app .category-admin-actions { grid-column: 1 / -1; justify-content: flex-end; }
 }
 @media (prefers-reduced-motion: reduce) { #lc-app .category-tile-art { transition: none; } }
+
+/* Keep home discovery to a single, compact row. */
+#lc-app .compact-category-menu { margin: 18px 0 28px; }
+#lc-app .compact-category-menu > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+#lc-app .compact-category-menu h2 { margin: 0; font-size: 20px; letter-spacing: -.4px; }
+#lc-app .compact-category-menu header > a { display: flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 13px; font-weight: 650; color: #2f704d; }
+#lc-app .compact-category-menu header > a > span { font-size: 22px; }
+#lc-app .compact-category-row { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 8px; }
+#lc-app .compact-category-row::-webkit-scrollbar { display: none; }
+#lc-app .compact-category-row .category-tile { flex: 0 0 88px; gap: 8px; }
+#lc-app .compact-category-row .category-tile-art { border-radius: 18px; }
+#lc-app .compact-category-row .category-tile-art > span { font-size: 36px; }
+#lc-app .compact-category-row .category-tile-art > img { padding: 8px; }
+#lc-app .compact-category-row .category-tile strong { font-size: 12px; }
+#lc-app .all-categories-page .category-tile { text-decoration: none; }
+#lc-app .all-categories-heading h1 { font-size: 30px; margin: 20px 0 8px; }
+#lc-app .all-categories-heading p { color: #718073; margin: 0; }
+#lc-app .categories-back { display: inline-block; padding: 8px 0; font-size: 13px; color: #2f704d; }
+@media (max-width: 600px) {
+  #lc-app .compact-category-menu { margin: 14px 0 22px; }
+  #lc-app .compact-category-menu h2 { font-size: 17px; }
+  #lc-app .compact-category-menu > header { margin-bottom: 10px; }
+  #lc-app .compact-category-row { gap: 10px; }
+  #lc-app .compact-category-row .category-tile { flex-basis: 68px; gap: 7px; }
+  #lc-app .compact-category-row .category-tile-art { border-radius: 14px; }
+  #lc-app .compact-category-row .category-tile-art > span { font-size: 30px; }
+  #lc-app .compact-category-row .category-tile strong { font-size: 10px; }
+  #lc-app .all-categories-heading h1 { font-size: 25px; }
+}
