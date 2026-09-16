@@ -7,17 +7,16 @@ import MapView from './MapView.vue'
 
 const session = inject('session')
 const route = useRoute()
-const data = ref(null), error = ref(''), saved = ref(''), loading = ref(false), busy = ref(false), locating = ref(false), start = ref(0)
+const data = ref(null), error = ref(''), saved = ref(''), loading = ref(false), busy = ref(false), locating = ref(false)
 const editing = ref(false), editor = ref(null)
 const emptyAddress = () => ({ name: '', address_type: 'Home', address_label: 'Home', recipient: session.value?.full_name || '', phone: '', line1: '', city: '', postal_code: '', latitude: '', longitude: '', is_default: false })
 const form = ref(emptyAddress())
 const addressPoints = computed(() => form.value.latitude !== '' && form.value.longitude !== '' && Number.isFinite(Number(form.value.latitude)) && Number.isFinite(Number(form.value.longitude)) ? [{ ...form.value, kind: 'customer', label: form.value.address_label || 'Saved address' }] : [])
 function notifyAddress(name = '') { window.dispatchEvent(new CustomEvent('lc-address-change', { detail: name })) }
 
-async function load(delta = 0) {
-  start.value = Math.max(0, start.value + delta)
+async function load() {
   loading.value = true; error.value = ''
-  try { data.value = await call('customers.account', { start: start.value }, true) }
+  try { data.value = await call('customers.account', {}, true) }
   catch (e) { error.value = e.message }
   finally { loading.value = false }
 }
@@ -91,7 +90,6 @@ onBeforeUnmount(() => window.removeEventListener('lc-add-address', openNewAddres
           <div class="section-title"><div><span class="eyebrow">{{ form.name ? 'EDIT ADDRESS' : 'NEW ADDRESS' }}</span><h2>{{ form.name ? form.address_label : 'Where should we deliver?' }}</h2></div><button type="button" :disabled="busy" @click="cancelEdit">Close</button></div>
           <fieldset :disabled="busy"><div class="form-columns"><label>Type<select v-model="form.address_type" required><option>Home</option><option>Work</option><option>Other</option></select></label><label>Label<input v-model="form.address_label" required maxlength="80" placeholder="Home"></label></div><div class="form-columns"><label>Recipient<input v-model="form.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="form.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div><label>Street address<input v-model="form.line1" required maxlength="140" autocomplete="street-address"></label><div class="form-columns"><label>City<input v-model="form.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="form.postal_code" required maxlength="20" autocomplete="postal-code"></label></div><div class="location-heading"><div><strong>Map location</strong><small>Tap the map to place your delivery pin.</small></div><button type="button" :disabled="locating" @click="useLocation">{{ locating ? 'Finding…' : 'Use my location' }}</button></div><MapView :config="data.map" :points="addressPoints" editable @pick="pickLocation" /><label class="check-label"><input v-model="form.is_default" type="checkbox"><span>Use as my delivery address<small>Nearby shops will be sorted for this location.</small></span></label><button class="lc-primary">{{ busy ? 'Saving…' : 'Save address' }}</button></fieldset>
         </form>
-        <section class="account-history"><span class="eyebrow">PURCHASES</span><h2>Recent order history</h2><p v-if="!data.orders.length" class="lc-empty">No previous sales orders.</p><article v-for="order in data.orders" :key="order.name" class="order-card"><strong>{{ order.name }}</strong><p>{{ order.transaction_date }} · {{ order.status }}</p><span>{{ order.currency }} {{ order.grand_total }}</span></article><div class="lc-pagination"><button :disabled="loading || !start" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="loading || data.orders.length < 20" @click="load(20)">Next</button></div></section>
       </template>
     </template>
   </div>
