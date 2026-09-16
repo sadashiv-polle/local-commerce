@@ -13,6 +13,7 @@ from local_commerce.permissions.policy import can_access_shop
 from local_commerce.permissions.scope import identity, memberships, require_shop, shop_query
 from local_commerce.services import notifications as order_notifications
 from local_commerce.services import order_rules
+from local_commerce.services.delivery_pricing import delivery_price
 from local_commerce.services.location_rules import (
     accuracy_metres,
     delivery_match,
@@ -46,22 +47,23 @@ def delivery_otp(doc):
 
 
 def verify_delivery_otp(doc, supplied):
-    attempt_key = "lc-delivery-otp-attempts:" + hashlib.sha256(
-        f"{doc.name}:{doc.delivery_user}".encode()
-    ).hexdigest()
+    attempt_key = (
+        "lc-delivery-otp-attempts:"
+        + hashlib.sha256(f"{doc.name}:{doc.delivery_user}".encode()).hexdigest()
+    )
     lock_key = attempt_key + ":lock"
     with frappe.cache.lock(lock_key, timeout=10, blocking_timeout=3):
         attempts = int(frappe.cache.get_value(attempt_key) or 0)
         if attempts >= _DELIVERY_OTP_ATTEMPTS:
             reject("Too many incorrect OTP attempts. Wait 5 minutes and try again")
         value = str(supplied or "").strip()
-        if len(value) != 6 or not value.isdigit() or not hmac.compare_digest(
-            value, delivery_otp(doc)
+        if (
+            len(value) != 6
+            or not value.isdigit()
+            or not hmac.compare_digest(value, delivery_otp(doc))
         ):
             attempts += 1
-            frappe.cache.set_value(
-                attempt_key, attempts, expires_in_sec=_DELIVERY_OTP_LOCK_SECONDS
-            )
+            frappe.cache.set_value(attempt_key, attempts, expires_in_sec=_DELIVERY_OTP_LOCK_SECONDS)
             remaining = _DELIVERY_OTP_ATTEMPTS - attempts
             suffix = (
                 f" {remaining} attempt{'s' if remaining != 1 else ''} remaining."
@@ -144,7 +146,14 @@ def validate_delivery(doc, method=None):
     ):
         reject("Select an order tax template belonging to the shop Company")
     fee = checked_number(doc.delivery_fee or 0, "Delivery fee")
-    if fee:
+    for field in (
+        "minimum_order_amount",
+        "free_delivery_above",
+        "delivery_fee_per_km",
+        "delivery_included_km",
+    ):
+        checked_number(doc.get(field) or 0, field.replace("_", " "))
+    if fee or doc.delivery_fee_per_km:
         if not doc.delivery_account:
             doc.delivery_account = default_delivery_account(doc.company)
         if not doc.delivery_account:
@@ -347,6 +356,37 @@ def catalog(shop, start=0):
     }
 
 
+def pricing_for(shop, subtotal, distance):
+    return delivery_price(
+        subtotal,
+        base=shop.delivery_fee,
+        per_km=shop.delivery_fee_per_km,
+        included_km=shop.delivery_included_km,
+        distance=distance,
+        minimum=shop.minimum_order_amount,
+        free_above=shop.free_delivery_above,
+    )
+
+
+def quote(shop, items, latitude=None, longitude=None):
+    doc = public_shop(shop, browsing=True)
+    try:
+        rows = order_rules.cart_rows(frappe.parse_json(items))
+        destination = point(latitude, longitude)
+    except (ValueError, TypeError) as exc:
+        reject(str(exc))
+    origin = shop_location(doc)
+    distance = distance_km(origin, destination) if origin and destination else None
+    subtotal = sum(
+        checked_number(row["quantity"], "Quantity", positive=True)
+        * checked_number(product_data(doc, frappe.get_doc("Item", row["item"]))["rate"], "Price")
+        for row in rows
+    )
+    price = pricing_for(doc, subtotal, distance)
+    price.update({"subtotal": float(subtotal), "distance_km": distance})
+    return price
+
+
 def customer_record(user, company):
     from local_commerce.services.customers import ensure_customer
 
@@ -425,6 +465,18 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 "delivery_date": nowdate(),
             }
         )
+    price = pricing_for(
+        doc,
+        sum(
+            checked_number(row["qty"], "Quantity") * checked_number(row["rate"], "Price")
+            for row in prepared
+        ),
+        delivery_distance,
+    )
+    if price["minimum_remaining"]:
+        reject(f"Add {price['minimum_remaining']:g} more to meet the shop minimum order amount")
+    if price["needs_location"]:
+        reject("Select your delivery location to calculate the delivery fee")
     token = _order_operation.set(True)
     owner_token = _owner_operation.set(True)
     try:
@@ -493,20 +545,18 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
         if doc.order_tax_template:
             so.set(
                 "taxes",
-                get_taxes_and_charges(
-                    "Sales Taxes and Charges Template", doc.order_tax_template
-                ),
+                get_taxes_and_charges("Sales Taxes and Charges Template", doc.order_tax_template),
             )
         so.flags.ignore_permissions = True
         so.set_missing_values()
-        if doc.delivery_fee:
+        if price["delivery_fee"]:
             so.append(
                 "taxes",
                 {
                     "charge_type": "Actual",
                     "account_head": doc.delivery_account,
                     "description": "Delivery charge",
-                    "tax_amount": doc.delivery_fee,
+                    "tax_amount": price["delivery_fee"],
                 },
             )
         so.insert(ignore_permissions=True)
@@ -551,12 +601,8 @@ def serialize(doc):
         )
     except ValueError:
         driver_location = None
-    is_customer = (
-        frappe.session.user != "Guest" and doc.customer_user == frappe.session.user
-    )
-    response_deadline = add_to_date(
-        doc.creation, minutes=int(shop.order_response_minutes or 10)
-    )
+    is_customer = frappe.session.user != "Guest" and doc.customer_user == frappe.session.user
+    response_deadline = add_to_date(doc.creation, minutes=int(shop.order_response_minutes or 10))
     return {
         "name": doc.name,
         "shop": doc.shop,
@@ -767,11 +813,7 @@ def driver_shops(user=None):
     if user == "Guest" or "LC Delivery Person" not in frappe.get_roles(user):
         frappe.throw("Delivery person access required", frappe.PermissionError)
     return sorted(
-        {
-            member.shop
-            for member in memberships(user)
-            if member.membership_role == "Driver"
-        }
+        {member.shop for member in memberships(user) if member.membership_role == "Driver"}
     )
 
 

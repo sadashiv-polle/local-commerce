@@ -34,6 +34,11 @@ def update_shop(
     order_response_minutes=10,
     accepting_orders=1,
     opening_hours=None,
+    minimum_order_amount=None,
+    free_delivery_above=None,
+    delivery_fee_per_km=None,
+    delivery_included_km=None,
+    delivery_fee=None,
 ):
     return shops.update_shop(
         shop,
@@ -50,4 +55,9 @@ def update_shop(
         order_response_minutes,
         accepting_orders,
         opening_hours,
+        minimum_order_amount,
+        free_delivery_above,
+        delivery_fee_per_km,
+        delivery_included_km,
+        delivery_fee,
     )

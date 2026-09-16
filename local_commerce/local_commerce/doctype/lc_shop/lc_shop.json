@@ -31,6 +31,10 @@
     "delivery_section",
     "delivery_enabled",
     "delivery_fee",
+    "minimum_order_amount",
+    "free_delivery_above",
+    "delivery_fee_per_km",
+    "delivery_included_km",
     "delivery_account",
     "order_tax_template",
     "payment_section",
@@ -241,6 +245,30 @@
       "label": "Cash Mode of Payment",
       "fieldtype": "Link",
       "options": "Mode of Payment"
+    },
+    {
+      "fieldname": "minimum_order_amount",
+      "label": "Minimum Order Amount",
+      "fieldtype": "Currency",
+      "default": "0"
+    },
+    {
+      "fieldname": "free_delivery_above",
+      "label": "Free Delivery Above",
+      "fieldtype": "Currency",
+      "default": "0"
+    },
+    {
+      "fieldname": "delivery_fee_per_km",
+      "label": "Delivery Fee per Additional km",
+      "fieldtype": "Currency",
+      "default": "0"
+    },
+    {
+      "fieldname": "delivery_included_km",
+      "label": "Distance Included in Base Fee (km)",
+      "fieldtype": "Float",
+      "default": "0"
     }
   ],
   "permissions": [

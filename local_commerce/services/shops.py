@@ -51,6 +51,11 @@ def get_shop(shop):
             "description",
             "order_response_minutes",
             "accepting_orders",
+            "delivery_fee",
+            "minimum_order_amount",
+            "free_delivery_above",
+            "delivery_fee_per_km",
+            "delivery_included_km",
             "address_line1",
             "city",
             "postal_code",
@@ -63,8 +68,7 @@ def get_shop(shop):
     result["location"] = shop_location(doc)
     result["map"] = map_config()
     result["opening_hours"] = normalize(doc.opening_hours_json) or [
-        {"day": day, "enabled": True, "opens": "09:00", "closes": "21:00"}
-        for day in DAYS
+        {"day": day, "enabled": True, "opens": "09:00", "closes": "21:00"} for day in DAYS
     ]
     result["availability"] = availability(doc)
     return result
@@ -85,6 +89,11 @@ def update_shop(
     order_response_minutes=10,
     accepting_orders=1,
     opening_hours=None,
+    minimum_order_amount=None,
+    free_delivery_above=None,
+    delivery_fee_per_km=None,
+    delivery_included_km=None,
+    delivery_fee=None,
 ):
     require_shop(shop, "write")
     doc = frappe.get_doc("LC Shop", shop)
@@ -100,6 +109,15 @@ def update_shop(
         reject("Enter a whole order response time from 1 to 120 minutes")
     doc.order_response_minutes = response_minutes
     _set_hours(doc, accepting_orders, opening_hours)
+    for field, value in {
+        "minimum_order_amount": minimum_order_amount,
+        "free_delivery_above": free_delivery_above,
+        "delivery_fee_per_km": delivery_fee_per_km,
+        "delivery_included_km": delivery_included_km,
+        "delivery_fee": delivery_fee,
+    }.items():
+        if value is not None:
+            setattr(doc, field, float(checked_number(value, field.replace("_", " "))))
     if address_line1 is not None:
         require_platform()
         try:

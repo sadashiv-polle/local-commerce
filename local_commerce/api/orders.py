@@ -88,3 +88,9 @@ def cod_collections(shop, view="pending", start=0):
 @frappe.whitelist(methods=["POST"])
 def reconcile_cod(collection, owner_note=""):
     return orders.reconcile_cod(collection, owner_note)
+
+
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+@rate_limit(limit=600, seconds=3600)
+def quote(shop, items, latitude=None, longitude=None):
+    return orders.quote(shop, items, latitude, longitude)

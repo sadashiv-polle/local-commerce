@@ -12,9 +12,12 @@ const cart = ref({}), pending = ref(null), checkout = ref(false), cartOpen = ref
 const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '', latitude: null, longitude: null, delivery_instructions: '' })
 const savedAddresses = ref([]), selectedAddress = ref('')
 const locationError = ref(''), locating = ref(false)
+const deliveryQuote = ref(null), quoting = ref(false), quoteError = ref('')
+let quoteTimer, quoteGeneration = 0
 const storageKey = computed(() => `lc-delivery:${session.value.user}:${route.params.shop}`)
 const subtotal = computed(() => Object.values(cart.value).reduce((sum, row) => sum + row.rate * Number(row.quantity), 0))
-const estimatedTotal = computed(() => subtotal.value + Number(catalog.value?.delivery_fee || 0))
+const quotedFee = computed(() => deliveryQuote.value?.delivery_fee ?? Number(catalog.value?.delivery_fee || 0))
+const estimatedTotal = computed(() => (deliveryQuote.value?.subtotal ?? subtotal.value) + quotedFee.value)
 const deliveryDistance = computed(() => distanceKm(catalog.value?.shop_location, address.value))
 const outsideDeliveryRange = computed(() => deliveryDistance.value != null && deliveryDistance.value > Number(catalog.value?.shop_location?.service_radius_km || 0))
 const deliveryPoints = computed(() => {
@@ -23,6 +26,21 @@ const deliveryPoints = computed(() => {
   if (address.value.latitude !== '' && address.value.longitude !== '' && address.value.latitude != null && address.value.longitude != null && Number.isFinite(Number(address.value.latitude)) && Number.isFinite(Number(address.value.longitude))) points.push({ ...address.value, kind: 'customer', label: 'Your delivery location' })
   return points
 })
+function scheduleQuote() {
+  window.clearTimeout(quoteTimer)
+  const generation = ++quoteGeneration
+  deliveryQuote.value = null; quoteError.value = ''
+  if (!Object.keys(cart.value).length) { quoting.value = false; return }
+  quoting.value = true
+  quoteTimer = window.setTimeout(async () => {
+    try {
+      const result = await call('orders.quote', { shop: route.params.shop, items: Object.values(cart.value).map(row => ({ item: row.item, quantity: row.quantity })), latitude: address.value.latitude, longitude: address.value.longitude }, true)
+      if (generation === quoteGeneration) deliveryQuote.value = result
+    } catch (e) { if (generation === quoteGeneration) quoteError.value = e.message }
+    finally { if (generation === quoteGeneration) quoting.value = false }
+  }, 350)
+}
+watch(() => [cart.value, address.value.latitude, address.value.longitude, route.params.shop], scheduleQuote, { deep: true, immediate: true })
 function money(value) { if (value == null) return 'Price coming soon'; return new Intl.NumberFormat(undefined, { style: 'currency', currency: catalog.value.currency }).format(value) }
 async function load(delta = 0) {
   loading.value = true; error.value = ''; start.value = Math.max(0, start.value + delta)
@@ -122,7 +140,7 @@ watch(cart, value => {
   if (!Object.keys(value).length) cartOpen.value = false
 }, { deep: true })
 onMounted(() => window.addEventListener('lc-open-cart', openCartEvent))
-onBeforeUnmount(() => window.removeEventListener('lc-open-cart', openCartEvent))
+onBeforeUnmount(() => { window.removeEventListener('lc-open-cart', openCartEvent); window.clearTimeout(quoteTimer); quoteGeneration++ })
 </script>
 <template>
   <div class="store-page customer-shop">
@@ -130,7 +148,7 @@ onBeforeUnmount(() => window.removeEventListener('lc-open-cart', openCartEvent))
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p><p v-if="loading" role="status">Loading products…</p>
     <template v-if="catalog">
       <h1>{{ catalog.shop_name }}</h1><p><span class="shop-open-status" :class="{ closed: !catalog.accepting_orders }">{{ catalog.availability.label }}</span> {{ catalog.accepting_orders ? 'Delivery requests · Shop confirmation required' : catalog.availability.message }}</p>
-      <p v-if="catalog.accepting_orders" class="muted">Delivery within {{ Number(catalog.shop_location.service_radius_km).toFixed(1) }} km · Delivery fee: {{ money(catalog.delivery_fee) }}</p>
+      <p v-if="catalog.accepting_orders" class="muted">Delivery within {{ Number(catalog.shop_location.service_radius_km).toFixed(1) }} km · Base delivery fee: {{ money(catalog.delivery_fee) }}</p>
       <p v-if="pending" class="lc-notice">Your last request is not confirmed. Retry it below before starting another.</p>
       <fieldset :disabled="busy || !!pending">
         <div class="lc-grid product-grid">
@@ -155,7 +173,7 @@ onBeforeUnmount(() => window.removeEventListener('lc-open-cart', openCartEvent))
           <div class="cart-line-list">
             <article v-for="item in cart" :key="item.item" class="cart-line"><div class="cart-line-art"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" decoding="async" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</span></div><div><strong>{{ item.item_name }}</strong><small>{{ money(item.rate) }} / {{ item.uom }}</small></div><div class="quantity-stepper"><button type="button" :disabled="busy || !!pending" :aria-label="`Remove one ${item.item_name}`" @click="updateQuantity(item, -1)">−</button><strong>{{ item.quantity }}</strong><button type="button" :disabled="busy || !!pending || item.quantity >= item.available" :aria-label="`Add one ${item.item_name}`" @click="updateQuantity(item, 1)">+</button></div><strong>{{ money(item.rate * item.quantity) }}</strong></article>
           </div>
-          <section class="bill-details"><h3>Bill details</h3><p><span>Item total</span><strong>{{ money(subtotal) }}</strong></p><p><span>Delivery fee</span><strong>{{ money(catalog.delivery_fee) }}</strong></p><p class="bill-total"><span>Estimated total</span><strong>{{ money(estimatedTotal) }}</strong></p><small>ERPNext calculates applicable taxes when your request is saved.</small></section>
+          <section class="bill-details"><h3>Bill details</h3><p v-if="quoting" role="status">Updating delivery fee…</p><p v-if="quoteError" role="alert">{{ quoteError }}</p><p v-if="deliveryQuote?.free_delivery_remaining > 0" class="free-delivery-progress">Add {{ money(deliveryQuote.free_delivery_remaining) }} more for free delivery</p><p v-else-if="deliveryQuote?.free_delivery" class="free-delivery-progress">✓ Free delivery unlocked</p><p v-if="deliveryQuote?.minimum_remaining > 0" role="status">Add {{ money(deliveryQuote.minimum_remaining) }} more to meet the minimum order.</p><p><span>Item total</span><strong>{{ money(deliveryQuote?.subtotal ?? subtotal) }}</strong></p><p><span>Delivery fee</span><strong>{{ deliveryQuote?.needs_location ? 'Select location' : money(quotedFee) }}</strong></p><p class="bill-total"><span>Estimated total</span><strong>{{ money(estimatedTotal) }}</strong></p><small>ERPNext calculates applicable taxes when your request is saved.</small></section>
           <AuthChoices v-if="checkout && session.user === 'Guest'" />
           <form v-else class="cart-checkout-form" @submit.prevent="place">
             <fieldset v-if="session.user !== 'Guest'" :disabled="busy || !!pending">
@@ -166,7 +184,7 @@ onBeforeUnmount(() => window.removeEventListener('lc-open-cart', openCartEvent))
             </fieldset>
             <p v-if="error" class="checkout-error" role="alert">{{ error }}</p>
             <p v-if="!catalog.accepting_orders" class="muted">Your cart is saved. {{ catalog.availability.message }}.</p>
-            <button class="cart-checkout-button" :disabled="busy || outsideDeliveryRange || (!catalog.accepting_orders && !pending)"><span>{{ busy ? 'Sending…' : outsideDeliveryRange ? 'Address outside delivery range' : pending ? 'Retry request' : session.user === 'Guest' ? 'Login to order' : 'Send order request' }}</span><strong>{{ money(estimatedTotal) }} ›</strong></button>
+            <button class="cart-checkout-button" :disabled="busy || outsideDeliveryRange || (!pending && (quoting || !!quoteError || !deliveryQuote || deliveryQuote.minimum_remaining > 0 || deliveryQuote.needs_location)) || (!catalog.accepting_orders && !pending)"><span>{{ busy ? 'Sending…' : outsideDeliveryRange ? 'Address outside delivery range' : pending ? 'Retry request' : session.user === 'Guest' ? 'Login to order' : 'Send order request' }}</span><strong>{{ money(estimatedTotal) }} ›</strong></button>
           </form>
         </aside>
       </div>
