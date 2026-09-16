@@ -26,6 +26,7 @@ def update_shop(
     longitude=None,
     service_radius_km=None,
     live_tracking_enabled=None,
+    order_response_minutes=10,
 ):
     return shops.update_shop(
         shop,
@@ -39,4 +40,5 @@ def update_shop(
         longitude,
         service_radius_km,
         live_tracking_enabled,
+        order_response_minutes,
     )

@@ -79,13 +79,18 @@ def order_created(order):
 def status_changed(order, previous):
     label = _order_label(order.name)
     shop_name = frappe.db.get_value("LC Shop", order.shop, "shop_name") or "Shop"
+    expired = order.status == "Cancelled" and order.reason == "Shop response timeout"
     seen = set()
     _create(
         order.customer_user,
         order,
         "Customer",
-        f"Order {label}: {order.status}",
-        f"Your order from {shop_name} moved from {previous} to {order.status}.",
+        f"Order {label} expired" if expired else f"Order {label}: {order.status}",
+        (
+            f"{shop_name} did not confirm your order in time. Reserved stock was released."
+            if expired
+            else f"Your order from {shop_name} moved from {previous} to {order.status}."
+        ),
         "/orders",
         seen,
     )
@@ -94,8 +99,12 @@ def status_changed(order, previous):
             user,
             order,
             "Owner",
-            f"Order {label}: {order.status}",
-            f"{order.recipient}'s order moved from {previous} to {order.status}.",
+            f"Order {label} expired" if expired else f"Order {label}: {order.status}",
+            (
+                f"{order.recipient}'s order was cancelled because it was not answered in time."
+                if expired
+                else f"{order.recipient}'s order moved from {previous} to {order.status}."
+            ),
             f"/shop/{order.shop}?tab=orders",
             seen,
         )

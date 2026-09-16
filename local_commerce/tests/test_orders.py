@@ -2,6 +2,7 @@
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
+from frappe.utils import add_to_date, now_datetime
 
 from local_commerce.services import customers, notifications, orders, owner
 from local_commerce.tests.helpers import add_member, create_user
@@ -160,6 +161,32 @@ class TestDeliveryOrders(FrappeTestCase):
 
         frappe.set_user(self.stranger.name)
         self.assertEqual(notifications.list_notifications()["items"], [])
+
+    def test_unanswered_order_expires_and_releases_stock(self):
+        frappe.set_user("Administrator")
+        self.shop.reload()
+        self.shop.order_response_minutes = 1
+        self.shop.save()
+        frappe.set_user(self.customer.name)
+        order = self.place(key="expiring-order")
+        frappe.db.set_value(
+            "LC Order",
+            order["name"],
+            "creation",
+            add_to_date(now_datetime(), minutes=-2),
+            update_modified=False,
+        )
+
+        orders.expire_requested_orders()
+
+        expired = frappe.get_doc("LC Order", order["name"])
+        self.assertEqual(expired.status, "Cancelled")
+        self.assertEqual(expired.reason, "Shop response timeout")
+        stock = owner.balance(self.item, self.warehouse.name)
+        self.assertEqual(stock["order_reserved"], 0)
+        self.assertEqual(stock["available"], 5)
+        customer_feed = notifications.list_notifications()
+        self.assertIn("expired", customer_feed["items"][0]["title"].lower())
 
     def test_replay_payload_and_postal_code_does_not_limit_delivery(self):
         self.place()

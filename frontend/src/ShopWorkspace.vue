@@ -44,7 +44,7 @@ async function save() {
   const current = request
   try {
     const s = shop.value
-    const values = { shop: s.name, shop_name: s.shop_name, status: s.status, description: s.description || '' }
+    const values = { shop: s.name, shop_name: s.shop_name, status: s.status, description: s.description || '', order_response_minutes: s.order_response_minutes || 10 }
     if (canEditLocation.value) Object.assign(values, { address_line1: s.address_line1 || '', city: s.city || '', postal_code: s.postal_code || '', latitude: s.latitude ?? '', longitude: s.longitude ?? '', service_radius_km: s.service_radius_km || 5, live_tracking_enabled: s.live_tracking_enabled ? 1 : 0 })
     const result = await call('shops.update_shop', values, true)
     if (current === request) { shop.value = result; saved.value = 'Shop settings saved.' }
@@ -102,6 +102,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
             <label>Company<input :value="shop.company" disabled></label>
             <label>Status<select v-model="shop.status"><option>Draft</option><option>Active</option><option>Temporarily Closed</option><option>Disabled</option></select></label>
             <label>Description<textarea v-model="shop.description"></textarea></label>
+            <label>Order response time (minutes)<input v-model.number="shop.order_response_minutes" type="number" min="1" max="120" step="1" required><small>New orders cancel automatically if nobody responds within this time.</small></label>
             <section class="location-editor">
               <div class="location-heading"><div><span class="eyebrow">DELIVERY MAP</span><h3>Shop address &amp; service area</h3><p>{{ canEditLocation ? 'Place the shop pin and set how far your riders deliver.' : 'A platform administrator manages this shop location.' }}</p></div><button v-if="canEditLocation" type="button" :disabled="locating" @click="useShopLocation">{{ locating ? 'Finding…' : 'Use current location' }}</button></div>
               <label>Street address<input v-model="shop.address_line1" :disabled="!canEditLocation" maxlength="140" autocomplete="street-address"></label>

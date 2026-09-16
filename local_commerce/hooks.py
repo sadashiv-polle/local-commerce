@@ -6,6 +6,12 @@ app_email = "maintainers@example.invalid"
 app_license = "MIT"
 required_apps = ["erpnext"]
 
+scheduler_events = {
+    "cron": {
+        "* * * * *": ["local_commerce.services.orders.expire_requested_orders"],
+    }
+}
+
 before_install = "local_commerce.install.before_install"
 after_install = "local_commerce.install.after_install"
 after_migrate = "local_commerce.install.after_migrate"

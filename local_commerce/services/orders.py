@@ -7,7 +7,7 @@ from contextvars import ContextVar
 from html import escape
 
 import frappe
-from frappe.utils import getdate, now_datetime, nowdate, time_diff_in_seconds
+from frappe.utils import add_to_date, getdate, now_datetime, nowdate, time_diff_in_seconds
 
 from local_commerce.permissions.policy import can_access_shop
 from local_commerce.permissions.scope import identity, memberships, require_shop, shop_query
@@ -101,6 +101,12 @@ def default_delivery_account(company):
 
 
 def validate_delivery(doc, method=None):
+    response_minutes = checked_number(
+        doc.order_response_minutes or 10, "Order response time", positive=True
+    )
+    if response_minutes != response_minutes.to_integral_value() or response_minutes > 120:
+        reject("Enter a whole order response time from 1 to 120 minutes")
+    doc.order_response_minutes = int(response_minutes)
     try:
         location = point(doc.latitude, doc.longitude)
     except ValueError as exc:
@@ -534,12 +540,19 @@ def serialize(doc):
     is_customer = (
         frappe.session.user != "Guest" and doc.customer_user == frappe.session.user
     )
+    response_deadline = add_to_date(
+        doc.creation, minutes=int(shop.order_response_minutes or 10)
+    )
     return {
         "name": doc.name,
         "shop": doc.shop,
         "shop_name": frappe.db.get_value("LC Shop", doc.shop, "shop_name"),
         "status": doc.status,
         "created": str(doc.creation),
+        "response_deadline": str(response_deadline),
+        "response_seconds_remaining": max(
+            0, int(time_diff_in_seconds(response_deadline, now_datetime()))
+        ),
         "recipient": doc.recipient,
         "phone": doc.phone,
         "address": json.loads(doc.address_snapshot),
@@ -1177,6 +1190,41 @@ def change(order, target, reason=""):
     finally:
         _owner_operation.reset(owner_token)
         _order_operation.reset(token)
+
+
+def expire_requested_orders():
+    """Cancel unanswered requests; scheduler runs this once per minute."""
+    names = frappe.db.sql_list(
+        """
+        select o.name
+        from `tabLC Order` o
+        inner join `tabLC Shop` s on s.name=o.shop
+        where o.status='Requested'
+          and timestampadd(
+            minute,
+            coalesce(nullif(s.order_response_minutes, 0), 10),
+            o.creation
+          ) <= %s
+        order by o.creation asc
+        limit 200
+        """,
+        now_datetime(),
+    )
+    original_user = frappe.session.user
+    try:
+        frappe.set_user("Administrator")
+        for name in names:
+            try:
+                change(name, "Cancelled", "Shop response timeout")
+            except frappe.ValidationError:
+                # An owner may have handled the order while this job waited for its lock.
+                if frappe.db.get_value("LC Order", name, "status") == "Requested":
+                    frappe.log_error(
+                        title="Local Commerce order expiry failed",
+                        message=f"Could not expire requested order {name}",
+                    )
+    finally:
+        frappe.set_user(original_user)
 
 
 def permission(doc, user=None, permission_type=None, **kwargs):

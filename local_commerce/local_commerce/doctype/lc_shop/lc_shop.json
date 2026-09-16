@@ -12,6 +12,7 @@
     "company_currency",
     "status",
     "description",
+    "order_response_minutes",
     "location_section",
     "address_line1",
     "city",
@@ -80,6 +81,14 @@
       "fieldname": "description",
       "label": "Description",
       "fieldtype": "Small Text"
+    },
+    {
+      "fieldname": "order_response_minutes",
+      "label": "Order Response Time (minutes)",
+      "fieldtype": "Int",
+      "default": "10",
+      "reqd": 1,
+      "description": "Unanswered orders are cancelled automatically after this time."
     },
     {
       "fieldname": "location_section",

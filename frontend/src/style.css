@@ -113,6 +113,7 @@ html { scroll-behavior: smooth; }
 #lc-app .incoming-order-card > header > div { display: grid; gap: 3px; }
 #lc-app .incoming-order-card > header .eyebrow { color: #bde0c7; }
 #lc-app .incoming-order-card > header time { margin-left: auto; padding: 8px 12px; border-radius: 18px; color: #17392c; background: #f9d760; font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; }
+#lc-app .incoming-order-card > header.urgent, #lc-app .incoming-order-minimized.urgent { background: #963f31; }
 #lc-app .incoming-minimize { display: grid; place-items: center; gap: 0; padding: 4px 7px; border: 0; color: white; background: transparent; font-size: 20px; }
 #lc-app .incoming-minimize small { font-size: 8px; font-weight: 650; }
 #lc-app .incoming-pulse { width: 13px; height: 13px; border-radius: 50%; background: #f9d760; box-shadow: 0 0 0 0 #f9d76088; animation: incoming-pulse 1.4s infinite; }

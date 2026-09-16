@@ -31,6 +31,7 @@ def get_shop(shop):
             "company",
             "status",
             "description",
+            "order_response_minutes",
             "address_line1",
             "city",
             "postal_code",
@@ -57,10 +58,21 @@ def update_shop(
     longitude=None,
     service_radius_km=None,
     live_tracking_enabled=None,
+    order_response_minutes=10,
 ):
     require_shop(shop, "write")
     doc = frappe.get_doc("LC Shop", shop)
     doc.shop_name, doc.status, doc.description = shop_name, status, description
+    try:
+        response_minutes = int(order_response_minutes)
+    except (TypeError, ValueError):
+        reject("Enter an order response time from 1 to 120 minutes")
+    if not 1 <= response_minutes <= 120 or str(order_response_minutes).strip() not in {
+        str(response_minutes),
+        f"{response_minutes}.0",
+    }:
+        reject("Enter a whole order response time from 1 to 120 minutes")
+    doc.order_response_minutes = response_minutes
     if address_line1 is not None:
         require_platform()
         try:
