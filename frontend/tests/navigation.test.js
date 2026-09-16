@@ -18,3 +18,12 @@ test('unsafe destinations fall back to the role default', () => {
   assert.equal(loginDestination(session(['LC Delivery Person']), '//example.com'), '/delivery')
   assert.equal(loginDestination(session(['LC Shop Owner']), 'https://example.com'), '/shop')
 })
+
+test('platform administrators default to the master dashboard and keep explicit admin links', () => {
+  const admin = { user: 'admin@example.com', platform_admin: true, roles: ['LC Platform Administrator'] }
+  assert.equal(defaultPage(admin), '/admin')
+  assert.equal(loginDestination(admin, '/store'), '/admin')
+  assert.equal(loginDestination(admin, '/admin/inventory?shop=abc'), '/admin/inventory?shop=abc')
+  assert.equal(loginDestination(admin, '/store-settings'), '/store-settings')
+  assert.equal(loginDestination(admin, '//example.com/admin'), '/admin')
+})

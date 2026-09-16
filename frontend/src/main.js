@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import App from './App.vue'
+import AdminDashboard from './AdminDashboard.vue'
 import Shops from './Shops.vue'
 import ShopWorkspace from './ShopWorkspace.vue'
 import Store from './Store.vue'
@@ -27,6 +28,8 @@ const router = createRouter({ history: createWebHashHistory(), scrollBehavior: (
   { path: '/account', component: Account },
   { path: '/favourites', component: Favourites },
   { path: '/delivery', component: Delivery },
+  { path: '/admin', component: AdminDashboard },
+  { path: '/admin/:section', component: AdminDashboard },
   { path: '/shop', component: Shops },
   { path: '/shop/:shop', name: 'shop-workspace', component: ShopWorkspace },
   { path: '/:pathMatch(.*)*', redirect: '/' },
