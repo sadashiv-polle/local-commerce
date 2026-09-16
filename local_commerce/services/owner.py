@@ -145,9 +145,41 @@ def configure(shop, warehouse, account, cost_center):
     return setup_options(shop)
 
 
-def balance(item, warehouse, lock=False):
+def requested_reservations(warehouse, items=None, exclude_order=None):
     if not warehouse:
-        return {"actual": 0, "reserved": 0, "available": 0}
+        return {}
+    conditions = ["o.status='Requested'", "so.docstatus=0", "soi.warehouse=%s"]
+    values = [warehouse]
+    if items:
+        conditions.append("soi.item_code in (" + ",".join(["%s"] * len(items)) + ")")
+        values.extend(items)
+    if exclude_order:
+        conditions.append("o.name!=%s")
+        values.append(exclude_order)
+    rows = frappe.db.sql(
+        """
+        select soi.item_code, coalesce(sum(soi.stock_qty), 0) as quantity
+        from `tabLC Order` o
+        inner join `tabSales Order` so on so.name=o.sales_order
+        inner join `tabSales Order Item` soi on soi.parent=so.name
+        where {conditions}
+        group by soi.item_code
+        """.format(conditions=" and ".join(conditions)),
+        tuple(values),
+        as_dict=True,
+    )
+    return {row.item_code: float(row.quantity or 0) for row in rows}
+
+
+def balance(item, warehouse, lock=False, exclude_order=None):
+    if not warehouse:
+        return {
+            "actual": 0,
+            "reserved": 0,
+            "erpnext_reserved": 0,
+            "order_reserved": 0,
+            "available": 0,
+        }
     fields = [
         "actual_qty",
         "reserved_qty",
@@ -172,18 +204,26 @@ def balance(item, warehouse, lock=False):
             as_dict=True,
         )
         row = rows[0] if rows else {}
-    return stock_summary(row, fields)
+    requested = requested_reservations(warehouse, [item], exclude_order).get(item, 0)
+    return stock_summary(row, fields, requested)
 
 
-def stock_summary(row, fields):
+def stock_summary(row, fields, order_reserved=0):
     actual = float(row.get("actual_qty") or 0)
     # Conservative: explicit reservations can overlap Sales Order reservations.
     # Never advertise more than the amount left by either representation.
     commitments = sum(
         float(row.get(f) or 0) for f in fields if f not in ("actual_qty", "reserved_stock")
     )
-    reserved = max(commitments, float(row.get("reserved_stock") or 0))
-    return {"actual": actual, "reserved": reserved, "available": max(0, actual - reserved)}
+    erpnext_reserved = max(commitments, float(row.get("reserved_stock") or 0))
+    reserved = erpnext_reserved + float(order_reserved or 0)
+    return {
+        "actual": actual,
+        "reserved": reserved,
+        "erpnext_reserved": erpnext_reserved,
+        "order_reserved": float(order_reserved or 0),
+        "available": max(0, actual - reserved),
+    }
 
 
 def get_price(shop, item):
@@ -317,13 +357,14 @@ def catalog(shop, start=0, search="", status="All"):
             if row.item_code in prices:
                 reject("Multiple selling prices exist; ask your administrator to resolve them")
             prices[row.item_code] = row
+    pending = requested_reservations(doc.warehouse, names)
     currency = frappe.db.get_value("Company", doc.company, "default_currency")
     return {
         "items": [
             serialize_product(
                 doc,
                 item,
-                stock_summary(bins.get(item.name, {}), stock_fields),
+                stock_summary(bins.get(item.name, {}), stock_fields, pending.get(item.name, 0)),
                 prices.get(item.name),
                 currency,
             )

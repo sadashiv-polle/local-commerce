@@ -106,11 +106,16 @@ class TestDeliveryOrders(FrappeTestCase):
         self.assertEqual(so.docstatus, 0)
         self.assertEqual(so.items[0].rate, 20)
         self.assertEqual(so.company, self.shop.company)
+        requested_stock = owner.balance(self.item, self.warehouse.name)
+        self.assertEqual(requested_stock["order_reserved"], 2)
+        self.assertEqual(requested_stock["available"], 3)
         frappe.set_user(self.user.name)
         orders.change(order["name"], "Accepted")
         so.reload()
         self.assertEqual(so.docstatus, 1)
-        self.assertGreaterEqual(owner.balance(self.item, self.warehouse.name)["reserved"], 2)
+        accepted_stock = owner.balance(self.item, self.warehouse.name)
+        self.assertEqual(accepted_stock["order_reserved"], 0)
+        self.assertGreaterEqual(accepted_stock["reserved"], 2)
         orders.change(order["name"], "Preparing")
         self.assertEqual(orders.change(order["name"], "Ready")["status"], "Ready")
         orders.change(order["name"], "Cancelled", "Customer requested cancellation")
@@ -131,6 +136,9 @@ class TestDeliveryOrders(FrappeTestCase):
         self.assertEqual(
             orders.change(order["name"], "Cancelled", "No longer required")["status"], "Cancelled"
         )
+        released_stock = owner.balance(self.item, self.warehouse.name)
+        self.assertEqual(released_stock["order_reserved"], 0)
+        self.assertEqual(released_stock["available"], 5)
 
     def test_order_notifications_are_scoped_and_readable(self):
         order = self.place()
@@ -160,6 +168,8 @@ class TestDeliveryOrders(FrappeTestCase):
         self.address["postal_code"] = "999999"
         placed = self.place(key="different-postal-code")
         self.assertEqual(placed["address"]["postal_code"], "999999")
+        with self.assertRaisesRegex(frappe.ValidationError, "Not enough available stock"):
+            self.place(key="reservation-prevents-oversell", quantity=2)
 
     def test_shop_radius_requires_and_checks_customer_map_pin(self):
         frappe.set_user("Administrator")

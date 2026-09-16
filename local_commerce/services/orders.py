@@ -1157,7 +1157,7 @@ def change(order, target, reason=""):
                 if item.lc_shop != doc.shop or item.disabled or item.lc_sold_out:
                     reject("An order product is no longer available")
                 company_link("Warehouse", row.warehouse, so.company, {"is_group": 0, "disabled": 0})
-                stock = balance(row.item_code, row.warehouse, lock=True)
+                stock = balance(row.item_code, row.warehouse, lock=True, exclude_order=doc.name)
                 if row.stock_qty > stock["available"]:
                     reject("Not enough available stock to accept this order")
             so.submit()
