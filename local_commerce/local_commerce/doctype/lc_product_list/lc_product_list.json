@@ -1,8 +1,8 @@
 {
   "doctype": "DocType",
-  "name": "LC Store Settings",
+  "name": "LC Product List",
   "module": "Local Commerce",
-  "issingle": 1,
+  "issingle": 0,
   "field_order": [
     "enabled",
     "mode",
@@ -51,5 +51,7 @@
       "write": 1,
       "create": 1
     }
-  ]
+  ],
+  "autoname": "hash",
+  "title_field": "title"
 }

@@ -15,7 +15,7 @@ def validate_settings(doc):
     names = [row.item for row in doc.products]
     if len(set(names)) != len(names):
         reject("A product can only be selected once")
-    for name in names if doc.mode == "Selected" else []:
+    for name in names if doc.mode == "Selected" and doc.enabled else []:
         shop = frappe.db.get_value("Item", name, "lc_shop")
         if not shop:
             reject("Select products belonging to a shop")
@@ -58,9 +58,8 @@ def configure(mode, title="Picked for you", random_count=6, products=None):
     return settings()
 
 
-def featured():
-    doc = frappe.get_single("LC Store Settings")
-    if doc.mode not in {"Selected", "Random"}:
+def _featured_section(doc):
+    if not doc.enabled or doc.mode not in {"Selected", "Random"}:
         return {"title": doc.title or "Picked for you", "items": []}
     names = [row.item for row in doc.products]
     if doc.mode == "Random":
@@ -89,6 +88,106 @@ def featured():
             continue
         result.append({**product, "shop": item.lc_shop, "shop_name": shop_name})
     return {"title": doc.title or "Picked for you", "items": result}
+
+
+def featured():
+    default = _featured_section(frappe.get_single("LC Store Settings"))
+    sections = [{**default, "name": "default"}] if default["items"] else []
+    for name in frappe.get_all(
+        "LC Product List",
+        filters={"enabled": 1},
+        pluck="name",
+        order_by="creation asc",
+        limit_page_length=10,
+    ):
+        section = _featured_section(frappe.get_doc("LC Product List", name))
+        if section["items"]:
+            sections.append({**section, "name": name})
+    return {**default, "sections": sections}
+
+
+def saved_lists():
+    require_platform()
+    default = frappe.get_single("LC Store Settings")
+    rows = frappe.get_all(
+        "LC Product List",
+        fields=["name", "title", "enabled", "mode"],
+        order_by="creation asc",
+        limit_page_length=0,
+    )
+    for row in rows:
+        row.enabled = bool(row.enabled and row.mode != "Disabled")
+    return [
+        {
+            "name": "default",
+            "title": default.title or "Default list",
+            "enabled": bool(default.enabled and default.mode != "Disabled"),
+        },
+        *rows,
+    ]
+
+
+def get_list(name):
+    require_platform()
+    if name == "default":
+        return settings()
+    doc = frappe.get_doc("LC Product List", name)
+    return {
+        "name": doc.name,
+        "mode": doc.mode,
+        "title": doc.title,
+        "enabled": bool(doc.enabled),
+        "random_count": doc.random_count,
+        "products": [
+            {
+                "item": row.item,
+                "item_name": frappe.db.get_value("Item", row.item, "item_name") or row.item,
+            }
+            for row in doc.products
+        ],
+    }
+
+
+def save_list(name, mode, title, random_count=6, products=None):
+    require_platform()
+    if name == "default":
+        return configure(mode, title, random_count, products)
+    names = frappe.parse_json(products) if isinstance(products, str) else products
+    if not isinstance(names, list) or any(not isinstance(item, str) for item in names):
+        reject("Select a list of products")
+    if name:
+        doc = frappe.get_doc("LC Product List", name)
+    else:
+        if frappe.db.count("LC Product List") >= 10:
+            reject("You can save up to 10 product lists")
+        doc = frappe.new_doc("LC Product List")
+        doc.enabled = 0
+    try:
+        count = int(random_count)
+    except (ValueError, TypeError):
+        reject("Choose a whole number from 1 to 24")
+    if str(random_count) not in {str(count), f"{count}.0"}:
+        reject("Choose a whole number from 1 to 24")
+    doc.update({"mode": mode, "title": title, "random_count": count})
+    doc.set("products", [{"item": item} for item in names])
+    doc.save()
+    return get_list(doc.name)
+
+
+def toggle_list(name, enabled):
+    require_platform()
+    if str(enabled) not in {"0", "1"}:
+        reject("Invalid list visibility")
+    doc = (
+        frappe.get_single("LC Store Settings")
+        if name == "default"
+        else frappe.get_doc("LC Product List", name)
+    )
+    doc.enabled = int(enabled)
+    if doc.enabled and doc.mode == "Disabled":
+        doc.mode = "Selected"
+    doc.save()
+    return saved_lists()
 
 
 def product_options(search="", start=0):

@@ -433,6 +433,27 @@ class TestDeliveryOrders(FrappeTestCase):
         frappe.set_user("Guest")
         self.assertFalse(storefront.featured()["items"])
 
+    def test_multiple_storefront_lists_reuse_products_and_toggle_independently(self):
+        from local_commerce.services import storefront
+
+        frappe.set_user("Administrator")
+        storefront.configure("Disabled", "Original", 3, [])
+        first = storefront.save_list("", "Selected", "Fish favourites", 3, [self.item])
+        second = storefront.save_list("", "Selected", "Fresh today", 3, [self.item])
+        self.assertNotEqual(first["name"], second["name"])
+        self.assertFalse(storefront.featured()["sections"])
+        storefront.toggle_list(first["name"], 1)
+        storefront.toggle_list(second["name"], 1)
+        frappe.set_user("Guest")
+        self.assertEqual(len(storefront.featured()["sections"]), 2)
+        frappe.set_user("Administrator")
+        storefront.toggle_list(first["name"], 0)
+        self.assertEqual(len(storefront.featured()["sections"]), 1)
+        self.assertEqual(storefront.get_list(first["name"])["products"][0]["item"], self.item)
+        frappe.set_user(self.user.name)
+        with self.assertRaises(frappe.PermissionError):
+            storefront.toggle_list(second["name"], 0)
+
     def test_catalog_returns_item_image(self):
         frappe.set_user("Administrator")
         frappe.db.set_value("Item", self.item, "image", "/files/catalog-product.png")

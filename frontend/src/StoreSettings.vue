@@ -4,8 +4,23 @@ import { call } from './api.js'
 import AdminWorkspaceTabs from './AdminWorkspaceTabs.vue'
 const session = inject('session'), settings = ref(null), search = ref(''), results = ref([]), busy = ref(false), error = ref(''), message = ref('')
 const searchInput = ref(null), pickerLoading = ref(false), pickerError = ref(''), start = ref(0), hasMore = ref(false)
+const lists = ref([]), activeList = ref('default')
 let timer, generation = 0
-async function load() { try { settings.value = await call('storefront.settings') } catch (e) { error.value = e.message } }
+async function refreshLists() { lists.value = await call('storefront.saved_lists') }
+async function editList(name) {
+  busy.value = true; error.value = ''; message.value = ''
+  try { settings.value = await call('storefront.get_list', { name }); activeList.value = name; search.value = ''; start.value = 0; if (settings.value.mode === 'Selected') find() }
+  catch (e) { error.value = e.message } finally { busy.value = false }
+}
+function newList() {
+  activeList.value = ''; settings.value = { mode: 'Selected', title: '', random_count: 6, products: [] }; search.value = ''; message.value = ''; start.value = 0; find()
+}
+async function toggleList(list) {
+  busy.value = true; error.value = ''
+  try { lists.value = await call('storefront.toggle_list', { name: list.name, enabled: list.enabled ? 0 : 1 }, true); if (activeList.value === list.name && !list.enabled && settings.value.mode === 'Disabled') settings.value.mode = 'Selected' }
+  catch (e) { error.value = e.message } finally { busy.value = false }
+}
+async function load() { try { settings.value = await call('storefront.settings'); await refreshLists() } catch (e) { error.value = e.message } }
 async function find(delta = 0) {
   const current = ++generation
   start.value = Math.max(0, start.value + delta); pickerLoading.value = true; pickerError.value = ''
@@ -26,7 +41,7 @@ async function select(item) {
   else { start.value = 0; find() }
   await nextTick(); searchInput.value?.focus()
 }
-async function save() { busy.value = true; error.value = ''; message.value = ''; try { settings.value = await call('storefront.configure', { mode: settings.value.mode, title: settings.value.title, random_count: settings.value.random_count, products: settings.value.products.map(item => item.item) }, true); message.value = 'Public store updated.' } catch (e) { error.value = e.message } finally { busy.value = false } }
+async function save() { busy.value = true; error.value = ''; message.value = ''; try { settings.value = await call('storefront.save_list', { name: activeList.value, mode: settings.value.mode, title: settings.value.title, random_count: settings.value.random_count, products: settings.value.products.map(item => item.item) }, true); if (settings.value.name) activeList.value = settings.value.name; await refreshLists(); message.value = 'List saved. Use its toggle to show or hide it on the public store.' } catch (e) { error.value = e.message } finally { busy.value = false } }
 watch(search, scheduleSearch)
 watch(() => settings.value?.mode, mode => {
   window.clearTimeout(timer); generation++
@@ -39,7 +54,9 @@ onBeforeUnmount(() => { window.clearTimeout(timer); generation++ })
   <section class="store-page storefront-settings">
     <AdminWorkspaceTabs /><RouterLink to="/shop">← Shop workspace</RouterLink><h1>Storefront products</h1><p class="muted">Choose the products customers see above the shop directory.</p>
     <p v-if="!session.platform_admin" class="lc-notice">Platform administrator access is required.</p><p v-if="error" role="alert" class="lc-notice">{{ error }}</p><p v-if="message" role="status" class="success-note">{{ message }}</p>
+    <section v-if="session.platform_admin" class="saved-product-lists"><header class="section-title"><h2>Saved product lists</h2><button type="button" :disabled="busy || lists.length >= 11" @click="newList">+ New list</button></header><p class="muted">Reuse products in different lists. Each enabled list appears as its own row.</p><article v-for="list in lists" :key="list.name" :class="{ editing: activeList === list.name }"><button type="button" class="saved-list-name" :disabled="busy" @click="editList(list.name)">{{ list.title }}<small>{{ list.name === 'default' ? 'Original list' : list.mode }}</small></button><button type="button" class="saved-list-toggle" :class="{ enabled: list.enabled }" :disabled="busy" :aria-pressed="!!list.enabled" @click="toggleList(list)">{{ list.enabled ? 'Shown · Turn off' : 'Hidden · Turn on' }}</button></article></section>
     <form v-if="settings" class="lc-form" @submit.prevent="save">
+      <h2>{{ activeList ? 'Edit product list' : 'Create a new list' }}</h2>
       <fieldset :disabled="busy">
         <label>Display mode<select v-model="settings.mode"><option>Disabled</option><option>Selected</option><option>Random</option></select></label>
         <label>Section title<input v-model="settings.title" maxlength="80" required></label>
@@ -57,7 +74,7 @@ onBeforeUnmount(() => { window.clearTimeout(timer); generation++ })
           <h3>Selected products · {{ settings.products.length }}/24</h3><p class="muted">Products appear in the order you select them.</p>
           <div class="featured-selection"><article v-for="item in settings.products" :key="item.item"><strong>{{ item.item_name }}</strong><button type="button" @click="settings.products = settings.products.filter(row => row.item !== item.item)">Remove</button></article></div>
         </template>
-        <button type="submit" class="lc-primary">{{ busy ? 'Saving…' : 'Save public store' }}</button>
+        <button type="submit" class="lc-primary">{{ busy ? 'Saving…' : 'Save list' }}</button>
       </fieldset>
     </form>
   </section>
