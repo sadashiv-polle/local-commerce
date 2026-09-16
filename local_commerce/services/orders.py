@@ -325,6 +325,61 @@ def product_data(shop, item, browsing=False):
     }
 
 
+def search_products(search, start=0, latitude=None, longitude=None):
+    search = str(search or "").strip()[:140]
+    start = offset(start)
+    if len(search) < 2:
+        return {"items": [], "has_more": False}
+    try:
+        destination = point(latitude, longitude)
+    except ValueError as exc:
+        reject(str(exc))
+    rows = frappe.get_all("LC Shop", filters={"status": "Active"},
+                          fields=[*SHOP_LISTING_FIELDS, "service_radius_km"],
+                          limit_page_length=1001)
+    if len(rows) > 1000:
+        reject("Too many shops for product search; please search inside a shop")
+    public_shops = {}
+    for row in rows:
+        public = serialize_public_shop(row)
+        match = delivery_match(public.location, destination, float(public.service_radius_km or 0),
+                               public.accepting_orders) if destination else None
+        public_shops[public.name] = {"shop": public.name, "shop_name": public.shop_name,
+            "accepting_orders": public.accepting_orders,
+            "distance_km": match["distance_km"] if match else None,
+            "serviceable": match["serviceable"] if match else None,
+            "serviceability_message": match["message"] if match else
+                "Choose a delivery address to check availability"}
+    if not public_shops:
+        return {"items": [], "has_more": False}
+    candidates = frappe.get_all("Item", filters={"lc_shop": ["in", list(public_shops)],
+        "disabled": 0, "is_stock_item": 1, "has_batch_no": 0, "has_serial_no": 0,
+        "has_variants": 0, "variant_of": ["is", "not set"]},
+        or_filters={"item_name": ["like", f"%{search}%"], "name": ["like", f"%{search}%"]},
+        fields=["name", "lc_shop", "item_name"], limit_page_length=2001)
+    if len(candidates) > 2000:
+        reject("Too many matching items. Try a more specific product name")
+    candidates.sort(key=lambda item: (
+        public_shops[item.lc_shop]["serviceable"] is False,
+        public_shops[item.lc_shop]["distance_km"] is None,
+        public_shops[item.lc_shop]["distance_km"] or 0,
+        item.item_name.lower(), item.name))
+    items, shop_docs = [], {}
+    for row in candidates[start:start + 20]:
+        if row.lc_shop not in shop_docs:
+            shop_docs[row.lc_shop] = public_shop(row.lc_shop, browsing=True)
+        product = product_data(
+            shop_docs[row.lc_shop], frappe.get_doc("Item", row.name), browsing=True
+        )
+        items.append({**product, **public_shops[row.lc_shop]})
+    return {"items": items, "has_more": len(candidates) > start + 20}
+
+
+def public_product(shop, item):
+    doc = public_shop(shop, browsing=True)
+    return product_data(doc, frappe.get_doc("Item", item), browsing=True)
+
+
 def catalog(shop, start=0, search="", category="", in_stock=0):
     doc = public_shop(shop, browsing=True)
     location = shop_location(doc)

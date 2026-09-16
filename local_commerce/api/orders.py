@@ -100,3 +100,14 @@ def quote(shop, items, latitude=None, longitude=None):
 @rate_limit(limit=120, seconds=3600)
 def reorder_preview(order):
     return orders.reorder_preview(order)
+
+
+@frappe.whitelist(allow_guest=True, methods=["GET"])
+@rate_limit(limit=300, seconds=3600)
+def search_products(search, start=0, latitude=None, longitude=None):
+    return orders.search_products(search, start, latitude, longitude)
+
+
+@frappe.whitelist(allow_guest=True, methods=["GET"])
+def product(shop, item):
+    return orders.public_product(shop, item)

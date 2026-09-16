@@ -8,7 +8,7 @@ import { readCart, writeCart, clearCart, changeQuantity } from './cart.js'
 import { distanceKm } from './location.js'
 const route = useRoute(), router = useRouter(), session = inject('session')
 const search = ref(''), category = ref(''), inStockOnly = ref(false)
-let searchTimer, catalogGeneration = 0
+let searchTimer, catalogGeneration = 0, openedProduct = ''
 const catalog = ref(null), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
 const cart = ref({}), pending = ref(null), checkout = ref(false), cartOpen = ref(false)
 const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '', latitude: null, longitude: null, delivery_instructions: '' })
@@ -60,6 +60,13 @@ async function load(delta = 0) {
     const result = await call('orders.catalog', { shop: route.params.shop, start: start.value, search: search.value, category: category.value, in_stock: inStockOnly.value ? 1 : 0 })
     if (generation !== catalogGeneration) return
     catalog.value = result
+    if (route.query.item && openedProduct !== `${route.params.shop}:${route.query.item}`) {
+      const product = await call('orders.product', { shop: route.params.shop, item: route.query.item })
+      if (generation === catalogGeneration) {
+        openedProduct = `${route.params.shop}:${route.query.item}`
+        await openProduct(product)
+      }
+    }
     for (const item of catalog.value.items) {
       if (cart.value[item.item]) cart.value[item.item] = { ...cart.value[item.item], image: item.image || '' }
     }
@@ -145,7 +152,7 @@ async function place() {
     if ([400, 403, 417].includes(e.status)) { sessionStorage.removeItem(storageKey.value); pending.value = null }
   } finally { busy.value = false }
 }
-watch(() => route.params.shop, () => {
+watch(() => [route.params.shop, route.query.item], () => {
   search.value = ''; category.value = ''; inStockOnly.value = false
   start.value = 0; pending.value = null; cartOpen.value = false; checkout.value = false
   try {

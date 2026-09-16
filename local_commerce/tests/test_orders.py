@@ -355,6 +355,26 @@ class TestDeliveryOrders(FrappeTestCase):
         with self.assertRaises(frappe.PermissionError):
             orders.reorder_preview(order["name"])
 
+    def test_home_product_search_is_public_and_excludes_disabled_items(self):
+        frappe.set_user("Guest")
+        item = frappe.get_doc("Item", self.item)
+        result = orders.search_products(item.item_name)
+        product = next(row for row in result["items"] if row["item"] == self.item)
+        self.assertEqual(product["shop"], self.shop.name)
+        self.assertEqual(product["rate"], 20)
+        self.assertIsNone(product["serviceable"])
+        located = orders.search_products(
+            item.item_name, latitude=self.address["latitude"], longitude=self.address["longitude"]
+        )
+        product = next(row for row in located["items"] if row["item"] == self.item)
+        self.assertTrue(product["serviceable"])
+        self.assertFalse(orders.search_products("x")["items"])
+        frappe.set_user("Administrator")
+        frappe.db.set_value("Item", self.item, "disabled", 1)
+        frappe.set_user("Guest")
+        result = orders.search_products(item.item_name)
+        self.assertNotIn(self.item, [row["item"] for row in result["items"]])
+
     def test_catalog_returns_item_image(self):
         frappe.set_user("Administrator")
         frappe.db.set_value("Item", self.item, "image", "/files/catalog-product.png")

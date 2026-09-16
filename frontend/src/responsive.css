@@ -170,3 +170,21 @@
 #lc-app .reorder-lines article > div { display: grid; min-width: 0; flex: 1; overflow-wrap: anywhere; }
 #lc-app .reorder-lines small { color: #748174; }
 @media (max-width: 600px) { #lc-app .reorder-dialog { padding: 22px; } }
+#lc-app .home-product-search { display: grid; gap: 18px; margin: 28px 0 34px; }
+#lc-app .home-product-search > .product-search { padding-inline: 16px; border-radius: 16px; background: white; box-shadow: var(--lc-shadow); }
+#lc-app .home-search-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
+#lc-app .home-search-product { display: flex; flex-direction: column; min-width: 0; padding: 16px; }
+#lc-app .home-search-product .product-art { height: 160px; background: #fafcf8; }
+#lc-app .home-search-product h3 { margin: 9px 0; font-size: 17px; }
+#lc-app .search-shop-name { margin-top: 13px; color: #6b7b6c; font-size: 11px; }
+#lc-app .home-search-product > strong small { color: #7b867a; font-weight: 400; font-size: 11px; }
+#lc-app .home-search-product .search-stock { margin: 7px 0; font-size: 11px; color: #586e57; }
+#lc-app .home-search-product .serviceability-line { margin-bottom: 0; }
+#lc-app .home-search-product .lc-card-link { margin-top: auto; padding-top: 16px; }
+@media (max-width: 600px) {
+  #lc-app .home-search-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  #lc-app .home-search-product { padding: 12px; }
+  #lc-app .home-search-product .product-art { height: 120px; }
+  #lc-app .home-search-product h3 { font-size: 15px; }
+  #lc-app .home-product-search .section-title { align-items: start; }
+}
