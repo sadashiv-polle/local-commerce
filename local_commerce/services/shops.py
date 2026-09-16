@@ -7,6 +7,23 @@ from local_commerce.services.owner import checked_number, reject
 from local_commerce.services.shop_hours import DAYS, availability, normalize
 
 
+def _set_hours(doc, accepting_orders, opening_hours):
+    try:
+        schedule = normalize(frappe.parse_json(opening_hours)) if opening_hours else []
+    except (TypeError, ValueError) as exc:
+        reject(str(exc))
+    doc.accepting_orders = accepting_orders in (True, 1, "1", "true", "True")
+    doc.opening_hours_json = frappe.as_json(schedule) if schedule else ""
+
+
+def update_hours(shop, accepting_orders, opening_hours):
+    require_shop(shop, "write")
+    doc = frappe.get_doc("LC Shop", shop)
+    _set_hours(doc, accepting_orders, opening_hours)
+    doc.save()
+    return get_shop(shop)
+
+
 def list_shops(start=0, page_length=20):
     start, page_length = int(start), int(page_length)
     if start < 0 or not 1 <= page_length <= 100:
@@ -82,12 +99,7 @@ def update_shop(
     }:
         reject("Enter a whole order response time from 1 to 120 minutes")
     doc.order_response_minutes = response_minutes
-    try:
-        schedule = normalize(frappe.parse_json(opening_hours)) if opening_hours else []
-    except (TypeError, ValueError) as exc:
-        reject(str(exc))
-    doc.accepting_orders = accepting_orders in (True, 1, "1", "true", "True")
-    doc.opening_hours_json = frappe.as_json(schedule) if schedule else ""
+    _set_hours(doc, accepting_orders, opening_hours)
     if address_line1 is not None:
         require_platform()
         try:

@@ -141,8 +141,12 @@ html { scroll-behavior: smooth; }
 #lc-app .shop-hours { display: grid; gap: 10px; padding: 20px; border: 1px solid #dfe7dc; border-radius: 18px; background: #fafbf6; }
 #lc-app .shop-hours-row { display: grid; grid-template-columns: minmax(125px, 1fr) 115px auto 115px; align-items: center; gap: 10px; }
 #lc-app .shop-hours-row .check-label { margin: 0; }
-#lc-app .shop-hours-row input[type="time"] { min-width: 0; }
+#lc-app .shop-hours-row label { min-width: 0; margin: 0; }
+#lc-app .shop-hours-row label small { display: block; color: #738078; font-size: 9px; font-weight: 700; }
+#lc-app .shop-hours-row select { min-width: 0; margin-top: 2px; }
 #lc-app .shop-hours-row > strong { grid-column: 2 / -1; color: #889288; }
+#lc-app .shop-hours-save { display: flex; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid #e0e7dc; }
+#lc-app .shop-hours-save span { color: #176547; font-size: 11px; font-weight: 700; }
 #lc-app .shop-open-status { display: inline-flex; padding: 4px 8px; margin-right: 5px; border-radius: 12px; color: #176547; background: #e1f2df; font-size: 10px; font-weight: 800; }
 #lc-app .shop-open-status.closed { color: #873e33; background: #f7e7e2; }
 @keyframes incoming-pulse { 70% { box-shadow: 0 0 0 11px #f9d76000; } 100% { box-shadow: 0 0 0 0 #f9d76000; } }

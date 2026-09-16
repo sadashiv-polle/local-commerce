@@ -9,9 +9,12 @@ import MapView from './MapView.vue'
 const session = inject('session'), route = useRoute()
 const shop = ref(null), loading = ref(false), error = ref(''), saved = ref(''), saving = ref(false)
 const payment = ref(null), paymentSaved = ref(''), paymentSaving = ref(false)
+const hoursSaving = ref(false), hoursSaved = ref('')
 const tab = ref('inventory')
 const tabs = new Set(['orders', 'cash', 'inventory', 'settings'])
 const locationError = ref(''), locating = ref(false)
+const timeOptions = Array.from({ length: 48 }, (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`)
+function timeLabel(value) { const [hour, minute] = value.split(':').map(Number); return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}` }
 const canEdit = computed(() => shop.value && (session.value.platform_admin || session.value.memberships.some(m => m.shop === shop.value.name && m.membership_role === 'Owner')))
 const canEditLocation = computed(() => shop.value && session.value.platform_admin)
 const shopPoints = computed(() => {
@@ -38,6 +41,17 @@ async function savePayment() {
     paymentSaved.value = 'Cash on Delivery settings saved.'
   } catch (e) { error.value = e.message }
   finally { paymentSaving.value = false }
+}
+async function saveHours() {
+  hoursSaving.value = true; hoursSaved.value = ''; error.value = ''
+  try {
+    const result = await call('shops.update_hours', { shop: shop.value.name, accepting_orders: shop.value.accepting_orders ? 1 : 0, opening_hours: shop.value.opening_hours }, true)
+    shop.value.opening_hours = result.opening_hours
+    shop.value.accepting_orders = result.accepting_orders
+    shop.value.availability = result.availability
+    hoursSaved.value = 'Opening hours saved.'
+  } catch (e) { error.value = e.message }
+  finally { hoursSaving.value = false }
 }
 async function save() {
   saving.value = true; error.value = ''; saved.value = ''
@@ -104,7 +118,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
             <label>Description<textarea v-model="shop.description"></textarea></label>
             <label>Order response time (minutes)<input v-model.number="shop.order_response_minutes" type="number" min="1" max="120" step="1" required><small>New orders cancel automatically if nobody responds within this time.</small></label>
             <label class="check-label"><input v-model="shop.accepting_orders" type="checkbox"><span>Accept new orders<small>Turn this off to pause checkout immediately. Active orders continue normally.</small></span></label>
-            <section class="shop-hours"><div><span class="eyebrow">OPENING HOURS</span><h3>Weekly ordering schedule</h3><p class="muted">Customers can browse at any time. Checkout follows this schedule.</p></div><div v-for="day in shop.opening_hours" :key="day.day" class="shop-hours-row"><label class="check-label"><input v-model="day.enabled" type="checkbox"><span>{{ day.day }}</span></label><template v-if="day.enabled"><input v-model="day.opens" type="time" required aria-label="Opening time"><span>to</span><input v-model="day.closes" type="time" required aria-label="Closing time"></template><strong v-else>Closed</strong></div></section>
+            <section class="shop-hours"><div><span class="eyebrow">OPENING HOURS</span><h3>Weekly ordering schedule</h3><p class="muted">Customers can browse at any time. Checkout follows this schedule.</p></div><div v-for="day in shop.opening_hours" :key="day.day" class="shop-hours-row"><label class="check-label"><input v-model="day.enabled" type="checkbox"><span>{{ day.day }}</span></label><template v-if="day.enabled"><label><small>Opens</small><select v-model="day.opens" required><option v-for="time in timeOptions" :key="time" :value="time">{{ timeLabel(time) }}</option></select></label><span>to</span><label><small>Closes</small><select v-model="day.closes" required><option v-for="time in timeOptions" :key="time" :value="time">{{ timeLabel(time) }}</option></select></label></template><strong v-else>Closed all day</strong></div><div class="shop-hours-save"><button type="button" class="lc-primary" :disabled="hoursSaving" @click="saveHours">{{ hoursSaving ? 'Saving hours…' : 'Save opening hours' }}</button><span v-if="hoursSaved" role="status">✓ {{ hoursSaved }}</span></div></section>
             <section class="location-editor">
               <div class="location-heading"><div><span class="eyebrow">DELIVERY MAP</span><h3>Shop address &amp; service area</h3><p>{{ canEditLocation ? 'Place the shop pin and set how far your riders deliver.' : 'A platform administrator manages this shop location.' }}</p></div><button v-if="canEditLocation" type="button" :disabled="locating" @click="useShopLocation">{{ locating ? 'Finding…' : 'Use current location' }}</button></div>
               <label>Street address<input v-model="shop.address_line1" :disabled="!canEditLocation" maxlength="140" autocomplete="street-address"></label>

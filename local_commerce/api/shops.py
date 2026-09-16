@@ -14,6 +14,11 @@ def get_shop(shop):
 
 
 @frappe.whitelist(methods=["POST"])
+def update_hours(shop, accepting_orders, opening_hours):
+    return shops.update_hours(shop, accepting_orders, opening_hours)
+
+
+@frappe.whitelist(methods=["POST"])
 def update_shop(
     shop,
     shop_name,
