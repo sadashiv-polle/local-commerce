@@ -28,6 +28,7 @@ from local_commerce.services.owner import (
     get_price,
     reject,
 )
+from local_commerce.services.shop_hours import availability as shop_availability
 
 _order_operation = ContextVar("lc_order_operation", default=False)
 _DELIVERY_OTP_ATTEMPTS = 5
@@ -155,6 +156,9 @@ def public_shop(name, browsing=False):
     doc = frappe.get_doc("LC Shop", name)
     if doc.status != "Active" or (not browsing and not doc.delivery_enabled):
         reject("This shop is not accepting delivery requests")
+    hours = shop_availability(doc)
+    if not browsing and not hours["open"]:
+        reject(hours["message"])
     if not browsing:
         validate_delivery(doc)
     return doc
@@ -168,6 +172,10 @@ SHOP_LISTING_FIELDS = [
     "city",
     "latitude",
     "longitude",
+    "delivery_enabled",
+    "cod_enabled",
+    "accepting_orders",
+    "opening_hours_json",
 ]
 
 
@@ -178,6 +186,13 @@ def serialize_public_shop(row):
         row.location = None
     row.pop("latitude", None)
     row.pop("longitude", None)
+    hours = shop_availability(row)
+    row.availability = hours
+    row.accepting_orders = bool(
+        row.delivery_enabled and row.cod_enabled and row.location and hours["open"]
+    )
+    for internal in ("delivery_enabled", "cod_enabled", "opening_hours_json"):
+        row.pop(internal, None)
     return row
 
 
@@ -204,8 +219,6 @@ def nearby_shops(address, start=0):
         fields=[
             *SHOP_LISTING_FIELDS,
             "service_radius_km",
-            "delivery_enabled",
-            "cod_enabled",
         ],
         limit_page_length=1001,
     )
@@ -216,10 +229,7 @@ def nearby_shops(address, start=0):
         radius = float(row.service_radius_km or 0)
         public = serialize_public_shop(row)
         location = public.location
-        accepting = bool(public.delivery_enabled and public.cod_enabled)
-        match = delivery_match(location, destination, radius, accepting)
-        for internal in ("delivery_enabled", "cod_enabled"):
-            public.pop(internal, None)
+        match = delivery_match(location, destination, radius, public.accepting_orders)
         public.update(
             {
                 "distance_km": match["distance_km"],
@@ -315,11 +325,15 @@ def catalog(shop, start=0):
         if item.variant_of:
             continue
         products.append(product_data(doc, item, browsing=True))
+    hours = shop_availability(doc)
     return {
         "shop_name": doc.shop_name,
         "shop_location": location,
         "map": map_config(),
-        "accepting_orders": bool(doc.delivery_enabled and doc.cod_enabled and location),
+        "accepting_orders": bool(
+            doc.delivery_enabled and doc.cod_enabled and location and hours["open"]
+        ),
+        "availability": hours,
         "items": products,
         "has_more": len(names) == 20,
         "delivery_fee": doc.delivery_fee or 0,

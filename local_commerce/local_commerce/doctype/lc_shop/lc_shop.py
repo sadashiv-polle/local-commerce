@@ -3,6 +3,7 @@ from frappe.model.document import Document
 
 from local_commerce.permissions.policy import is_platform
 from local_commerce.permissions.scope import identity, require_shop
+from local_commerce.services.shop_hours import normalize
 
 
 class LCShop(Document):
@@ -77,6 +78,11 @@ class LCShop(Document):
         self.shop_name = (self.shop_name or "").strip()
         if not self.shop_name:
             frappe.throw("Shop name is required")
+        try:
+            schedule = normalize(self.opening_hours_json)
+        except (TypeError, ValueError) as exc:
+            frappe.throw(str(exc))
+        self.opening_hours_json = frappe.as_json(schedule) if schedule else ""
 
     def on_update(self):
         if frappe.db.has_column("LC Shop Member", "shop_name"):

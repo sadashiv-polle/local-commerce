@@ -13,6 +13,8 @@
     "status",
     "description",
     "order_response_minutes",
+    "accepting_orders",
+    "opening_hours_json",
     "location_section",
     "address_line1",
     "city",
@@ -89,6 +91,19 @@
       "default": "10",
       "reqd": 1,
       "description": "Unanswered orders are cancelled automatically after this time."
+    },
+    {
+      "fieldname": "accepting_orders",
+      "label": "Accept New Orders",
+      "fieldtype": "Check",
+      "default": "1"
+    },
+    {
+      "fieldname": "opening_hours_json",
+      "label": "Weekly Opening Hours",
+      "fieldtype": "Long Text",
+      "hidden": 1,
+      "read_only": 1
     },
     {
       "fieldname": "location_section",

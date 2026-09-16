@@ -44,7 +44,7 @@ async function save() {
   const current = request
   try {
     const s = shop.value
-    const values = { shop: s.name, shop_name: s.shop_name, status: s.status, description: s.description || '', order_response_minutes: s.order_response_minutes || 10 }
+    const values = { shop: s.name, shop_name: s.shop_name, status: s.status, description: s.description || '', order_response_minutes: s.order_response_minutes || 10, accepting_orders: s.accepting_orders ? 1 : 0, opening_hours: s.opening_hours }
     if (canEditLocation.value) Object.assign(values, { address_line1: s.address_line1 || '', city: s.city || '', postal_code: s.postal_code || '', latitude: s.latitude ?? '', longitude: s.longitude ?? '', service_radius_km: s.service_radius_km || 5, live_tracking_enabled: s.live_tracking_enabled ? 1 : 0 })
     const result = await call('shops.update_shop', values, true)
     if (current === request) { shop.value = result; saved.value = 'Shop settings saved.' }
@@ -103,6 +103,8 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
             <label>Status<select v-model="shop.status"><option>Draft</option><option>Active</option><option>Temporarily Closed</option><option>Disabled</option></select></label>
             <label>Description<textarea v-model="shop.description"></textarea></label>
             <label>Order response time (minutes)<input v-model.number="shop.order_response_minutes" type="number" min="1" max="120" step="1" required><small>New orders cancel automatically if nobody responds within this time.</small></label>
+            <label class="check-label"><input v-model="shop.accepting_orders" type="checkbox"><span>Accept new orders<small>Turn this off to pause checkout immediately. Active orders continue normally.</small></span></label>
+            <section class="shop-hours"><div><span class="eyebrow">OPENING HOURS</span><h3>Weekly ordering schedule</h3><p class="muted">Customers can browse at any time. Checkout follows this schedule.</p></div><div v-for="day in shop.opening_hours" :key="day.day" class="shop-hours-row"><label class="check-label"><input v-model="day.enabled" type="checkbox"><span>{{ day.day }}</span></label><template v-if="day.enabled"><input v-model="day.opens" type="time" required aria-label="Opening time"><span>to</span><input v-model="day.closes" type="time" required aria-label="Closing time"></template><strong v-else>Closed</strong></div></section>
             <section class="location-editor">
               <div class="location-heading"><div><span class="eyebrow">DELIVERY MAP</span><h3>Shop address &amp; service area</h3><p>{{ canEditLocation ? 'Place the shop pin and set how far your riders deliver.' : 'A platform administrator manages this shop location.' }}</p></div><button v-if="canEditLocation" type="button" :disabled="locating" @click="useShopLocation">{{ locating ? 'Finding…' : 'Use current location' }}</button></div>
               <label>Street address<input v-model="shop.address_line1" :disabled="!canEditLocation" maxlength="140" autocomplete="street-address"></label>
