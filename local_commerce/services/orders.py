@@ -30,6 +30,7 @@ from local_commerce.services.owner import (
     reject,
 )
 from local_commerce.services.product_images import gallery_urls
+from local_commerce.services.reorder_rules import reorder_line
 from local_commerce.services.shop_hours import availability as shop_availability
 
 _order_operation = ContextVar("lc_order_operation", default=False)
@@ -709,6 +710,35 @@ def detail(order):
     doc = frappe.get_doc("LC Order", order)
     authorize(doc)
     return serialize(doc)
+
+
+def reorder_preview(order):
+    doc = frappe.get_doc("LC Order", order)
+    if frappe.session.user == "Guest" or doc.customer_user != frappe.session.user:
+        frappe.throw("Only the customer can reorder this order", frappe.PermissionError)
+    if doc.status not in {"Delivered", "Cancelled"}:
+        reject("Order again is available after delivery or cancellation")
+    shop = public_shop(doc.shop, browsing=True)
+    so = frappe.get_doc("Sales Order", doc.sales_order)
+    items, notices = [], []
+    for row in so.items:
+        product = None
+        if frappe.db.exists("Item", row.item_code):
+            item = frappe.get_doc("Item", row.item_code)
+            if (item.lc_shop == shop.name and not item.disabled and item.is_stock_item
+                    and not item.has_batch_no and not item.has_serial_no
+                    and not item.has_variants and not item.variant_of):
+                product = product_data(shop, item, browsing=True)
+        line, notice = reorder_line(
+            {"name": row.item_name, "quantity": row.qty, "uom": row.uom, "rate": row.rate},
+            product,
+        )
+        if line:
+            items.append(line)
+        if notice:
+            notices.append(notice)
+    return {"shop": shop.name, "shop_name": shop.shop_name,
+            "currency": so.currency, "items": items, "notices": notices}
 
 
 def delivery_route(order):

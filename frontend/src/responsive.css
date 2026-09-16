@@ -159,3 +159,14 @@
   #lc-app .product-filter-row { flex-wrap: wrap; gap: 12px; }
   #lc-app .product-category-tabs { flex-basis: 100%; }
 }
+#lc-app .reorder-button { margin-top: 14px; padding: 11px 18px; border-color: #a7c7ae; border-radius: 12px; color: #176547; background: #eef6e9; font-weight: 700; }
+#lc-app .reorder-dialog { width: min(590px, calc(100vw - 28px)); max-height: calc(100dvh - 40px); overflow-y: auto; padding: 28px; border: 1px solid var(--lc-line); border-radius: 22px; color: var(--lc-ink); background: white; box-shadow: 0 28px 90px #17392d40; }
+#lc-app .reorder-dialog::backdrop { background: #17352699; backdrop-filter: blur(3px); }
+#lc-app .reorder-dialog h2 { margin: 8px 0 12px; }
+#lc-app .reorder-dialog > template, #lc-app .reorder-dialog p { color: #65746b; }
+#lc-app .reorder-notices { padding: 14px 18px 14px 30px; border-radius: 12px; background: #fff7e4; color: #786029; font-size: 12px; }
+#lc-app .reorder-lines article { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--lc-line); }
+#lc-app .reorder-lines article img { width: 54px; height: 54px; object-fit: contain; border-radius: 10px; }
+#lc-app .reorder-lines article > div { display: grid; min-width: 0; flex: 1; overflow-wrap: anywhere; }
+#lc-app .reorder-lines small { color: #748174; }
+@media (max-width: 600px) { #lc-app .reorder-dialog { padding: 22px; } }

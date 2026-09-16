@@ -94,3 +94,9 @@ def reconcile_cod(collection, owner_note=""):
 @rate_limit(limit=600, seconds=3600)
 def quote(shop, items, latitude=None, longitude=None):
     return orders.quote(shop, items, latitude, longitude)
+
+
+@frappe.whitelist(methods=["GET"])
+@rate_limit(limit=120, seconds=3600)
+def reorder_preview(order):
+    return orders.reorder_preview(order)

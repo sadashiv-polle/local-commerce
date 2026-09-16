@@ -342,6 +342,19 @@ class TestDeliveryOrders(FrappeTestCase):
         )
         self.assertIn(self.item, [row["item"] for row in orders.catalog(self.shop.name)["items"]])
 
+    def test_reorder_is_customer_scoped_and_uses_current_stock(self):
+        order = self.place()
+        frappe.set_user("Administrator")
+        orders.change(order["name"], "Cancelled", "Test reorder")
+        frappe.db.set_value("Item", self.item, "lc_sold_out", 1)
+        frappe.set_user(self.customer.name)
+        preview = orders.reorder_preview(order["name"])
+        self.assertFalse(preview["items"])
+        self.assertTrue(preview["notices"])
+        frappe.set_user(self.stranger.name)
+        with self.assertRaises(frappe.PermissionError):
+            orders.reorder_preview(order["name"])
+
     def test_catalog_returns_item_image(self):
         frappe.set_user("Administrator")
         frappe.db.set_value("Item", self.item, "image", "/files/catalog-product.png")

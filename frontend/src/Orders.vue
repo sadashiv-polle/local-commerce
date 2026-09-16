@@ -1,10 +1,34 @@
 <script setup>
-import { inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { writeCart } from './cart.js'
 import AuthChoices from './AuthChoices.vue'
 import { call } from './api.js'
 import MapView from './MapView.vue'
 
-const session = inject('session')
+const session = inject('session'), router = useRouter()
+const reorderDialog = ref(null), reorder = ref(null), reorderBusy = ref(false), reorderError = ref('')
+async function reviewReorder(order) {
+  reorderBusy.value = true; error.value = ''; reorderError.value = ''
+  try {
+    reorder.value = await call('orders.reorder_preview', { order: order.name })
+    await nextTick()
+    reorderDialog.value.showModal()
+  } catch (e) { error.value = e.message }
+  finally { reorderBusy.value = false }
+}
+function confirmReorder() {
+  try {
+    if (sessionStorage.getItem(`lc-delivery:${session.value.user}:${reorder.value.shop}`)) {
+      reorderError.value = 'Your last order request is not confirmed. Open this shop and resolve it before replacing your cart.'
+      return
+    }
+    const cart = Object.fromEntries(reorder.value.items.map(item => [item.item, item]))
+    writeCart(localStorage, reorder.value.shop, cart)
+    reorderDialog.value.close()
+    router.push({ name: 'customer-shop', params: { shop: reorder.value.shop }, query: { cart: '1' } })
+  } catch { reorderError.value = 'Your cart could not be saved. Please try again.' }
+}
 const props = defineProps({ shop: { type: String, default: '' }, editable: Boolean })
 const orders = ref([]), drivers = ref([]), selectedDrivers = ref({}), start = ref(0)
 const error = ref(''), loading = ref(false), busy = ref(false), reasons = ref({})
@@ -101,6 +125,7 @@ onBeforeUnmount(() => {
       <p v-else-if="order.status === 'Ready' && !order.delivery_user" class="muted">Packed and ready. Waiting for the shop to assign a delivery person.</p>
       <p v-else-if="order.status === 'Ready'" class="muted">Your order is ready and assigned for pickup.</p>
       <p v-else-if="order.status === 'Delivered'" class="success-note">Delivered successfully{{ order.delivered_at ? ` on ${order.delivered_at}` : '' }}.</p>
+      <button v-if="!shop && ['Delivered', 'Cancelled'].includes(order.status)" type="button" class="reorder-button" :disabled="reorderBusy" aria-haspopup="dialog" @click="reviewReorder(order)">{{ reorderBusy ? 'Checking items…' : 'Order again ↗' }}</button>
       <div v-if="shop && editable && order.status === 'Ready'" class="driver-assignment">
         <label>Delivery person<select v-model="selectedDrivers[order.name]" :disabled="busy || !drivers.length"><option value="" disabled>Select a rider</option><option v-for="driver in drivers" :key="driver.user" :value="driver.user">{{ driver.full_name }}</option></select></label>
         <button class="lc-primary" :disabled="busy || !selectedDrivers[order.name] || selectedDrivers[order.name] === order.delivery_user" @click="assign(order)">{{ order.delivery_user ? 'Reassign rider' : 'Assign rider' }}</button>
@@ -111,6 +136,9 @@ onBeforeUnmount(() => {
         <details v-if="cancellable.has(order.status)"><summary>Cancel order</summary><label>Reason<input v-model="reasons[order.name]" minlength="3" maxlength="500"></label><button :disabled="busy || (reasons[order.name] || '').trim().length < 3" @click="change(order, 'Cancelled')">Confirm cancellation</button></details>
       </div>
     </article>
+    <dialog ref="reorderDialog" class="reorder-dialog" aria-labelledby="reorder-title">
+      <template v-if="reorder"><span class="eyebrow">{{ reorder.shop_name }}</span><h2 id="reorder-title">Order your favourites again</h2><p>Current prices and stock are shown below. This replaces the cart for this shop. Delivery charges and taxes are calculated at checkout.</p><ul v-if="reorder.notices.length" class="reorder-notices"><li v-for="notice in reorder.notices" :key="notice">{{ notice }}</li></ul><div class="reorder-lines"><article v-for="item in reorder.items" :key="item.item"><img v-if="item.image" :src="item.image" :alt="item.item_name"><div><strong>{{ item.item_name }}</strong><small>{{ item.quantity }} {{ item.uom }}</small></div><strong>{{ money(item.rate * item.quantity, item.currency) }}</strong></article></div><p v-if="!reorder.items.length">These items are currently unavailable. Browse the shop for alternatives.</p><p v-if="reorderError" role="alert" class="lc-notice">{{ reorderError }}</p><div class="logout-actions"><button type="button" autofocus @click="reorderDialog.close()">Cancel</button><button v-if="reorder.items.length" type="button" class="lc-primary" @click="confirmReorder">Review cart →</button><RouterLink v-else :to="{ name: 'customer-shop', params: { shop: reorder.shop } }" class="primary" @click="reorderDialog.close()">Browse shop →</RouterLink></div></template>
+    </dialog>
     <div class="lc-pagination"><button :disabled="!start || loading || busy" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="orders.length < 20 || loading || busy" @click="load(20)">Next</button></div>
   </section>
 </template>
