@@ -1,6 +1,7 @@
 <script setup>
 import { computed, inject, onMounted, ref } from 'vue'
 import { call } from './api.js'
+import AdminWorkspaceTabs from './AdminWorkspaceTabs.vue'
 const session = inject('session'), shops = ref([]), error = ref(''), loading = ref(false)
 const start = ref(0)
 const canList = computed(() => session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role)))
@@ -17,6 +18,7 @@ onMounted(() => { if (canList.value) load() })
   <section v-if="canList" class="owner-page">
     <aside class="owner-sidebar"><span class="eyebrow">WORKSPACE</span><strong class="sidebar-active">⌂ &nbsp; My shops</strong><p>Manage your shops and keep your neighbourhood up to date.</p><div class="sidebar-bottom"><span class="status-pill">Connected</span><small>{{ session.user }}</small></div></aside>
     <div class="owner-content">
+      <AdminWorkspaceTabs />
       <span class="eyebrow">A GOOD DAY TO GROW LOCAL</span><h1>Your business, at a glance.</h1><p class="muted">Your shops. Your people. Your neighbourhood.</p>
       <div class="lc-section-heading"><h2>Shop directory</h2><a v-if="session.platform_admin" href="/app/lc-shop">Manage in Desk ↗</a></div>
       <p v-if="error" role="alert" class="lc-notice">{{ error }}</p>

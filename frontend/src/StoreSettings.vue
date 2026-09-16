@@ -1,6 +1,7 @@
 <script setup>
 import { inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
+import AdminWorkspaceTabs from './AdminWorkspaceTabs.vue'
 const session = inject('session'), settings = ref(null), search = ref(''), results = ref([]), busy = ref(false), error = ref(''), message = ref('')
 const searchInput = ref(null), pickerLoading = ref(false), pickerError = ref(''), start = ref(0), hasMore = ref(false)
 let timer, generation = 0
@@ -36,7 +37,7 @@ onBeforeUnmount(() => { window.clearTimeout(timer); generation++ })
 </script>
 <template>
   <section class="store-page storefront-settings">
-    <RouterLink to="/store">← Public store</RouterLink><h1>Storefront products</h1><p class="muted">Choose the products customers see above the shop directory.</p>
+    <AdminWorkspaceTabs /><RouterLink to="/shop">← Shop workspace</RouterLink><h1>Storefront products</h1><p class="muted">Choose the products customers see above the shop directory.</p>
     <p v-if="!session.platform_admin" class="lc-notice">Platform administrator access is required.</p><p v-if="error" role="alert" class="lc-notice">{{ error }}</p><p v-if="message" role="status" class="success-note">{{ message }}</p>
     <form v-if="settings" class="lc-form" @submit.prevent="save">
       <fieldset :disabled="busy">

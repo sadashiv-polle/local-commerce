@@ -101,6 +101,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
         <button :class="{ 'sidebar-active': tab === 'orders' }" :aria-current="tab === 'orders' ? 'page' : undefined" @click="tab = 'orders'">Orders</button>
         <button :class="{ 'sidebar-active': tab === 'cash' }" :aria-current="tab === 'cash' ? 'page' : undefined" @click="tab = 'cash'">Cash handover</button>
         <button :class="{ 'sidebar-active': tab === 'inventory' }" :aria-current="tab === 'inventory' ? 'page' : undefined" @click="tab = 'inventory'">Products &amp; stock</button>
+        <RouterLink v-if="session.platform_admin" class="workspace-storefront-link" to="/store-settings">Storefront settings ↗</RouterLink>
         <button :class="{ 'sidebar-active': tab === 'settings' }" :aria-current="tab === 'settings' ? 'page' : undefined" @click="tab = 'settings'">Shop settings</button>
       </nav>
       <div class="sidebar-bottom"><span class="status-pill">{{ canEdit ? 'Owner access' : 'Read-only access' }}</span><small>{{ session.user }}</small></div>

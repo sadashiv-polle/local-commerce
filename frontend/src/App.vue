@@ -37,7 +37,7 @@ function cancelLogout(event) {
   if (loggingOut.value) { event?.preventDefault(); return }
   logoutDialog.value.close()
 }
-const ownerView = computed(() => route.path === '/shop' || route.path.startsWith('/shop/'))
+const ownerView = computed(() => route.path === '/shop' || route.path.startsWith('/shop/') || route.path === '/store-settings')
 const deliveryView = computed(() => route.path === '/delivery')
 const canManage = computed(() => session.value && (session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role))))
 const canDeliver = computed(() => session.value?.roles.includes('LC Delivery Person') && session.value.memberships.some(m => m.membership_role === 'Driver'))
