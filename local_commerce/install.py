@@ -41,6 +41,10 @@ def after_migrate():
     from erpnext.setup.install import create_address_and_contact_custom_fields
     from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
+    from local_commerce.services.item_groups import ensure_item_groups
+
+    ensure_item_groups()
+
     # Preserve the original featured row when adding list visibility to existing sites.
     if frappe.db.exists("DocType", "LC Store Settings") and not frappe.db.sql(
         "select value from `tabSingles` where doctype=%s and field=%s",
