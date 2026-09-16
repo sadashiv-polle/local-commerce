@@ -214,3 +214,37 @@
   #lc-app .commerce-app.customer-view .topbar { gap: 10px; padding: 14px 16px; }
   #lc-app .commerce-app .notification-panel { position: fixed; right: 12px; top: 100px; width: calc(100vw - 24px); max-height: calc(100dvh - 125px); }
 }
+#lc-app .sales-dashboard { display: grid; gap: 20px; }
+#lc-app .dashboard-heading, #lc-app .dashboard-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#lc-app .dashboard-heading h2 { margin: 5px 0; }
+#lc-app .dashboard-controls select { margin: 0; min-width: 135px; }
+#lc-app .dashboard-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+#lc-app .dashboard-metrics article { display: grid; align-content: start; gap: 12px; padding: 22px; border: 1px solid var(--lc-line); border-radius: 18px; background: white; box-shadow: var(--lc-shadow); }
+#lc-app .dashboard-metrics article > small { font-size: 10px; letter-spacing: 1px; color: #6b7a6e; font-weight: 700; }
+#lc-app .dashboard-metrics article > strong { font-size: clamp(25px, 2.7vw, 38px); line-height: 1.2; overflow-wrap: anywhere; }
+#lc-app .dashboard-metrics article > span { font-size: 12px; color: #748173; }
+#lc-app .dashboard-metrics .dashboard-sales { border-color: #b9d0b8; background: linear-gradient(135deg, #eaf4e5, #f8f6e0); }
+#lc-app .dashboard-explanation { margin: 0; color: #6c7c6e; font-size: 12px; }
+#lc-app .dashboard-panels { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 18px; }
+#lc-app .dashboard-panel { min-width: 0; padding: 24px; border: 1px solid var(--lc-line); border-radius: 20px; background: white; }
+#lc-app .dashboard-panel > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#lc-app .dashboard-panel h3 { margin: 0; font-size: 20px; }
+#lc-app .dashboard-stock-counts { display: flex; gap: 18px; padding: 18px 0; color: #6d7c6d; }
+#lc-app .dashboard-stock-counts strong { color: #234c35; font-size: 22px; }
+#lc-app .dashboard-panel ul { padding: 0; list-style: none; }
+#lc-app .dashboard-panel li { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 0; border-top: 1px solid #edf1e8; }
+#lc-app .dashboard-panel li span { color: #897045; font-size: 12px; }
+#lc-app .dashboard-cash { display: grid; gap: 5px; margin: 20px 0; padding: 18px; border-radius: 12px; background: #fff8e9; }
+#lc-app .dashboard-cash strong { font-size: 27px; }
+#lc-app .dashboard-cash span { color: #827457; font-size: 12px; }
+@media (max-width: 1100px) { #lc-app .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  #lc-app .dashboard-heading { flex-wrap: wrap; }
+  #lc-app .dashboard-controls { width: 100%; }
+  #lc-app .dashboard-controls select { flex: 1; }
+  #lc-app .dashboard-metrics { gap: 10px; }
+  #lc-app .dashboard-metrics article { padding: 16px; }
+  #lc-app .dashboard-metrics article > strong { font-size: 26px; }
+  #lc-app .dashboard-panels { grid-template-columns: minmax(0, 1fr); }
+  #lc-app .dashboard-panel { padding: 20px; }
+}

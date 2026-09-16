@@ -375,6 +375,20 @@ class TestDeliveryOrders(FrappeTestCase):
         result = orders.search_products(item.item_name)
         self.assertNotIn(self.item, [row["item"] for row in result["items"]])
 
+    def test_owner_dashboard_separates_requests_from_sales(self):
+        from local_commerce.services.dashboard import summary
+
+        self.place()
+        frappe.set_user(self.user.name)
+        result = summary(self.shop.name)
+        self.assertEqual(result["pending_orders"], 1)
+        self.assertEqual(result["received_orders"], 1)
+        self.assertEqual(result["sales"], 0)
+        self.assertEqual(result["delivered_orders"], 0)
+        frappe.set_user(self.stranger.name)
+        with self.assertRaises(frappe.PermissionError):
+            summary(self.shop.name)
+
     def test_catalog_returns_item_image(self):
         frappe.set_user("Administrator")
         frappe.db.set_value("Item", self.item, "image", "/files/catalog-product.png")

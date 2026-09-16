@@ -3,6 +3,7 @@ import { computed, inject, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { call } from './api.js'
 import Products from './Products.vue'
+import Dashboard from './Dashboard.vue'
 import Orders from './Orders.vue'
 import CashReconciliation from './CashReconciliation.vue'
 import MapView from './MapView.vue'
@@ -10,8 +11,8 @@ const session = inject('session'), route = useRoute()
 const shop = ref(null), loading = ref(false), error = ref(''), saved = ref(''), saving = ref(false)
 const payment = ref(null), paymentSaved = ref(''), paymentSaving = ref(false)
 const hoursSaving = ref(false), hoursSaved = ref('')
-const tab = ref('inventory')
-const tabs = new Set(['orders', 'cash', 'inventory', 'settings'])
+const tab = ref('overview')
+const tabs = new Set(['overview', 'orders', 'cash', 'inventory', 'settings'])
 const locationError = ref(''), locating = ref(false)
 const timeOptions = Array.from({ length: 48 }, (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`)
 function timeLabel(value) { const [hour, minute] = value.split(':').map(Number); return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}` }
@@ -24,11 +25,12 @@ const shopPoints = computed(() => {
 let request = 0
 async function load() {
   const current = ++request
-  shop.value = null; payment.value = null; loading.value = true; error.value = ''; saved.value = ''; tab.value = tabs.has(route.query.tab) ? route.query.tab : 'inventory'
+  shop.value = null; payment.value = null; loading.value = true; error.value = ''; saved.value = ''; tab.value = tabs.has(route.query.tab) ? route.query.tab : 'overview'
   try {
     const result = await call('shops.get_shop', { shop: route.params.shop })
     if (current === request) {
       shop.value = result
+      if (!canEdit.value && tab.value === 'overview') tab.value = 'inventory'
       if (session.value.platform_admin || session.value.memberships.some(m => m.shop === result.name && m.membership_role === 'Owner')) payment.value = await call('orders.payment_options', { shop: result.name })
     }
   } catch (e) { if (current === request) error.value = e.message }
@@ -95,6 +97,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
       <strong>{{ shop?.shop_name || 'Your shop' }}</strong>
       <p>Everything you need to manage this shop, in one place.</p>
       <nav v-if="shop" class="workspace-nav" aria-label="Shop sections">
+        <button v-if="canEdit" :class="{ 'sidebar-active': tab === 'overview' }" :aria-current="tab === 'overview' ? 'page' : undefined" @click="tab = 'overview'">Overview</button>
         <button :class="{ 'sidebar-active': tab === 'orders' }" :aria-current="tab === 'orders' ? 'page' : undefined" @click="tab = 'orders'">Orders</button>
         <button :class="{ 'sidebar-active': tab === 'cash' }" :aria-current="tab === 'cash' ? 'page' : undefined" @click="tab = 'cash'">Cash handover</button>
         <button :class="{ 'sidebar-active': tab === 'inventory' }" :aria-current="tab === 'inventory' ? 'page' : undefined" @click="tab = 'inventory'">Products &amp; stock</button>
@@ -107,6 +110,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
       <div v-if="error" class="lc-notice" role="alert">{{ error }} <button v-if="!shop" @click="load">Retry</button></div>
       <template v-if="shop">
         <header class="workspace-heading"><div><span class="eyebrow">YOUR SHOP</span><h1>{{ shop.shop_name }}</h1><p class="muted">{{ shop.company }}</p></div><span class="status-pill">{{ shop.status }}</span></header>
+        <Dashboard v-if="tab === 'overview' && canEdit" :shop="shop.name" @open="tab = $event" />
         <Orders v-if="tab === 'orders'" :shop="shop.name" :editable="canEdit" />
         <CashReconciliation v-if="tab === 'cash'" :shop="shop.name" :editable="canEdit" />
         <Products v-show="tab === 'inventory'" :key="shop.name" :shop="shop.name" :editable="canEdit" />

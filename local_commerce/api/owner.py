@@ -45,3 +45,10 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0)
 @frappe.whitelist()
 def history(shop, item, start=0):
     return owner.history(shop, item, start)
+
+
+@frappe.whitelist(methods=["GET"])
+def dashboard(shop, period="today"):
+    from local_commerce.services.dashboard import summary
+
+    return summary(shop, period)
