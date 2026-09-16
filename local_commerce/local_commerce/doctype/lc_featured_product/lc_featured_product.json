@@ -1,0 +1,19 @@
+{
+  "doctype": "DocType",
+  "name": "LC Featured Product",
+  "module": "Local Commerce",
+  "istable": 1,
+  "field_order": [
+    "item"
+  ],
+  "fields": [
+    {
+      "fieldname": "item",
+      "label": "Product",
+      "fieldtype": "Link",
+      "options": "Item",
+      "reqd": 1,
+      "in_list_view": 1
+    }
+  ]
+}

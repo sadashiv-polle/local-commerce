@@ -4,6 +4,7 @@ import App from './App.vue'
 import Shops from './Shops.vue'
 import ShopWorkspace from './ShopWorkspace.vue'
 import Store from './Store.vue'
+import StoreSettings from './StoreSettings.vue'
 import CustomerShop from './CustomerShop.vue'
 import Orders from './Orders.vue'
 import Signup from './Signup.vue'
@@ -16,6 +17,7 @@ import './responsive.css'
 const router = createRouter({ history: createWebHashHistory(), scrollBehavior: () => ({ top: 0 }), routes: [
   { path: '/', component: Store },
   { path: '/store', component: Store },
+  { path: '/store-settings', component: StoreSettings },
   { path: '/store/:shop', name: 'customer-shop', component: CustomerShop },
   { path: '/orders', component: Orders },
   { path: '/signup', component: Signup },

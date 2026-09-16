@@ -1,0 +1,48 @@
+{
+  "doctype": "DocType",
+  "name": "LC Store Settings",
+  "module": "Local Commerce",
+  "issingle": 1,
+  "field_order": [
+    "mode",
+    "title",
+    "random_count",
+    "products"
+  ],
+  "fields": [
+    {
+      "fieldname": "mode",
+      "label": "Featured Products",
+      "fieldtype": "Select",
+      "options": "Disabled\nSelected\nRandom",
+      "default": "Disabled",
+      "reqd": 1
+    },
+    {
+      "fieldname": "title",
+      "label": "Section Title",
+      "fieldtype": "Data",
+      "default": "Picked for you"
+    },
+    {
+      "fieldname": "random_count",
+      "label": "Random Product Count",
+      "fieldtype": "Int",
+      "default": 6
+    },
+    {
+      "fieldname": "products",
+      "label": "Selected Products",
+      "fieldtype": "Table",
+      "options": "LC Featured Product"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    }
+  ]
+}

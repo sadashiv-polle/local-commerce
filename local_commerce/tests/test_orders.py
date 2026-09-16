@@ -410,6 +410,25 @@ class TestDeliveryOrders(FrappeTestCase):
         with self.assertRaises(frappe.PermissionError):
             favourites.toggle(self.shop.name, self.item)
 
+    def test_storefront_features_are_admin_controlled_and_public(self):
+        from local_commerce.services import storefront
+
+        frappe.set_user("Administrator")
+        storefront.configure("Selected", "Local picks", 3, [self.item])
+        frappe.set_user("Guest")
+        result = storefront.featured()
+        self.assertEqual(result["title"], "Local picks")
+        self.assertEqual(result["items"][0]["item"], self.item)
+        frappe.set_user(self.user.name)
+        with self.assertRaises(frappe.PermissionError):
+            storefront.configure("Random", "Owner changes", 3, [])
+        with self.assertRaises(frappe.PermissionError):
+            storefront.settings()
+        frappe.set_user("Administrator")
+        storefront.configure("Disabled", "Local picks", 3, [self.item])
+        frappe.set_user("Guest")
+        self.assertFalse(storefront.featured()["items"])
+
     def test_catalog_returns_item_image(self):
         frappe.set_user("Administrator")
         frappe.db.set_value("Item", self.item, "image", "/files/catalog-product.png")
