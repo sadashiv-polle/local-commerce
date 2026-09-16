@@ -6,6 +6,6 @@ export function defaultPage(session) {
 }
 
 export function loginDestination(session, candidate) {
-  if (typeof candidate === 'string' && /^\/(store|shop|orders|account|delivery)(\/|\?|$)/.test(candidate) && candidate !== '/store') return candidate
+  if (typeof candidate === 'string' && /^\/(store|shop|orders|account|delivery|favourites)(\/|\?|$)/.test(candidate) && candidate !== '/store') return candidate
   return defaultPage(session)
 }

@@ -389,6 +389,27 @@ class TestDeliveryOrders(FrappeTestCase):
         with self.assertRaises(frappe.PermissionError):
             summary(self.shop.name)
 
+    def test_customer_favourites_are_idempotent_private_and_current(self):
+        from local_commerce.api import favourites
+
+        frappe.set_user(self.customer.name)
+        favourites.toggle(self.shop.name, self.item)
+        favourites.toggle(self.shop.name, self.item)
+        self.assertEqual(favourites.ids(), [self.item])
+        saved = favourites.list_items()
+        self.assertEqual(saved[0]["rate"], 20)
+        frappe.set_user(self.stranger.name)
+        self.assertFalse(favourites.ids())
+        self.assertFalse(favourites.list_items())
+        favourites.toggle(self.shop.name, self.item, saved=0)
+        frappe.set_user(self.customer.name)
+        self.assertEqual(favourites.ids(), [self.item])
+        favourites.toggle(self.shop.name, self.item, saved=0)
+        self.assertFalse(favourites.ids())
+        frappe.set_user("Guest")
+        with self.assertRaises(frappe.PermissionError):
+            favourites.toggle(self.shop.name, self.item)
+
     def test_catalog_returns_item_image(self):
         frappe.set_user("Administrator")
         frappe.db.set_value("Item", self.item, "image", "/files/catalog-product.png")

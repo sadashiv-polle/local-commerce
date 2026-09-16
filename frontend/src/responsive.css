@@ -248,3 +248,16 @@
   #lc-app .dashboard-panels { grid-template-columns: minmax(0, 1fr); }
   #lc-app .dashboard-panel { padding: 20px; }
 }
+#lc-app .favourite-control { position: absolute; z-index: 2; top: 12px; right: 12px; }
+#lc-app .favourite-heart { display: grid; place-items: center; width: 36px; height: 36px; padding: 8px; border: 1px solid #e0e8dc; border-radius: 50%; color: #6e7f70; background: white; box-shadow: 0 3px 12px #203a2c0c; }
+#lc-app .favourite-heart svg { width: 21px; height: 21px; stroke: currentColor; stroke-width: 1.8; fill: none; }
+#lc-app .favourite-heart.saved { color: #d85f63; background: #fff2f2; border-color: #efd0d1; }
+#lc-app .favourite-heart.saved svg { fill: currentColor; }
+#lc-app .favourite-error { position: absolute; top: 44px; right: 0; width: 190px; padding: 10px; border-radius: 9px; color: #8e493e; background: #fff4ef; box-shadow: var(--lc-shadow); font-size: 11px; }
+#lc-app .product-detail-info { position: relative; }
+#lc-app .product-detail-info .favourite-control { top: auto; bottom: 15px; right: 15px; }
+#lc-app .product-detail-info:has(.favourite-control) { padding-bottom: 65px; }
+#lc-app .favourite-actions { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+#lc-app .favourites-page .home-search-grid { margin-top: 24px; }
+#lc-app .home-search-product-wrap { position: relative; min-width: 0; }
+#lc-app .home-search-product-wrap > .home-search-product { height: 100%; }
