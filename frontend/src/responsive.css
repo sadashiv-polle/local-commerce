@@ -618,3 +618,10 @@
   #lc-app .admin-section-picker select { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 44px; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
   #lc-app .admin-section-picker:focus-within { outline: 2px solid #d7aa2c; outline-offset: -2px; border-radius: 8px; }
 }
+
+/* Remove the invisible text row that pushed the mobile logout icon upward. */
+@media (max-width: 600px) {
+  #lc-app .commerce-app .header-account-controls > .logout-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 38px; width: 38px; height: 38px; min-height: 38px; gap: 0; padding: 0; line-height: 1; }
+  #lc-app .header-account-controls .logout-button-label { display: none; }
+  #lc-app .header-account-controls .logout-button svg { display: block; flex-shrink: 0; width: 18px; height: 18px; margin: 0; }
+}

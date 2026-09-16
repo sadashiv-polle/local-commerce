@@ -654,8 +654,9 @@ html { scroll-behavior: smooth; }
 #lc-app .logout-dialog > p { color: #647362; }
 #lc-app .logout-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
 #lc-app .logout-actions button { flex: 1; min-height: 46px; border-radius: 11px; white-space: nowrap; }
-#lc-app button.logout-confirm { background: #176547; color: white; border-color: #176547; }
-#lc-app button.logout-confirm:hover { background: #104d35; }
+#lc-app button.logout-confirm { background: #c83535; color: white; border-color: #c83535; }
+#lc-app button.logout-confirm:hover { background: #a92828; border-color: #a92828; }
+#lc-app button.logout-confirm:focus-visible { outline: 3px solid #f0b0b0; outline-offset: 3px; }
 @media(max-width: 400px) { #lc-app .logout-dialog { padding: 24px; } #lc-app .logout-actions { flex-direction: column-reverse; } }
 
 /* Public-store overflow found during live narrow-screen verification. */
