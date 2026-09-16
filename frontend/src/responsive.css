@@ -141,3 +141,21 @@
 #lc-app .product-photo-thumbnails button { flex: 0 0 64px; height: 64px; padding: 5px; border-radius: 11px; }
 #lc-app .product-photo-thumbnails button.selected { border: 2px solid #176547; background: #edf5e8; }
 #lc-app .product-photo-thumbnails img { width: 100%; height: 100%; object-fit: contain; }
+
+/* Catalogue discovery stays above the products on every screen size. */
+#lc-app .product-discovery { display: grid; gap: 16px; margin: 24px 0 6px; padding: 18px; border: 1px solid var(--lc-line); border-radius: 18px; background: white; }
+#lc-app .product-search { display: flex; align-items: center; gap: 10px; margin: 0; padding: 0 12px; border: 1px solid #dce5da; border-radius: 12px; background: #f8faf5; }
+#lc-app .product-search > span { font-size: 27px; color: #6c7e6d; }
+#lc-app .product-search input { margin: 0; padding-inline: 0; border: 0; background: transparent; }
+#lc-app .product-search button { border: 0; padding: 4px 9px; background: transparent; font-size: 22px; }
+#lc-app .product-filter-row { display: flex; align-items: center; gap: 16px; min-width: 0; }
+#lc-app .product-category-tabs { display: flex; flex: 1; min-width: 0; overflow-x: auto; gap: 8px; padding: 3px; }
+#lc-app .product-category-tabs button { flex: 0 0 auto; padding: 8px 14px; border-radius: 24px; font-size: 12px; white-space: nowrap; }
+#lc-app .product-category-tabs button.active { border-color: #176547; color: white; background: #176547; }
+#lc-app .stock-filter { flex: 0 0 auto; margin: 0; font-size: 12px; white-space: nowrap; }
+#lc-app .stock-filter input { width: 18px; height: 18px; accent-color: #176547; }
+@media (max-width: 600px) {
+  #lc-app .product-discovery { padding: 13px; gap: 12px; }
+  #lc-app .product-filter-row { flex-wrap: wrap; gap: 12px; }
+  #lc-app .product-category-tabs { flex-basis: 100%; }
+}

@@ -7,6 +7,8 @@ import MapView from './MapView.vue'
 import { readCart, writeCart, clearCart, changeQuantity } from './cart.js'
 import { distanceKm } from './location.js'
 const route = useRoute(), router = useRouter(), session = inject('session')
+const search = ref(''), category = ref(''), inStockOnly = ref(false)
+let searchTimer, catalogGeneration = 0
 const catalog = ref(null), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
 const cart = ref({}), pending = ref(null), checkout = ref(false), cartOpen = ref(false)
 const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '', latitude: null, longitude: null, delivery_instructions: '' })
@@ -52,16 +54,26 @@ function scheduleQuote() {
 watch(() => [cart.value, address.value.latitude, address.value.longitude, route.params.shop], scheduleQuote, { deep: true, immediate: true })
 function money(value) { if (value == null) return 'Price coming soon'; return new Intl.NumberFormat(undefined, { style: 'currency', currency: catalog.value.currency }).format(value) }
 async function load(delta = 0) {
+  const generation = ++catalogGeneration
   loading.value = true; error.value = ''; start.value = Math.max(0, start.value + delta)
   try {
-    catalog.value = await call('orders.catalog', { shop: route.params.shop, start: start.value })
+    const result = await call('orders.catalog', { shop: route.params.shop, start: start.value, search: search.value, category: category.value, in_stock: inStockOnly.value ? 1 : 0 })
+    if (generation !== catalogGeneration) return
+    catalog.value = result
     for (const item of catalog.value.items) {
       if (cart.value[item.item]) cart.value[item.item] = { ...cart.value[item.item], image: item.image || '' }
     }
   }
-  catch (e) { error.value = e.message }
-  finally { loading.value = false }
+  catch (e) { if (generation === catalogGeneration) error.value = e.message }
+  finally { if (generation === catalogGeneration) loading.value = false }
 }
+function filterProducts() { start.value = 0; load() }
+watch(search, () => {
+  window.clearTimeout(searchTimer)
+  catalogGeneration++
+  searchTimer = window.setTimeout(filterProducts, 300)
+})
+watch([category, inStockOnly], filterProducts)
 function updateQuantity(item, delta) {
   error.value = ''
   try { cart.value = changeQuantity(cart.value, item, delta) }
@@ -134,6 +146,7 @@ async function place() {
   } finally { busy.value = false }
 }
 watch(() => route.params.shop, () => {
+  search.value = ''; category.value = ''; inStockOnly.value = false
   start.value = 0; pending.value = null; cartOpen.value = false; checkout.value = false
   try {
     cart.value = readCart(localStorage, route.params.shop)
@@ -149,7 +162,7 @@ watch(cart, value => {
   if (!Object.keys(value).length) cartOpen.value = false
 }, { deep: true })
 onMounted(() => window.addEventListener('lc-open-cart', openCartEvent))
-onBeforeUnmount(() => { window.removeEventListener('lc-open-cart', openCartEvent); window.clearTimeout(quoteTimer); quoteGeneration++ })
+onBeforeUnmount(() => { window.removeEventListener('lc-open-cart', openCartEvent); window.clearTimeout(quoteTimer); window.clearTimeout(searchTimer); catalogGeneration++; quoteGeneration++ })
 </script>
 <template>
   <div class="store-page customer-shop">
@@ -159,6 +172,10 @@ onBeforeUnmount(() => { window.removeEventListener('lc-open-cart', openCartEvent
       <h1>{{ catalog.shop_name }}</h1><p><span class="shop-open-status" :class="{ closed: !catalog.accepting_orders }">{{ catalog.availability.label }}</span> {{ catalog.accepting_orders ? 'Delivery requests · Shop confirmation required' : catalog.availability.message }}</p>
       <p v-if="catalog.accepting_orders" class="muted">Delivery within {{ Number(catalog.shop_location.service_radius_km).toFixed(1) }} km · Base delivery fee: {{ money(catalog.delivery_fee) }}</p>
       <p v-if="pending" class="lc-notice">Your last request is not confirmed. Retry it below before starting another.</p>
+      <section class="product-discovery" aria-label="Find products">
+        <label class="product-search"><span aria-hidden="true">⌕</span><input v-model="search" type="search" maxlength="140" placeholder="Search this shop…" aria-label="Search products by name"><button v-if="search" type="button" aria-label="Clear search" @click="search = ''">×</button></label>
+        <div class="product-filter-row"><div class="product-category-tabs" aria-label="Product categories"><button type="button" :class="{ active: !category }" :aria-pressed="!category" @click="category = ''">All items</button><button v-for="group in catalog.categories" :key="group" type="button" :class="{ active: category === group }" :aria-pressed="category === group" @click="category = group">{{ group }}</button></div><label class="check-label stock-filter"><input v-model="inStockOnly" type="checkbox">In stock only</label></div>
+      </section>
       <fieldset :disabled="busy || !!pending">
         <div class="lc-grid product-grid">
           <article v-for="item in catalog.items" :key="item.item" class="lc-card customer-product-card">
@@ -172,7 +189,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-open-cart', openCartEvent
             </div>
           </article>
         </div>
-        <p v-if="!catalog.items.length" class="lc-empty">No products on this page.</p>
+        <p v-if="!catalog.items.length" class="lc-empty">{{ search || category || inStockOnly ? 'No matching items. Try another search or change your filters.' : 'No products on this page.' }}</p>
         <div class="lc-pagination"><button :disabled="!start || loading" @click="load(-20)">Previous</button><button :disabled="!catalog.has_more || loading" @click="load(20)">Next</button></div>
       </fieldset>
       <dialog ref="productDialog" class="product-detail-dialog" aria-labelledby="product-detail-title">

@@ -322,6 +322,26 @@ class TestDeliveryOrders(FrappeTestCase):
             self.shop.company,
         )
 
+    def test_public_catalog_search_categories_and_stock_filter(self):
+        frappe.set_user("Guest")
+        item = frappe.get_doc("Item", self.item)
+        result = orders.catalog(self.shop.name, search=item.item_name, category=item.item_group)
+        self.assertIn(self.item, [row["item"] for row in result["items"]])
+        self.assertIn(item.item_group, result["categories"])
+        self.assertFalse(
+            orders.catalog(self.shop.name, search="no-match-" + frappe.generate_hash())["items"]
+        )
+        self.assertIn(
+            self.item, [row["item"] for row in orders.catalog(self.shop.name, in_stock=1)["items"]]
+        )
+        frappe.set_user("Administrator")
+        frappe.db.set_value("Item", self.item, "lc_sold_out", 1)
+        frappe.set_user("Guest")
+        self.assertNotIn(
+            self.item, [row["item"] for row in orders.catalog(self.shop.name, in_stock=1)["items"]]
+        )
+        self.assertIn(self.item, [row["item"] for row in orders.catalog(self.shop.name)["items"]])
+
     def test_catalog_returns_item_image(self):
         frappe.set_user("Administrator")
         frappe.db.set_value("Item", self.item, "image", "/files/catalog-product.png")

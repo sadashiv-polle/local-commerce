@@ -10,8 +10,8 @@ def shops(start=0):
 
 
 @frappe.whitelist(allow_guest=True, methods=["GET"])
-def catalog(shop, start=0):
-    return orders.catalog(shop, start)
+def catalog(shop, start=0, search="", category="", in_stock=0):
+    return orders.catalog(shop, start, search, category, in_stock)
 
 
 @frappe.whitelist(methods=["POST"])

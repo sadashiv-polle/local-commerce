@@ -313,6 +313,7 @@ def product_data(shop, item, browsing=False):
     return {
         "item": item.name,
         "item_name": item.item_name,
+        "item_group": item.item_group,
         "image": images[0] if images else "",
         "images": images,
         "uom": item.stock_uom,
@@ -323,30 +324,54 @@ def product_data(shop, item, browsing=False):
     }
 
 
-def catalog(shop, start=0):
+def catalog(shop, start=0, search="", category="", in_stock=0):
     doc = public_shop(shop, browsing=True)
     location = shop_location(doc)
+    start = offset(start)
+    search = str(search or "").strip()[:140]
+    category = str(category or "").strip()[:140]
+    only_stock = in_stock in (True, 1, "1", "true", "True")
+    filters = {
+        "lc_shop": shop,
+        "disabled": 0,
+        "is_stock_item": 1,
+        "has_batch_no": 0,
+        "has_serial_no": 0,
+        "has_variants": 0,
+        "variant_of": ["is", "not set"],
+    }
+    # Categories belong to this shop's public catalogue, not the current page.
+    categories = sorted(set(frappe.get_all(
+        "Item", filters=filters, pluck="item_group", limit_page_length=0
+    )) - {None, ""})
+    if category:
+        filters["item_group"] = category
     names = frappe.get_all(
         "Item",
-        filters={
-            "lc_shop": shop,
-            "disabled": 0,
-            "is_stock_item": 1,
-            "has_batch_no": 0,
-            "has_serial_no": 0,
-            "has_variants": 0,
-        },
+        filters=filters,
+        or_filters={"item_name": ["like", f"%{search}%"], "name": ["like", f"%{search}%"]}
+        if search else None,
         pluck="name",
-        start=offset(start),
-        limit_page_length=20,
-        order_by="item_name asc",
+        start=0 if only_stock else start,
+        limit_page_length=0 if only_stock else 21,
+        order_by="item_name asc, name asc",
     )
     products = []
+    matched = 0
     for name in names:
         item = frappe.get_doc("Item", name)
-        if item.variant_of:
-            continue
-        products.append(product_data(doc, item, browsing=True))
+        product = product_data(doc, item, browsing=True)
+        if only_stock:
+            if product["available"] <= 0 or product["rate"] is None:
+                continue
+            matched += 1
+            if matched <= start:
+                continue
+        products.append(product)
+        if len(products) == 21:
+            break
+    has_more = len(products) > 20
+    products = products[:20]
     hours = shop_availability(doc)
     return {
         "shop_name": doc.shop_name,
@@ -357,7 +382,8 @@ def catalog(shop, start=0):
         ),
         "availability": hours,
         "items": products,
-        "has_more": len(names) == 20,
+        "has_more": has_more,
+        "categories": categories,
         "delivery_fee": doc.delivery_fee or 0,
         "currency": frappe.db.get_value("Company", doc.company, "default_currency"),
         "payment_methods": ["Cash on Delivery"] if doc.cod_enabled else [],
