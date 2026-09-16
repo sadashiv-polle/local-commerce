@@ -3,7 +3,18 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
 import FavouriteButton from './FavouriteButton.vue'
 const session = inject('session')
-const featured = ref({ sections: [] }), featuredRows = ref({})
+const featured = ref({ sections: [] }), featuredRows = ref({}), customerPicks = ref(null)
+const displayedSections = computed(() => [...(customerPicks.value?.items?.length ? [customerPicks.value] : []), ...featured.value.sections])
+let picksGeneration = 0
+async function loadCustomerPicks() {
+  const current = ++picksGeneration
+  customerPicks.value = null
+  if (session.value.user === 'Guest' || !session.value.roles.includes('LC Customer')) return
+  try {
+    const result = await call('storefront.recommendations', { address: selectedAddress.value })
+    if (current === picksGeneration) customerPicks.value = result
+  } catch { /* Suggestions never block browsing. */ }
+}
 onMounted(async () => { try { featured.value = await call('storefront.featured') } catch { /* Shop browsing stays available. */ } })
 const productSearch = ref(''), productResults = ref([]), productLoading = ref(false), productError = ref(''), productStart = ref(0), productMore = ref(false)
 let searchTimer, searchGeneration = 0
@@ -25,7 +36,7 @@ function scheduleProductSearch() {
   searchTimer = window.setTimeout(() => findProducts(), 350)
 }
 watch(productSearch, scheduleProductSearch)
-onBeforeUnmount(() => { window.clearTimeout(searchTimer); searchGeneration++ })
+onBeforeUnmount(() => { window.clearTimeout(searchTimer); searchGeneration++; picksGeneration++ })
 const shops = ref([]), addresses = ref([]), selectedAddress = ref(''), error = ref(''), start = ref(0), loading = ref(false), hasMore = ref(false)
 const activeAddress = computed(() => addresses.value.find(address => address.name === selectedAddress.value))
 async function load(delta = 0) {
@@ -41,6 +52,7 @@ async function load(delta = 0) {
   finally { loading.value = false }
 }
 async function loadAddresses() {
+  picksGeneration++; customerPicks.value = null
   if (session.value.user === 'Guest' || !session.value.roles.includes('LC Customer')) { await load(); return }
   try {
     addresses.value = await call('customers.addresses')
@@ -50,6 +62,7 @@ async function loadAddresses() {
     selectedAddress.value = addresses.value.some(address => address.name === remembered) ? remembered : addresses.value.find(address => address.is_default)?.name || addresses.value[0]?.name || ''
   } catch { addresses.value = []; selectedAddress.value = '' }
   await load()
+  await loadCustomerPicks()
 }
 async function selectAddress() {
   start.value = 0
@@ -58,6 +71,8 @@ async function selectAddress() {
   await load()
 }
 watch(activeAddress, scheduleProductSearch)
+watch(selectedAddress, loadCustomerPicks)
+watch(() => session.value.user, loadAddresses)
 onMounted(loadAddresses)
 const browse = ref(null)
 </script>
@@ -72,7 +87,7 @@ const browse = ref(null)
       <label class="product-search"><span aria-hidden="true">⌕</span><input v-model="productSearch" type="search" maxlength="140" placeholder="Search Bangda, milk, vegetables…" aria-label="Search products across shops"><button v-if="productSearch" type="button" aria-label="Clear product search" @click="productSearch = ''">×</button></label>
       <template v-if="productSearch.trim().length >= 2"><div class="section-title"><h2>Products from local shops</h2><small>{{ activeAddress ? 'Sorted by delivery availability and distance' : 'Choose an address to check nearby delivery' }}</small></div><p v-if="productLoading" role="status">Finding products…</p><p v-if="productError" role="alert" class="lc-notice">{{ productError }}</p><p v-if="!productLoading && !productError && !productResults.length" class="lc-empty">No matching products. Try another name.</p><div class="home-search-grid"><div v-for="item in productResults" :key="`${item.shop}:${item.item}`" class="home-search-product-wrap"><FavouriteButton :item="item.item" :shop="item.shop" /><RouterLink class="lc-card home-search-product" :to="{ name: 'customer-shop', params: { shop: item.shop }, query: { item: item.item } }"><div class="product-art"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</span></div><small class="search-shop-name">{{ item.shop_name }}{{ item.distance_km != null ? ` · ${Number(item.distance_km).toFixed(1)} km` : '' }}</small><h3>{{ item.item_name }}</h3><strong>{{ money(item.rate, item.currency) }} <small>/ {{ item.uom }}</small></strong><p class="search-stock">{{ item.available > 0 ? 'In stock' : 'Sold out' }}</p><small class="serviceability-line" :class="{ available: item.serviceable }">{{ item.serviceability_message }}</small><span class="lc-card-link">View item →</span></RouterLink></div></div><div v-if="productResults.length" class="lc-pagination"><button :disabled="!productStart || productLoading" @click="findProducts(-20)">Previous</button><button :disabled="!productMore || productLoading" @click="findProducts(20)">Next</button></div></template>
     </section>
-    <section v-for="section in featured.sections" :key="section.name" class="featured-section"><div class="section-title"><div><span class="eyebrow">FROM YOUR LOCAL SHOPS</span><h2>{{ section.title }}</h2></div><div class="featured-arrows"><button aria-label="Previous featured products" @click="featuredRows[section.name]?.scrollBy({ left: -300, behavior: 'smooth' })">←</button><button aria-label="Next featured products" @click="featuredRows[section.name]?.scrollBy({ left: 300, behavior: 'smooth' })">→</button></div></div><div :ref="element => { if (element) featuredRows[section.name] = element; else delete featuredRows[section.name] }" class="featured-product-row"><div v-for="item in section.items" :key="item.item" class="home-search-product-wrap"><FavouriteButton :item="item.item" :shop="item.shop" /><RouterLink class="lc-card home-search-product" :to="{ name: 'customer-shop', params: { shop: item.shop }, query: { item: item.item } }"><div class="product-art"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1) }}</span></div><small class="search-shop-name">{{ item.shop_name }}</small><h3>{{ item.item_name }}</h3><strong>{{ money(item.rate, item.currency) }}<small> / {{ item.uom }}</small></strong><small>{{ item.available > 0 ? 'In stock' : 'Sold out' }}</small><span class="lc-card-link">View item →</span></RouterLink></div></div></section>
+    <section v-for="section in displayedSections" :key="section.name" class="featured-section"><div class="section-title"><div><span class="eyebrow">FROM YOUR LOCAL SHOPS</span><h2>{{ section.title }}</h2></div><div class="featured-arrows"><button aria-label="Previous featured products" @click="featuredRows[section.name]?.scrollBy({ left: -300, behavior: 'smooth' })">←</button><button aria-label="Next featured products" @click="featuredRows[section.name]?.scrollBy({ left: 300, behavior: 'smooth' })">→</button></div></div><div :ref="element => { if (element) featuredRows[section.name] = element; else delete featuredRows[section.name] }" class="featured-product-row"><div v-for="item in section.items" :key="item.item" class="home-search-product-wrap"><FavouriteButton :item="item.item" :shop="item.shop" /><RouterLink class="lc-card home-search-product" :to="{ name: 'customer-shop', params: { shop: item.shop }, query: { item: item.item } }"><div class="product-art"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1) }}</span></div><small class="search-shop-name">{{ item.shop_name }}</small><h3>{{ item.item_name }}</h3><strong>{{ money(item.rate, item.currency) }}<small> / {{ item.uom }}</small></strong><small>{{ item.available > 0 ? 'In stock' : 'Sold out' }}</small><span class="lc-card-link">View item →</span></RouterLink></div></div></section>
     <section ref="browse" class="browse-section">
       <div class="section-title"><h2>Explore local shops</h2><RouterLink to="/orders">My orders →</RouterLink></div>
       <div>

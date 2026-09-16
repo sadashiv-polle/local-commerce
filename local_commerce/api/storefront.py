@@ -44,3 +44,11 @@ def save_list(mode, title, name="", random_count=6, products=None):
 @frappe.whitelist(methods=["POST"])
 def toggle_list(name, enabled):
     return storefront.toggle_list(name, enabled)
+
+
+@frappe.whitelist(allow_guest=True, methods=["GET"])
+@rate_limit(limit=120, seconds=3600)
+def recommendations(address=""):
+    from local_commerce.services.recommendations import suggestions
+
+    return suggestions(address)
