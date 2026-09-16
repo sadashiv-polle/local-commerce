@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
 import { activeCart, loginUrl } from './cart.js'
+import { defaultPage } from './navigation.js'
 import { currentSubscription, disablePush, enablePush, pushSupported } from './push.js'
 import IncomingOrders from './IncomingOrders.vue'
 const session = ref(null), error = ref(''), loggingOut = ref(false), logoutError = ref('')
@@ -167,7 +168,7 @@ async function load() {
       // Account linking is a POST; public browsing remains usable if setup needs attention.
       try { await call('customers.ensure', {}, true); await loadHeaderAddress() } catch { /* Account/checkout show actionable errors. */ }
     }
-    if (route.path === '/') await router.replace(canManage.value ? '/shop' : canDeliver.value ? '/delivery' : '/store')
+    if (route.path === '/') await router.replace(defaultPage(session.value))
   } catch (e) { error.value = e.message }
 }
 async function logout() {

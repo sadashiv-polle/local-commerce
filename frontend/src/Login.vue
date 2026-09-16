@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { authenticate, call } from './api.js'
+import { loginDestination } from './navigation.js'
 const route = useRoute()
 const username = ref(''), password = ref(''), otp = ref(''), challenge = ref(null)
 const busy = ref(false), error = ref(''), message = ref(''), forgot = ref(false), showPassword = ref(false)
@@ -19,7 +20,8 @@ async function submit() {
     password.value = ''
     if (result.verification) { challenge.value = result; return }
     // Reload session/CSRF and resolve the Customer before returning to checkout.
-    window.location.assign('/local-commerce#' + next)
+    const session = await call('session.context')
+    window.location.assign('/local-commerce#' + loginDestination(session, candidate))
     window.location.reload()
   } catch (e) { error.value = e.message }
   finally { busy.value = false }
