@@ -593,3 +593,13 @@
   #lc-app .admin-header-actions button, #lc-app .admin-table-actions button, #lc-app .admin-table-actions a { min-height: 42px; display: inline-flex; align-items: center; }
   #lc-app .master-admin-sidebar nav { overscroll-behavior-x: contain; }
 }
+
+/* Address editing opens its own focused screen instead of sitting below the list. */
+#lc-app .address-editor.address-editor-page { margin: 0 auto; width: 100%; max-width: 760px; }
+#lc-app .address-editor-back { padding: 6px 0; margin-bottom: 20px; border: 0; background: transparent; color: #316b4a; font-size: 13px; }
+#lc-app .address-editor-page .section-title h2 { outline: none; }
+@media (max-width: 600px) {
+  #lc-app .address-editor.address-editor-page { padding: 20px 16px; border-radius: 18px; }
+  #lc-app .address-editor-page .section-title { align-items: center; flex-direction: row; gap: 12px; }
+  #lc-app .address-editor-page .section-title h2 { font-size: 24px; overflow-wrap: anywhere; }
+}
