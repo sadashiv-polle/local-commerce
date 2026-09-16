@@ -303,3 +303,12 @@
 #lc-app .saved-list-toggle { font-size: 12px; white-space: nowrap; }
 #lc-app .saved-list-toggle.enabled { color: #176547; background: #edf6e7; border-color: #bad1b3; }
 @media (max-width: 600px) { #lc-app .saved-product-lists { padding: 14px; } #lc-app .saved-product-lists > article { flex-wrap: wrap; } }
+
+/* Horizontal gallery gestures preserve page scrolling and pinch zoom. */
+#lc-app .product-detail-photo { touch-action: pan-y pinch-zoom; }
+#lc-app .product-detail-photo img { user-select: none; -webkit-user-drag: none; }
+#lc-app .product-photo-navigation { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 0 20px 18px; }
+#lc-app .product-photo-navigation button { width: 44px; height: 44px; border-radius: 50%; border: 1px solid #dbe5d8; background: white; color: #285f46; font-size: 28px; cursor: pointer; }
+#lc-app .product-photo-navigation button:disabled { opacity: .35; cursor: default; }
+#lc-app .product-photo-navigation span { text-align: center; font-size: 14px; color: #285f46; }
+#lc-app .product-photo-navigation small { display: block; margin-top: 3px; font-size: 11px; color: #718073; }

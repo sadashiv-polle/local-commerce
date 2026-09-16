@@ -16,12 +16,31 @@ const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code
 const productDialog = ref(null), selectedProduct = ref(null), selectedPhoto = ref(0)
 const productPhotos = computed(() => selectedProduct.value?.images?.length ? selectedProduct.value.images : selectedProduct.value?.image ? [selectedProduct.value.image] : [])
 async function openProduct(item) {
+  photoGesture = null
   selectedProduct.value = item
   selectedPhoto.value = 0
   await nextTick()
   productDialog.value.showModal()
 }
-function closeProduct() { productDialog.value.close() }
+function closeProduct() { photoGesture = null; productDialog.value.close() }
+let photoGesture = null
+function changePhoto(direction) {
+  selectedPhoto.value = Math.max(0, Math.min(productPhotos.value.length - 1, selectedPhoto.value + direction))
+}
+function startPhotoSwipe(event) {
+  if (!event.isPrimary || event.button !== 0 || productPhotos.value.length < 2) return
+  photoGesture = { id: event.pointerId, x: event.clientX, y: event.clientY }
+  event.currentTarget.setPointerCapture(event.pointerId)
+}
+function finishPhotoSwipe(event) {
+  const start = photoGesture
+  photoGesture = null
+  if (!start || start.id !== event.pointerId) return
+  const horizontal = event.clientX - start.x, vertical = event.clientY - start.y
+  if (Math.abs(horizontal) >= 40 && Math.abs(horizontal) > Math.abs(vertical) * 1.5) {
+    changePhoto(horizontal < 0 ? 1 : -1)
+  }
+}
 const savedAddresses = ref([]), selectedAddress = ref('')
 const locationError = ref(''), locating = ref(false)
 const deliveryQuote = ref(null), quoting = ref(false), quoteError = ref('')
@@ -204,7 +223,20 @@ onBeforeUnmount(() => { window.removeEventListener('lc-open-cart', openCartEvent
       <dialog ref="productDialog" class="product-detail-dialog" aria-labelledby="product-detail-title">
         <template v-if="selectedProduct">
           <button type="button" class="product-detail-close" aria-label="Close product details" autofocus @click="closeProduct">×</button>
-          <div class="product-detail-gallery"><div class="product-detail-photo"><img v-if="productPhotos.length" :src="productPhotos[selectedPhoto]" :alt="`${selectedProduct.item_name} photo ${selectedPhoto + 1}`"><div v-else class="product-no-photo"><span aria-hidden="true">{{ selectedProduct.item_name.slice(0, 1).toUpperCase() }}</span><small>Photo coming soon</small></div></div><div v-if="productPhotos.length > 1" class="product-photo-thumbnails" aria-label="Product photos"><button v-for="(photo, index) in productPhotos" :key="photo" type="button" :class="{ selected: selectedPhoto === index }" :aria-label="`View photo ${index + 1}`" :aria-pressed="selectedPhoto === index" @click="selectedPhoto = index"><img :src="photo" alt="" loading="lazy"></button></div></div>
+          <div class="product-detail-gallery">
+            <div class="product-detail-photo" @pointerdown="startPhotoSwipe" @pointerup="finishPhotoSwipe" @pointercancel="photoGesture = null">
+              <img v-if="productPhotos.length" :src="productPhotos[selectedPhoto]" :alt="`${selectedProduct.item_name} photo ${selectedPhoto + 1}`" draggable="false">
+              <div v-else class="product-no-photo"><span aria-hidden="true">{{ selectedProduct.item_name.slice(0, 1).toUpperCase() }}</span><small>Photo coming soon</small></div>
+            </div>
+            <div v-if="productPhotos.length > 1" class="product-photo-navigation">
+              <button type="button" aria-label="Previous product photo" :disabled="selectedPhoto === 0" @click="changePhoto(-1)">‹</button>
+              <span aria-live="polite">{{ selectedPhoto + 1 }} / {{ productPhotos.length }} <small>Swipe to explore</small></span>
+              <button type="button" aria-label="Next product photo" :disabled="selectedPhoto === productPhotos.length - 1" @click="changePhoto(1)">›</button>
+            </div>
+            <div v-if="productPhotos.length > 1" class="product-photo-thumbnails" aria-label="Product photos">
+              <button v-for="(photo, index) in productPhotos" :key="photo" type="button" :class="{ selected: selectedPhoto === index }" :aria-label="`View photo ${index + 1}`" :aria-pressed="selectedPhoto === index" @click="selectedPhoto = index"><img :src="photo" alt="" loading="lazy"></button>
+            </div>
+          </div>
           <div class="product-detail-info">
             <FavouriteButton :key="selectedProduct.item" :item="selectedProduct.item" :shop="route.params.shop" />
             <span class="eyebrow">{{ catalog.shop_name }}</span><h2 id="product-detail-title">{{ selectedProduct.item_name }}</h2><span class="product-detail-unit">{{ selectedProduct.uom }}</span><p class="product-detail-description">{{ selectedProduct.description || 'From your local shop.' }}</p><p class="product-detail-stock">{{ selectedProduct.available > 0 ? `${selectedProduct.available} ${selectedProduct.uom} available` : 'Currently sold out' }}</p>
