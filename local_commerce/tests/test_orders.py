@@ -415,6 +415,8 @@ class TestDeliveryOrders(FrappeTestCase):
 
         frappe.set_user("Administrator")
         storefront.configure("Selected", "Local picks", 3, [self.item])
+        options = storefront.product_options(search=self.item)
+        self.assertIn(self.item, [row["item"] for row in options["items"]])
         frappe.set_user("Guest")
         result = storefront.featured()
         self.assertEqual(result["title"], "Local picks")
@@ -424,6 +426,8 @@ class TestDeliveryOrders(FrappeTestCase):
             storefront.configure("Random", "Owner changes", 3, [])
         with self.assertRaises(frappe.PermissionError):
             storefront.settings()
+        with self.assertRaises(frappe.PermissionError):
+            storefront.product_options()
         frappe.set_user("Administrator")
         storefront.configure("Disabled", "Local picks", 3, [self.item])
         frappe.set_user("Guest")

@@ -280,3 +280,13 @@
   #lc-app .featured-product-row { grid-auto-columns: 165px; gap: 10px; }
   #lc-app .featured-section .product-art { height: 125px; }
 }
+#lc-app .featured-product-picker { padding: 16px; border: 1px solid var(--lc-line); border-radius: 16px; background: #f8faf6; }
+#lc-app .featured-picker-options { display: grid; gap: 6px; max-height: 330px; overflow-y: auto; overscroll-behavior: contain; }
+#lc-app .featured-picker-options > button { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px; text-align: left; border-radius: 11px; }
+#lc-app .featured-picker-options img, #lc-app .picker-item-letter { width: 42px; height: 42px; object-fit: contain; border-radius: 8px; }
+#lc-app .picker-item-letter { display: grid; place-items: center; color: #5d7853; background: #edf3e7; font-size: 21px; }
+#lc-app .featured-picker-options > button > span:nth-child(2) { display: grid; min-width: 0; }
+#lc-app .featured-picker-options small { color: #758170; font-size: 11px; }
+#lc-app .featured-picker-options strong { overflow-wrap: anywhere; }
+#lc-app .featured-picker-options b { color: #176547; font-size: 12px; }
+#lc-app .featured-product-picker .lc-pagination { margin: 12px 0 0; }

@@ -89,3 +89,26 @@ def featured():
             continue
         result.append({**product, "shop": item.lc_shop, "shop_name": shop_name})
     return {"title": doc.title or "Picked for you", "items": result}
+
+
+def product_options(search="", start=0):
+    require_platform()
+    from local_commerce.services.orders import offset
+    from local_commerce.services.product_images import gallery_urls
+
+    search = str(search or "").strip()[:140]
+    rows = frappe.db.sql(
+        """select i.name as item, i.item_name, i.image, s.shop_name
+        from `tabItem` i inner join `tabLC Shop` s on s.name=i.lc_shop
+        where s.status='Active' and i.disabled=0 and i.is_stock_item=1
+        and i.has_variants=0 and coalesce(i.variant_of, '')=''
+        and i.has_batch_no=0 and i.has_serial_no=0
+        and (i.item_name like %s or i.name like %s or s.shop_name like %s)
+        order by i.item_name asc, i.name asc limit 21 offset %s""",
+        (f"%{search}%", f"%{search}%", f"%{search}%", offset(start)),
+        as_dict=True,
+    )
+    for row in rows:
+        images = gallery_urls(row.image, [])
+        row.image = images[0] if images else ""
+    return {"items": rows[:20], "has_more": len(rows) > 20}
