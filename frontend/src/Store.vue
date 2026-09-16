@@ -15,6 +15,20 @@ async function loadCustomerPicks() {
     if (current === picksGeneration) customerPicks.value = result
   } catch { /* Suggestions never block browsing. */ }
 }
+const categoryMenu = ref({ categories: [] }), activeCategory = ref(''), activeMenuSection = ref('')
+const menuSections = computed(() => [...new Set(categoryMenu.value.categories.map(row => row.section))])
+const visibleCategorySections = computed(() => menuSections.value.filter(name => !activeMenuSection.value || name === activeMenuSection.value).map(name => ({ name, categories: categoryMenu.value.categories.filter(row => row.section === name) })))
+const categoryLabel = computed(() => categoryMenu.value.categories.find(row => row.item_group === activeCategory.value)?.label || 'Products from local shops')
+function categoryIcon(group) {
+  return ({ Fish: '🐟', Seafood: '🦐', Rice: '🍚', Groceries: '🛒', Fruits: '🍎', Vegetables: '🥬', 'Meat & Poultry': '🍗', 'Dairy & Eggs': '🥛', Bakery: '🥖', 'Fast Food': '🍔', Snacks: '🍿', Beverages: '🧃', 'Household Essentials': '🧹', 'Personal Care': '🧴' })[group] || '🛍️'
+}
+async function chooseCategory(group) {
+  activeCategory.value = group; productStart.value = 0; productResults.value = []
+  await findProducts()
+  productBrowse.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+const productBrowse = ref(null)
+onMounted(async () => { try { categoryMenu.value = await call('storefront.category_menu') } catch { /* Product search remains available. */ } })
 onMounted(async () => { try { featured.value = await call('storefront.featured') } catch { /* Shop browsing stays available. */ } })
 const productSearch = ref(''), productResults = ref([]), productLoading = ref(false), productError = ref(''), productStart = ref(0), productMore = ref(false)
 let searchTimer, searchGeneration = 0
@@ -22,17 +36,17 @@ function money(value, currency) { return value == null ? 'Price coming soon' : n
 async function findProducts(delta = 0) {
   const current = ++searchGeneration
   productStart.value = Math.max(0, productStart.value + delta)
-  if (productSearch.value.trim().length < 2) { productResults.value = []; productLoading.value = false; productMore.value = false; return }
+  if (productSearch.value.trim().length < 2 && !activeCategory.value) { productResults.value = []; productLoading.value = false; productMore.value = false; return }
   productLoading.value = true; productError.value = ''
   try {
-    const result = await call('orders.search_products', { search: productSearch.value, start: productStart.value, ...(activeAddress.value?.latitude != null && activeAddress.value?.longitude != null ? { latitude: activeAddress.value.latitude, longitude: activeAddress.value.longitude } : {}) })
+    const result = await call('orders.search_products', { search: productSearch.value, category: activeCategory.value, start: productStart.value, ...(activeAddress.value?.latitude != null && activeAddress.value?.longitude != null ? { latitude: activeAddress.value.latitude, longitude: activeAddress.value.longitude } : {}) })
     if (current === searchGeneration) { productResults.value = result.items; productMore.value = result.has_more }
   } catch (e) { if (current === searchGeneration) productError.value = e.message }
   finally { if (current === searchGeneration) productLoading.value = false }
 }
 function scheduleProductSearch() {
   window.clearTimeout(searchTimer); searchGeneration++; productStart.value = 0; productResults.value = []; productError.value = ''; productMore.value = false
-  productLoading.value = productSearch.value.trim().length >= 2
+  productLoading.value = productSearch.value.trim().length >= 2 || !!activeCategory.value
   searchTimer = window.setTimeout(() => findProducts(), 350)
 }
 watch(productSearch, scheduleProductSearch)
@@ -83,9 +97,14 @@ const browse = ref(null)
       <div><span class="eyebrow">GOOD THINGS, CLOSE TO HOME</span><h1>Your neighbourhood.<br>Your everyday essentials.</h1><p>Fresh finds and familiar favourites.<br>Discover a better way to shop local.</p><button class="primary" @click="browse?.scrollIntoView()">Explore the neighbourhood <span>↗</span></button></div>
       <div class="hero-art" aria-hidden="true"><span class="art-label">FRESH · LOCAL · EVERYDAY</span><div class="produce">🥬<span>🍊</span>🥖</div><div class="market-bag">local<span>good things inside.</span></div><span class="art-sticker">A little<br>closer.</span></div>
     </section>
-    <section class="home-product-search" aria-label="Search products across shops">
+    <section ref="productBrowse" class="home-product-search" aria-label="Search products across shops">
       <label class="product-search"><span aria-hidden="true">⌕</span><input v-model="productSearch" type="search" maxlength="140" placeholder="Search Bangda, milk, vegetables…" aria-label="Search products across shops"><button v-if="productSearch" type="button" aria-label="Clear product search" @click="productSearch = ''">×</button></label>
-      <template v-if="productSearch.trim().length >= 2"><div class="section-title"><h2>Products from local shops</h2><small>{{ activeAddress ? 'Sorted by delivery availability and distance' : 'Choose an address to check nearby delivery' }}</small></div><p v-if="productLoading" role="status">Finding products…</p><p v-if="productError" role="alert" class="lc-notice">{{ productError }}</p><p v-if="!productLoading && !productError && !productResults.length" class="lc-empty">No matching products. Try another name.</p><div class="home-search-grid"><div v-for="item in productResults" :key="`${item.shop}:${item.item}`" class="home-search-product-wrap"><FavouriteButton :item="item.item" :shop="item.shop" /><RouterLink class="lc-card home-search-product" :to="{ name: 'customer-shop', params: { shop: item.shop }, query: { item: item.item } }"><div class="product-art"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</span></div><small class="search-shop-name">{{ item.shop_name }}{{ item.distance_km != null ? ` · ${Number(item.distance_km).toFixed(1)} km` : '' }}</small><h3>{{ item.item_name }}</h3><strong>{{ money(item.rate, item.currency) }} <small>/ {{ item.uom }}</small></strong><p class="search-stock">{{ item.available > 0 ? 'In stock' : 'Sold out' }}</p><small class="serviceability-line" :class="{ available: item.serviceable }">{{ item.serviceability_message }}</small><span class="lc-card-link">View item →</span></RouterLink></div></div><div v-if="productResults.length" class="lc-pagination"><button :disabled="!productStart || productLoading" @click="findProducts(-20)">Previous</button><button :disabled="!productMore || productLoading" @click="findProducts(20)">Next</button></div></template>
+      <div v-if="activeCategory" class="selected-category"><strong>{{ categoryLabel }}</strong><button type="button" @click="activeCategory = ''; scheduleProductSearch()">Clear category ×</button></div>
+      <template v-if="productSearch.trim().length >= 2 || activeCategory"><div class="section-title"><h2>{{ categoryLabel }}</h2><small>{{ activeAddress ? 'Sorted by delivery availability and distance' : 'Choose an address to check nearby delivery' }}</small></div><p v-if="productLoading" role="status">Finding products…</p><p v-if="productError" role="alert" class="lc-notice">{{ productError }}</p><p v-if="!productLoading && !productError && !productResults.length" class="lc-empty">No matching products. Try another name.</p><div class="home-search-grid"><div v-for="item in productResults" :key="`${item.shop}:${item.item}`" class="home-search-product-wrap"><FavouriteButton :item="item.item" :shop="item.shop" /><RouterLink class="lc-card home-search-product" :to="{ name: 'customer-shop', params: { shop: item.shop }, query: { item: item.item } }"><div class="product-art"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</span></div><small class="search-shop-name">{{ item.shop_name }}{{ item.distance_km != null ? ` · ${Number(item.distance_km).toFixed(1)} km` : '' }}</small><h3>{{ item.item_name }}</h3><strong>{{ money(item.rate, item.currency) }} <small>/ {{ item.uom }}</small></strong><p class="search-stock">{{ item.available > 0 ? 'In stock' : 'Sold out' }}</p><small class="serviceability-line" :class="{ available: item.serviceable }">{{ item.serviceability_message }}</small><span class="lc-card-link">View item →</span></RouterLink></div></div><div v-if="productResults.length" class="lc-pagination"><button :disabled="!productStart || productLoading" @click="findProducts(-20)">Previous</button><button :disabled="!productMore || productLoading" @click="findProducts(20)">Next</button></div></template>
+    </section>
+    <section v-if="categoryMenu.categories.length" class="store-category-menu" aria-label="Shop by category">
+      <nav class="category-section-tabs" aria-label="Category sections"><button type="button" :class="{ active: !activeMenuSection }" :aria-pressed="!activeMenuSection" @click="activeMenuSection = ''"><span aria-hidden="true">🛍️</span>All</button><button v-for="(name, index) in menuSections" :key="name" type="button" :class="{ active: activeMenuSection === name }" :aria-pressed="activeMenuSection === name" @click="activeMenuSection = name"><span aria-hidden="true">{{ index % 2 ? '🍽️' : '🛒' }}</span>{{ name }}</button></nav>
+      <section v-for="section in visibleCategorySections" :key="section.name" class="category-tile-section"><h2>{{ section.name }}</h2><div class="category-tile-grid"><button v-for="category in section.categories" :key="category.item_group" type="button" class="category-tile" :class="{ selected: activeCategory === category.item_group }" @click="chooseCategory(category.item_group)"><span class="category-tile-art"><img v-if="category.image" :src="category.image" alt="" loading="lazy" @error="category.image = ''"><span v-else aria-hidden="true">{{ categoryIcon(category.item_group) }}</span></span><strong>{{ category.label }}</strong></button></div></section>
     </section>
     <section v-for="section in displayedSections" :key="section.name" class="featured-section"><div class="section-title"><div><span class="eyebrow">FROM YOUR LOCAL SHOPS</span><h2>{{ section.title }}</h2></div><div class="featured-arrows"><button aria-label="Previous featured products" @click="featuredRows[section.name]?.scrollBy({ left: -300, behavior: 'smooth' })">←</button><button aria-label="Next featured products" @click="featuredRows[section.name]?.scrollBy({ left: 300, behavior: 'smooth' })">→</button></div></div><div :ref="element => { if (element) featuredRows[section.name] = element; else delete featuredRows[section.name] }" class="featured-product-row"><div v-for="item in section.items" :key="item.item" class="home-search-product-wrap"><FavouriteButton :item="item.item" :shop="item.shop" /><RouterLink class="lc-card home-search-product" :to="{ name: 'customer-shop', params: { shop: item.shop }, query: { item: item.item } }"><div class="product-art"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1) }}</span></div><small class="search-shop-name">{{ item.shop_name }}</small><h3>{{ item.item_name }}</h3><strong>{{ money(item.rate, item.currency) }}<small> / {{ item.uom }}</small></strong><small>{{ item.available > 0 ? 'In stock' : 'Sold out' }}</small><span class="lc-card-link">View item →</span></RouterLink></div></div></section>
     <section ref="browse" class="browse-section">

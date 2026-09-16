@@ -324,3 +324,61 @@
   #lc-app .product-detail-buy { margin-top: 18px; }
 }
 @media (prefers-reduced-motion: reduce) { #lc-app .product-photo-viewport { scroll-behavior: auto; } }
+
+/* Image-led category navigation for the customer storefront. */
+#lc-app .store-category-menu { margin: 24px 0 36px; }
+#lc-app .category-section-tabs { display: flex; gap: 24px; overflow-x: auto; border-bottom: 1px solid var(--lc-line); scrollbar-width: none; }
+#lc-app .category-section-tabs button { flex: 0 0 auto; display: grid; justify-items: center; gap: 7px; position: relative; padding: 12px 8px 16px; border: 0; border-radius: 0; background: transparent; color: #718073; font-size: 13px; font-weight: 600; }
+#lc-app .category-section-tabs button > span { font-size: 26px; }
+#lc-app .category-section-tabs button.active { color: #20593e; }
+#lc-app .category-section-tabs button.active::after { content: ''; position: absolute; bottom: 0; left: 8px; right: 8px; height: 4px; border-radius: 4px 4px 0 0; background: #2f704d; }
+#lc-app .category-tile-section { margin-top: 26px; }
+#lc-app .category-tile-section h2 { margin: 0 0 18px; font-size: 24px; letter-spacing: -.6px; }
+#lc-app .category-tile-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px 16px; }
+#lc-app .category-tile { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; padding: 0; border: 0; background: transparent; color: #253c2e; }
+#lc-app .category-tile-art { display: grid; place-items: center; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 22px; background: linear-gradient(145deg, #eef5e9, #f6f1df); border: 1px solid #e4eadd; transition: transform .18s ease, border-color .18s ease; }
+#lc-app .category-tile-art > img { width: 100%; height: 100%; object-fit: contain; padding: 12px; box-sizing: border-box; }
+#lc-app .category-tile-art > span { font-size: clamp(36px, 5vw, 64px); }
+#lc-app .category-tile strong { font-size: 14px; line-height: 1.35; text-align: center; overflow-wrap: anywhere; }
+#lc-app .category-tile.selected .category-tile-art { border: 2px solid #2f704d; }
+#lc-app .selected-category { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; }
+#lc-app .selected-category button { font-size: 12px; }
+#lc-app .home-product-search { scroll-margin-top: 20px; }
+#lc-app .category-menu-settings { padding: 24px; margin: 24px 0 36px; border: 1px solid var(--lc-line); border-radius: 22px; background: white; }
+#lc-app .category-menu-settings h2 { margin: 8px 0; }
+#lc-app .category-menu-settings fieldset { display: grid; gap: 20px; padding: 0; margin: 0; border: 0; min-width: 0; }
+#lc-app .category-menu-switch { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+#lc-app .category-menu-switch input { width: 18px; height: 18px; accent-color: #2f704d; }
+#lc-app .category-add-row { display: flex; align-items: end; gap: 12px; }
+#lc-app .category-add-row > label { flex: 1; display: grid; gap: 8px; }
+#lc-app .category-admin-list { display: grid; gap: 12px; }
+#lc-app .category-admin-card { display: grid; grid-template-columns: 100px minmax(0, 1fr) auto; gap: 20px; padding: 16px; border: 1px solid var(--lc-line); border-radius: 16px; }
+#lc-app .category-admin-art { display: grid; align-content: start; gap: 8px; text-align: center; }
+#lc-app .category-admin-art > img { width: 90px; height: 90px; object-fit: contain; border-radius: 12px; background: #f3f6ee; }
+#lc-app .category-admin-art > span { font-size: 44px; }
+#lc-app .category-admin-art label { font-size: 11px; color: #2f704d; cursor: pointer; }
+#lc-app .category-admin-art input { display: block; width: 100%; font-size: 10px; margin-top: 4px; }
+#lc-app .category-admin-fields { display: grid; gap: 10px; }
+#lc-app .category-admin-fields > label:not(.category-menu-switch) { display: grid; gap: 5px; font-size: 12px; }
+#lc-app .category-admin-fields input:not([type=checkbox]), #lc-app .category-add-row select { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid #dbe5d8; border-radius: 8px; background: white; }
+#lc-app .category-admin-actions { display: flex; align-items: start; gap: 6px; }
+#lc-app .category-admin-actions button { min-height: 36px; padding: 6px 10px; font-size: 12px; }
+@media (hover: hover) { #lc-app .category-tile:hover .category-tile-art { transform: translateY(-3px); border-color: #a2c294; } }
+@media (max-width: 900px) { #lc-app .category-tile-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  #lc-app .store-category-menu { margin: 12px 0 28px; }
+  #lc-app .category-section-tabs { gap: 16px; }
+  #lc-app .category-section-tabs button { font-size: 11px; max-width: 130px; }
+  #lc-app .category-tile-section { margin-top: 20px; }
+  #lc-app .category-tile-section h2 { font-size: 20px; margin-bottom: 14px; }
+  #lc-app .category-tile-grid { gap: 20px 10px; }
+  #lc-app .category-tile-art { border-radius: 16px; }
+  #lc-app .category-tile-art > img { padding: 6px; }
+  #lc-app .category-tile strong { font-size: 11px; }
+  #lc-app .category-menu-settings { padding: 16px; }
+  #lc-app .category-add-row { align-items: stretch; flex-direction: column; }
+  #lc-app .category-admin-card { grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px; }
+  #lc-app .category-admin-art > img { width: 64px; height: 64px; }
+  #lc-app .category-admin-actions { grid-column: 1 / -1; justify-content: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) { #lc-app .category-tile-art { transition: none; } }

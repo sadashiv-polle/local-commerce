@@ -2,6 +2,7 @@
 import { inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
 import AdminWorkspaceTabs from './AdminWorkspaceTabs.vue'
+import CategoryMenuSettings from './CategoryMenuSettings.vue'
 const session = inject('session'), settings = ref(null), search = ref(''), results = ref([]), busy = ref(false), error = ref(''), message = ref('')
 const searchInput = ref(null), pickerLoading = ref(false), pickerError = ref(''), start = ref(0), hasMore = ref(false)
 const lists = ref([]), activeList = ref('default')
@@ -52,8 +53,9 @@ onBeforeUnmount(() => { window.clearTimeout(timer); generation++ })
 </script>
 <template>
   <section class="store-page storefront-settings">
-    <AdminWorkspaceTabs /><RouterLink to="/shop">← Shop workspace</RouterLink><h1>Storefront products</h1><p class="muted">Choose the products customers see above the shop directory.</p>
+    <AdminWorkspaceTabs /><RouterLink to="/shop">← Shop workspace</RouterLink><h1>Storefront settings</h1><p class="muted">Choose the products customers see above the shop directory.</p>
     <p v-if="!session.platform_admin" class="lc-notice">Platform administrator access is required.</p><p v-if="error" role="alert" class="lc-notice">{{ error }}</p><p v-if="message" role="status" class="success-note">{{ message }}</p>
+    <CategoryMenuSettings v-if="session.platform_admin" />
     <section v-if="session.platform_admin" class="saved-product-lists"><header class="section-title"><h2>Saved product lists</h2><button type="button" :disabled="busy || lists.length >= 11" @click="newList">+ New list</button></header><p class="muted">Reuse products in different lists. Each enabled list appears as its own row.</p><article v-for="list in lists" :key="list.name" :class="{ editing: activeList === list.name }"><button type="button" class="saved-list-name" :disabled="busy" @click="editList(list.name)">{{ list.title }}<small>{{ list.name === 'default' ? 'Original list' : list.mode }}</small></button><button type="button" class="saved-list-toggle" :class="{ enabled: list.enabled }" :disabled="busy" :aria-pressed="!!list.enabled" @click="toggleList(list)">{{ list.enabled ? 'Shown · Turn off' : 'Hidden · Turn on' }}</button></article></section>
     <form v-if="settings" class="lc-form" @submit.prevent="save">
       <h2>{{ activeList ? 'Edit product list' : 'Create a new list' }}</h2>

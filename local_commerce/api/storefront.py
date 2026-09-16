@@ -52,3 +52,32 @@ def recommendations(address=""):
     from local_commerce.services.recommendations import suggestions
 
     return suggestions(address)
+
+
+@frappe.whitelist(allow_guest=True, methods=["GET"])
+@rate_limit(limit=300, seconds=3600)
+def category_menu():
+    from local_commerce.services.category_menu import menu
+
+    return menu()
+
+
+@frappe.whitelist(methods=["GET"])
+def category_settings():
+    from local_commerce.services.category_menu import menu
+
+    return menu(admin=True)
+
+
+@frappe.whitelist(methods=["POST"])
+def save_categories(enabled, categories):
+    from local_commerce.services.category_menu import save_menu
+
+    return save_menu(enabled, categories)
+
+
+@frappe.whitelist(methods=["POST"])
+def upload_category_image():
+    from local_commerce.services.category_menu import upload_image
+
+    return upload_image()

@@ -8,7 +8,11 @@
     "mode",
     "title",
     "random_count",
-    "products"
+    "products",
+    "category_section",
+    "category_menu_enabled",
+    "category_menu_initialized",
+    "categories"
   ],
   "fields": [
     {
@@ -42,6 +46,30 @@
       "label": "Selected Products",
       "fieldtype": "Table",
       "options": "LC Featured Product"
+    },
+    {
+      "fieldname": "category_section",
+      "label": "Category Menu",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "category_menu_enabled",
+      "label": "Show Category Menu",
+      "fieldtype": "Check",
+      "default": 1
+    },
+    {
+      "fieldname": "category_menu_initialized",
+      "label": "Category Menu Initialized",
+      "fieldtype": "Check",
+      "hidden": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "categories",
+      "label": "Categories",
+      "fieldtype": "Table",
+      "options": "LC Store Category"
     }
   ],
   "permissions": [

@@ -104,8 +104,8 @@ def reorder_preview(order):
 
 @frappe.whitelist(allow_guest=True, methods=["GET"])
 @rate_limit(limit=300, seconds=3600)
-def search_products(search, start=0, latitude=None, longitude=None):
-    return orders.search_products(search, start, latitude, longitude)
+def search_products(search, start=0, latitude=None, longitude=None, category=""):
+    return orders.search_products(search, start, latitude, longitude, category)
 
 
 @frappe.whitelist(allow_guest=True, methods=["GET"])

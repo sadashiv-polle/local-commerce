@@ -325,10 +325,11 @@ def product_data(shop, item, browsing=False):
     }
 
 
-def search_products(search, start=0, latitude=None, longitude=None):
+def search_products(search, start=0, latitude=None, longitude=None, category=""):
     search = str(search or "").strip()[:140]
     start = offset(start)
-    if len(search) < 2:
+    category = str(category or "").strip()[:140]
+    if len(search) < 2 and not category:
         return {"items": [], "has_more": False}
     try:
         destination = point(latitude, longitude)
@@ -352,10 +353,14 @@ def search_products(search, start=0, latitude=None, longitude=None):
                 "Choose a delivery address to check availability"}
     if not public_shops:
         return {"items": [], "has_more": False}
-    candidates = frappe.get_all("Item", filters={"lc_shop": ["in", list(public_shops)],
+    filters = {"lc_shop": ["in", list(public_shops)],
         "disabled": 0, "is_stock_item": 1, "has_batch_no": 0, "has_serial_no": 0,
-        "has_variants": 0, "variant_of": ["is", "not set"]},
-        or_filters={"item_name": ["like", f"%{search}%"], "name": ["like", f"%{search}%"]},
+        "has_variants": 0, "variant_of": ["is", "not set"]}
+    if category:
+        filters["item_group"] = category
+    candidates = frappe.get_all("Item", filters=filters,
+        or_filters={"item_name": ["like", f"%{search}%"], "name": ["like", f"%{search}%"]}
+        if search else None,
         fields=["name", "lc_shop", "item_name"], limit_page_length=2001)
     if len(candidates) > 2000:
         reject("Too many matching items. Try a more specific product name")

@@ -1,0 +1,49 @@
+{
+  "doctype": "DocType",
+  "name": "LC Store Category",
+  "module": "Local Commerce",
+  "istable": 1,
+  "field_order": [
+    "item_group",
+    "label",
+    "section",
+    "image",
+    "enabled"
+  ],
+  "fields": [
+    {
+      "fieldname": "item_group",
+      "label": "Item Group",
+      "fieldtype": "Link",
+      "options": "Item Group",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "label",
+      "label": "Menu Label",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "section",
+      "label": "Section",
+      "fieldtype": "Data",
+      "default": "Shop by category",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "image",
+      "label": "Category Image",
+      "fieldtype": "Attach Image"
+    },
+    {
+      "fieldname": "enabled",
+      "label": "Show in Store",
+      "fieldtype": "Check",
+      "default": 1,
+      "in_list_view": 1
+    }
+  ]
+}

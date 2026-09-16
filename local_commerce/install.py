@@ -19,6 +19,7 @@ def before_install():
         "LC COD Collection",
         "LC Notification",
         "LC Push Subscription",
+        "LC Store Category",
     ):
         if frappe.db.exists("DocType", name):
             frappe.throw(f"DocType collision: {name}; inspect ownership before installing")
@@ -44,6 +45,9 @@ def after_migrate():
     from local_commerce.services.item_groups import ensure_item_groups
 
     ensure_item_groups()
+    from local_commerce.services.category_menu import seed_menu
+
+    seed_menu()
 
     # Preserve the original featured row when adding list visibility to existing sites.
     if frappe.db.exists("DocType", "LC Store Settings") and not frappe.db.sql(
@@ -215,6 +219,7 @@ def before_migrate():
         "LC COD Collection",
         "LC Notification",
         "LC Push Subscription",
+        "LC Store Category",
     ):
         module = frappe.db.get_value("DocType", name, "module")
         if module and module != "Local Commerce":
