@@ -36,7 +36,7 @@ def finalize(order, modified, weights):
         reject("The order Company no longer matches the shop")
     totals = {}
     for index, row in enumerate(so.items):
-        quantity = actual.get(index, row.qty)
+        quantity = actual.get(index, row.stock_qty)
         totals[row.item_code] = totals.get(row.item_code, 0) + checked_number(
             quantity, "Packed quantity", positive=True
         )
@@ -50,9 +50,15 @@ def finalize(order, modified, weights):
     try:
         for index, weight in actual.items():
             snapshot = snapshots[index]
-            amended.items[index].qty = weight
-            amended.items[index].rate = snapshot["rate_per_kg"]
-            amended.items[index].price_list_rate = snapshot["rate_per_kg"]
+            if snapshot.get("billing") == "Pieces":
+                amended.items[index].qty = snapshot["option_quantity"] * snapshot["packs"]
+                amended.items[index].conversion_factor = weight / amended.items[index].qty
+            else:
+                amended.items[index].qty = weight
+            rate = (snapshot["piece_price"] if snapshot.get("billing") == "Pieces"
+                    else snapshot["rate_per_kg"])
+            amended.items[index].rate = rate
+            amended.items[index].price_list_rate = rate
             amended.items[index].description = escape(
                 f"{amended.items[index].item_name} · {snapshot['label']} × "
                 f"{snapshot['packs']:g}; actual packed weight {weight:g} Kg"
@@ -85,10 +91,17 @@ def finalize(order, modified, weights):
         amended.flags.ignore_permissions = True
         amended.insert(ignore_permissions=True)
         for index, weight in actual.items():
-            if checked_number(amended.items[index].qty, "Quantity") != checked_number(
+            if checked_number(amended.items[index].stock_qty, "Stock quantity") != checked_number(
                 weight, "Packed weight"
             ):
                 reject("ERPNext quantity precision changed this weight; enter a supported weight")
+            snapshot = snapshots[index]
+            if snapshot.get("billing") == "Pieces" and frappe.utils.flt(
+                amended.items[index].amount, amended.items[index].precision("amount")
+            ) != frappe.utils.flt(
+                snapshot["fixed_amount"], amended.items[index].precision("amount")
+            ):
+                reject("ERPNext changed this piece price; contact the administrator")
         amended.submit()
         doc.sales_order = amended.name
         doc.selling_lines_json = json.dumps(snapshots)

@@ -74,3 +74,37 @@ class TestPackedWeights(FrappeTestCase):
                       {"item": self.item, "option_id": "kg", "quantity": 5}]]:
             with self.assertRaises(frappe.ValidationError):
                 orders.place(self.shop.name, rows, self.address, "invalid-packing-request-001")
+
+    def test_piece_pricing_keeps_bill_fixed_and_stock_uses_packed_weight(self):
+        frappe.set_user(self.user.name)
+        self.offers[0].update(billing="Pieces", piece_price=35)
+        item = frappe.get_doc("Item", self.item)
+        owner.update_product(self.shop.name, self.item, str(item.modified), item.item_name,
+                             selling_options=self.offers)
+        frappe.set_user(self.customer.name)
+        request = self.request()
+        self.assertAlmostEqual(sum(row["amount"] for row in request["items"]), 545)
+        frappe.set_user(self.user.name)
+        accepted = orders.change(request["name"], "Accepted")
+        final = packing.finalize(request["name"], accepted["modified"], {"0": 1.02, "1": 0.47})
+        self.assertAlmostEqual(sum(row["amount"] for row in final["items"]), 551)
+        so = frappe.get_doc("Sales Order", frappe.db.get_value(
+            "LC Order", request["name"], "sales_order"))
+        self.assertEqual(so.items[1].uom, "Nos")
+        self.assertEqual(so.items[1].qty, 7)
+        self.assertAlmostEqual(so.items[1].stock_qty, 0.47)
+        self.assertAlmostEqual(so.items[1].amount, 245)
+        updated = packing.finalize(request["name"], final["modified"], {"0": 1.02, "1": 0.54})
+        self.assertAlmostEqual(sum(row["amount"] for row in updated["items"]), 551)
+
+    def test_hidden_options_are_not_public_or_orderable(self):
+        frappe.set_user(self.user.name)
+        self.offers[1]["enabled"] = False
+        item = frappe.get_doc("Item", self.item)
+        owner.update_product(self.shop.name, self.item, str(item.modified), item.item_name,
+                             selling_options=self.offers)
+        frappe.set_user(self.customer.name)
+        public = orders.product_data(self.shop, frappe.get_doc("Item", self.item), browsing=True)
+        self.assertEqual([row["id"] for row in public["selling_options"]], ["seven"])
+        with self.assertRaises(frappe.ValidationError):
+            self.request()

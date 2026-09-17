@@ -26,9 +26,20 @@ def options(rows):
             raise ValueError("Count options require a whole-number quantity")
         weight = (number(row.get("estimated_weight"), "Estimated weight", positive=True)
                   if kind == "Count" else quantity)
+        billing = row.get("billing", "Weight")
+        if billing not in {"Weight", "Pieces"} or (kind == "Weight" and billing != "Weight"):
+            raise ValueError("Choose weight pricing or piece pricing for count options")
+        enabled = row.get("enabled", True)
+        if not isinstance(enabled, bool):
+            raise ValueError("Invalid selling option visibility")
+        piece_price = (float(number(row.get("piece_price"), "Price per piece", positive=True))
+                       if billing == "Pieces" else None)
         ids.add(identifier)
         result.append({"id": identifier, "label": label, "kind": kind,
-                       "quantity": float(quantity), "estimated_weight": float(weight)})
+                       "quantity": float(quantity), "estimated_weight": float(weight),
+                       "billing": billing, "piece_price": piece_price, "enabled": enabled})
+    if result and not any(row["enabled"] for row in result):
+        raise ValueError("Show at least one selling option")
     return result
 
 
@@ -36,7 +47,8 @@ def selected(rows, identifier, packs):
     packs = number(packs, "Quantity", positive=True)
     if packs != packs.to_integral_value():
         raise ValueError("Select a whole number of packs")
-    option = next((row for row in options(rows) if row["id"] == identifier), None)
+    option = next((row for row in options(rows)
+                   if row["id"] == identifier and row["enabled"]), None)
     if not option:
         raise ValueError("Choose an available selling option for this product")
     return {**option, "packs": float(packs),

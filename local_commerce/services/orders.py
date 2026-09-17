@@ -323,7 +323,8 @@ def product_data(shop, item, browsing=False):
         "rate": float(checked_number(price.price_list_rate, "Price")) if price else None,
         "currency": currency,
         "available": 0 if item.lc_sold_out else balance(item.name, shop.warehouse)["available"],
-        "selling_options": frappe.parse_json(item.get("lc_selling_options") or "[]"),
+        "selling_options": [row for row in frappe.parse_json(item.get("lc_selling_options") or "[]")
+                            if row.get("enabled", True)],
     }
 
 
@@ -482,8 +483,10 @@ def quote(shop, items, latitude=None, longitude=None):
     subtotal = checked_number(0, "Subtotal")
     for row in rows:
         product = product_data(doc, frappe.get_doc("Item", row["item"]))
-        quantity, _snapshot = selling_quantity(product, row)
-        subtotal += quantity * checked_number(product["rate"], "Price")
+        quantity, snapshot = selling_quantity(product, row)
+        subtotal += (checked_number(snapshot["fixed_amount"], "Piece total")
+                     if snapshot.get("billing") == "Pieces"
+                     else quantity * checked_number(product["rate"], "Price"))
     price = pricing_for(doc, subtotal, distance)
     price.update({"subtotal": float(subtotal), "distance_km": distance})
     return price
@@ -502,7 +505,12 @@ def selling_quantity(product, row):
                     "label": offer["label"], "kind": offer["kind"],
                     "option_quantity": offer["quantity"], "packs": offer["packs"],
                     "estimated_weight": offer["estimated_total_weight"],
-                    "actual_weight": None, "rate_per_kg": product["rate"]}
+                    "actual_weight": None, "rate_per_kg": product["rate"],
+                    "billing": offer["billing"], "piece_price": offer["piece_price"]}
+        snapshot["fixed_amount"] = (float(checked_number(offer["piece_price"], "Price")
+                                          * checked_number(offer["quantity"], "Pieces")
+                                          * checked_number(offer["packs"], "Packs"))
+                                    if offer["billing"] == "Pieces" else None)
         return checked_number(offer["estimated_total_weight"], "Estimated weight",
                               positive=True), snapshot
     return checked_number(row["quantity"], "Quantity", positive=True), {}
@@ -574,21 +582,25 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
             balance(item.name, doc.warehouse, lock=True)["available"], "Available stock"
         ):
             reject("Not enough available stock; update your cart")
+        by_piece = snapshot.get("billing") == "Pieces"
+        sale_qty = snapshot["option_quantity"] * snapshot["packs"] if by_piece else float(quantity)
+        sale_rate = snapshot["piece_price"] if by_piece else product["rate"]
         prepared.append(
             {
                 "item_code": item.name,
                 "item_name": item.item_name,
-                "qty": float(quantity),
-                "rate": product["rate"],
-                "price_list_rate": product["rate"],
-                "uom": item.stock_uom,
+                "qty": sale_qty,
+                "rate": sale_rate,
+                "price_list_rate": sale_rate,
+                "uom": "Nos" if by_piece else item.stock_uom,
                 "stock_uom": item.stock_uom,
-                "conversion_factor": 1,
+                "conversion_factor": float(quantity) / sale_qty if by_piece else 1,
                 "warehouse": doc.warehouse,
                 "delivery_date": nowdate(),
                 "description": escape(item.item_name + (
                     f" · {snapshot['label']} × {snapshot['packs']:g}; estimated weight, "
-                    "final price after packing" if snapshot else ""
+                    + ("fixed piece price" if snapshot.get("billing") == "Pieces"
+                     else "final price after packing") if snapshot else ""
                 )),
             }
         )
@@ -693,6 +705,16 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 expected["qty"], "Quantity"
             ):
                 reject("ERPNext quantity precision changed this order; use a supported quantity")
+        for snapshot, posted in zip(selling_lines, so.items, strict=True):
+            if snapshot.get("billing") == "Pieces":
+                if checked_number(posted.stock_qty, "Stock quantity") != checked_number(
+                    snapshot["estimated_weight"], "Estimated weight"
+                ):
+                    reject("ERPNext stock precision changed this option; use a supported weight")
+                if frappe.utils.flt(posted.amount, posted.precision("amount")) != frappe.utils.flt(
+                    snapshot["fixed_amount"], posted.precision("amount")
+                ):
+                    reject("ERPNext changed this piece price; contact the administrator")
         order.sales_order = so.name
         order.save(ignore_permissions=True)
         order_notifications.order_created(order)

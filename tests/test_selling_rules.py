@@ -27,6 +27,25 @@ class TestSellingRules(unittest.TestCase):
             with self.assertRaises(ValueError):
                 options(rows)
 
+    def test_piece_prices_and_visibility(self):
+        rows = [{**self.offers()[0], "billing": "Pieces", "piece_price": 35},
+                {**self.offers()[1], "enabled": False}]
+        offer = selected(rows, "custom", 3)
+        self.assertEqual(offer["piece_price"] * offer["quantity"] * offer["packs"], 735)
+        self.assertEqual(offer["estimated_total_weight"], 1.95)
+        with self.assertRaises(ValueError):
+            selected(rows, "weight", 1)
+        for invalid in [{**rows[0], "piece_price": 0},
+                        {**rows[0], "piece_price": None},
+                        {**rows[0], "enabled": "false"},
+                        {**rows[1], "billing": "Pieces", "piece_price": 35}]:
+            with self.assertRaises(ValueError):
+                options([invalid])
+        with self.assertRaises(ValueError):
+            options([{**rows[0], "enabled": False}])
+        # Earlier count offers retain actual-weight pricing until explicitly changed.
+        self.assertEqual(selected(self.offers(), "custom", 1)["billing"], "Weight")
+
     def test_same_item_can_have_separate_options_without_trusting_client_price(self):
         result = cart_rows([{"item": "fish", "option_id": "custom", "quantity": 2,
                              "rate": 0, "estimated_weight": 0},

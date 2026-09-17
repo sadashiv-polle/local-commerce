@@ -414,6 +414,15 @@ def update_product(
         )):
             reject("Use Kg with fractional quantities for products billed by packed weight")
         product.lc_selling_options = json.dumps(offers)
+        piece_offer = next((row for row in offers if row["billing"] == "Pieces"), None)
+        if piece_offer:
+            if not frappe.db.exists("UOM", {"name": "Nos", "enabled": 1}):
+                reject("Enable the Nos unit before configuring piece pricing")
+            if not any(row.uom == "Nos" for row in product.uoms):
+                product.append("uoms", {
+                    "uom": "Nos",
+                    "conversion_factor": piece_offer["estimated_weight"] / piece_offer["quantity"],
+                })
     if price not in (None, ""):
         rate = checked_number(price, "Selling price")
         if not doc.selling_price_list:
