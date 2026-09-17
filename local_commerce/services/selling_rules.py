@@ -23,7 +23,8 @@ def options(rows):
             raise ValueError("Enter an option name and select Count or Weight")
         quantity = number(row.get("quantity"), "Option quantity", positive=True)
         if kind == "Count" and quantity != quantity.to_integral_value():
-            raise ValueError("Count options require a whole-number quantity")
+            raise ValueError(f'Option "{label}": enter a whole number of pieces (for example, 5). '
+                             'Enter kilograms in Approx. weight, or select Sell by Weight.')
         weight = (number(row.get("estimated_weight"), "Estimated weight", positive=True)
                   if kind == "Count" else quantity)
         billing = row.get("billing", "Weight")

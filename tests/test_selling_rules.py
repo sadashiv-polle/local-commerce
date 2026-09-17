@@ -27,6 +27,11 @@ class TestSellingRules(unittest.TestCase):
             with self.assertRaises(ValueError):
                 options(rows)
 
+    def test_fractional_piece_error_identifies_option_and_weight_field(self):
+        with self.assertRaisesRegex(ValueError, '7 fish.*whole number of pieces.*Approx. weight'):
+            options([{**self.offers()[0], "quantity": 0.5}])
+        self.assertEqual(options([{**self.offers()[1], "quantity": 0.5}])[0]["quantity"], 0.5)
+
     def test_piece_prices_and_visibility(self):
         rows = [{**self.offers()[0], "billing": "Pieces", "piece_price": 35},
                 {**self.offers()[1], "enabled": False}]
