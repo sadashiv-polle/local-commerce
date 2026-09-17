@@ -1,4 +1,16 @@
+function sync_shop_coordinate_pin(frm) {
+  const latitude = frm.doc.latitude;
+  const longitude = frm.doc.longitude;
+  if (latitude == null || longitude == null || latitude === '' || longitude === '') return;
+  return frm.set_value('location_map', JSON.stringify({
+    type: 'FeatureCollection', features: [{ type: 'Feature', properties: {},
+      geometry: { type: 'Point', coordinates: [Number(longitude), Number(latitude)] } }],
+  }));
+}
+
 frappe.ui.form.on('LC Shop', {
+  latitude(frm) { return sync_shop_coordinate_pin(frm); },
+  longitude(frm) { return sync_shop_coordinate_pin(frm); },
   setup(frm) {
     frm.set_query('warehouse', () => ({
       filters: {
@@ -50,6 +62,15 @@ frappe.ui.form.on('LC Shop', {
 
   refresh(frm) {
     const pricingAdmin = frappe.session.user === "Administrator" || frappe.user.has_role("LC Platform Administrator");
+    for (const field of ["location_map", "latitude", "longitude", "address_line1", "city", "postal_code", "service_radius_km", "live_tracking_enabled"]) {
+      frm.toggle_enable(field, pricingAdmin);
+    }
+    if (pricingAdmin && !frm.doc.location_map && (frm.doc.latitude || frm.doc.longitude)) {
+      frm.set_value('location_map', JSON.stringify({
+        type: 'FeatureCollection', features: [{ type: 'Feature', properties: {},
+          geometry: { type: 'Point', coordinates: [frm.doc.longitude, frm.doc.latitude] } }],
+      }));
+    }
     for (const field of ["shop_type", "fish_wastage_account", "minimum_order_amount", "free_delivery_above", "delivery_fee", "delivery_fee_per_km", "delivery_included_km"]) {
       frm.toggle_enable(field, pricingAdmin);
     }

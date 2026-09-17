@@ -20,6 +20,7 @@
     "address_line1",
     "city",
     "postal_code",
+    "location_map",
     "latitude",
     "longitude",
     "service_radius_km",
@@ -285,6 +286,12 @@
       "fieldtype": "Link",
       "options": "Account",
       "depends_on": "eval:doc.shop_type == \"Fish\""
+    },
+    {
+      "fieldname": "location_map",
+      "label": "Shop Map Pin",
+      "fieldtype": "Geolocation",
+      "description": "Admin only: use the marker tool to place one shop pin. Save to store its latitude and longitude. Move or remove the existing marker before adding another."
     }
   ],
   "permissions": [

@@ -72,6 +72,7 @@ async function save() {
   finally { saving.value = false }
 }
 function pickShopLocation(point) {
+  if (!canEditLocation.value) return
   shop.value.latitude = point.latitude; shop.value.longitude = point.longitude; locationError.value = ''
   if (point.address_line1) shop.value.address_line1 = point.address_line1
   if (point.city) shop.value.city = point.city
@@ -137,7 +138,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
               <div class="location-heading"><div><span class="eyebrow">DELIVERY MAP</span><h3>Shop address &amp; service area</h3><p>{{ canEditLocation ? 'Place the shop pin and set how far your riders deliver.' : 'A platform administrator manages this shop location.' }}</p></div><button v-if="canEditLocation" type="button" :disabled="locating" @click="useShopLocation">{{ locating ? 'Finding…' : 'Use current location' }}</button></div>
               <label>Street address<input v-model="shop.address_line1" :disabled="!canEditLocation" maxlength="140" autocomplete="street-address"></label>
               <div class="form-columns"><label>City<input v-model="shop.city" :disabled="!canEditLocation" maxlength="140" autocomplete="address-level2"></label><label>Postal code<input v-model="shop.postal_code" :disabled="!canEditLocation" maxlength="140" autocomplete="postal-code"></label></div>
-              <small class="coordinate-help">{{ canEditLocation ? "Tap the map to place the shop pin, or use this device's location." : 'Contact the platform administrator to change the address or map pin.' }}</small>
+              <small class="coordinate-help">{{ canEditLocation ? "Search for a place or tap the map to place the shop pin. Save shop settings below to keep the location." : 'Contact the platform administrator to change the address or map pin.' }}</small>
               <MapView :config="shop.map" :points="shopPoints" :editable="canEditLocation" @pick="pickShopLocation" />
               <div class="coordinate-row"><span>{{ shopPoints.length ? 'Shop pin selected' : 'No map pin selected' }}</span><button v-if="canEditLocation && shopPoints.length" type="button" @click="clearShopLocation">Clear pin</button></div>
               <label>Delivery radius (km)<input v-model.number="shop.service_radius_km" :disabled="!canEditLocation" type="number" min="0.1" max="500" step="0.1" required></label>

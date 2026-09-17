@@ -79,6 +79,7 @@ class LCShop(Document):
                     frappe.PermissionError,
                 )
             location_fields = (
+                "location_map",
                 "address_line1",
                 "city",
                 "postal_code",
@@ -92,6 +93,12 @@ class LCShop(Document):
                     "Only platform administrators can change shop location settings",
                     frappe.PermissionError,
                 )
+        from local_commerce.services.shop_map import synchronize
+
+        try:
+            synchronize(self)
+        except ValueError as exc:
+            frappe.throw(str(exc))
         if not frappe.db.exists("Company", self.company):
             frappe.throw("A valid ERPNext Company is required")
         self.shop_name = (self.shop_name or "").strip()
