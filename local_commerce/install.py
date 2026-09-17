@@ -20,6 +20,9 @@ def before_install():
         "LC Notification",
         "LC Push Subscription",
         "LC Store Category",
+        "LC Fish Lot",
+        "LC Fish Movement",
+        "LC Fish Price Change",
     ):
         if frappe.db.exists("DocType", name):
             frappe.throw(f"DocType collision: {name}; inspect ownership before installing")
@@ -107,6 +110,14 @@ def after_migrate():
                     "fieldtype": "Long Text",
                     "read_only": 1,
                     "hidden": 1,
+                },
+                {
+                    "fieldname": "lc_stock_validity_hours",
+                    "label": "Fish Stock Validity Hours",
+                    "fieldtype": "Float",
+                    "read_only": 1,
+                    "hidden": 1,
+                    "precision": "6",
                 },
                 {
                     "fieldname": "lc_sold_out",
@@ -236,6 +247,9 @@ def before_migrate():
         "LC Notification",
         "LC Push Subscription",
         "LC Store Category",
+        "LC Fish Lot",
+        "LC Fish Movement",
+        "LC Fish Price Change",
     ):
         module = frappe.db.get_value("DocType", name, "module")
         if module and module != "Local Commerce":
@@ -251,6 +265,7 @@ def before_migrate():
         ("Item", "lc_description", "Small Text", None),
         ("Item", "lc_low_stock", "Float", None),
         ("Item", "lc_selling_options", "Long Text", None),
+        ("Item", "lc_stock_validity_hours", "Float", None),
         ("Item", "lc_sold_out", "Check", None),
         ("Stock Entry", "lc_shop", "Link", "LC Shop"),
     ):

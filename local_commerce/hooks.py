@@ -123,3 +123,22 @@ has_permission["LC Customer Address"] = "local_commerce.services.customers.addre
 
 permission_query_conditions["LC COD Collection"] = "local_commerce.services.orders.collection_query"
 has_permission["LC COD Collection"] = "local_commerce.services.orders.collection_permission"
+
+for _fish_doctype in ('LC Fish Lot', 'LC Fish Movement', 'LC Fish Price Change'):
+    doc_events[_fish_doctype] = {
+        event: 'local_commerce.services.fish.protect_record'
+        for event in ('validate', 'on_trash', 'before_rename')
+    }
+for _fish_stock_doctype in ('Stock Entry', 'Delivery Note', 'Sales Invoice',
+                            'Stock Reconciliation', 'Purchase Receipt'):
+    _stock_events = doc_events.setdefault(_fish_stock_doctype, {})
+    _existing_validators = _stock_events.get('validate', [])
+    if isinstance(_existing_validators, str):
+        _existing_validators = [_existing_validators]
+    _stock_events['validate'] = [*_existing_validators,
+                                 'local_commerce.services.fish.protect_stock']
+    _previous_cancel = _stock_events.get('before_cancel', [])
+    if isinstance(_previous_cancel, str):
+        _previous_cancel = [_previous_cancel]
+    _stock_events['before_cancel'] = [*_previous_cancel,
+                                      'local_commerce.services.fish.protect_cancel']

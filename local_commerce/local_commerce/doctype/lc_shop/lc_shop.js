@@ -15,6 +15,9 @@ frappe.ui.form.on('LC Shop', {
         account_type: 'Stock Adjustment',
       },
     }));
+    frm.set_query('fish_wastage_account', () => ({
+      filters: { company: frm.doc.company || '', is_group: 0, disabled: 0, root_type: 'Expense' },
+    }));
     frm.set_query('cost_center', () => ({
       filters: {
         company: frm.doc.company || '',
@@ -47,7 +50,7 @@ frappe.ui.form.on('LC Shop', {
 
   refresh(frm) {
     const pricingAdmin = frappe.session.user === "Administrator" || frappe.user.has_role("LC Platform Administrator");
-    for (const field of ["minimum_order_amount", "free_delivery_above", "delivery_fee", "delivery_fee_per_km", "delivery_included_km"]) {
+    for (const field of ["shop_type", "fish_wastage_account", "minimum_order_amount", "free_delivery_above", "delivery_fee", "delivery_fee_per_km", "delivery_included_km"]) {
       frm.toggle_enable(field, pricingAdmin);
     }
     const enabled = Boolean(frm.doc.company);
@@ -64,6 +67,7 @@ frappe.ui.form.on('LC Shop', {
     return frm.set_value({
       warehouse: null,
       stock_adjustment_account: null,
+      fish_wastage_account: null,
       cost_center: null,
       delivery_account: null,
       order_tax_template: null,

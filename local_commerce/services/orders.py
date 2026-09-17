@@ -312,6 +312,9 @@ def product_data(shop, item, browsing=False):
             limit_page_length=0,
         ) if browsing else [],
     )
+    from local_commerce.services import fish
+
+    available_stock = 0 if item.lc_sold_out else balance(item.name, shop.warehouse)["available"]
     return {
         "item": item.name,
         "item_name": item.item_name,
@@ -322,9 +325,10 @@ def product_data(shop, item, browsing=False):
         "description": item.lc_description or "",
         "rate": float(checked_number(price.price_list_rate, "Price")) if price else None,
         "currency": currency,
-        "available": 0 if item.lc_sold_out else balance(item.name, shop.warehouse)["available"],
-        "selling_options": [row for row in frappe.parse_json(item.get("lc_selling_options") or "[]")
-                            if row.get("enabled", True)],
+        "available": fish.sellable(shop, item, available_stock),
+        "selling_options": [row for row in fish.selling_options(
+            shop, item, frappe.parse_json(item.get("lc_selling_options") or "[]")
+        ) if row.get("enabled", True)],
     }
 
 
@@ -715,6 +719,9 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                     snapshot["fixed_amount"], posted.precision("amount")
                 ):
                     reject("ERPNext changed this piece price; contact the administrator")
+        from local_commerce.services import fish
+
+        fish.reserve(order, so.items)
         order.sales_order = so.name
         order.save(ignore_permissions=True)
         order_notifications.order_created(order)
@@ -1198,7 +1205,11 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
                 delivery_note.lc_order = doc.name
                 delivery_note.flags.ignore_permissions = True
                 delivery_note.insert(ignore_permissions=True)
+                from local_commerce.services import fish
+
+                fish.validate_order(doc)
                 delivery_note.submit()
+                fish.picked_up(doc, delivery_note)
             finally:
                 frappe.set_user(original_user)
             doc.delivery_note = delivery_note.name
@@ -1405,6 +1416,15 @@ def change(order, target, reason=""):
         reject(str(exc))
     if not changed:
         return serialize(doc)
+    if target == "Ready" and any(
+        line.get("option_id") and line.get("actual_weight") is None
+        for line in json.loads(doc.get("selling_lines_json") or "[]")
+    ):
+        reject("Enter and save the actual packed weights before marking this order Ready")
+    from local_commerce.services import fish
+
+    if target in {"Accepted", "Ready"}:
+        fish.validate_order(doc)
     if target == "Cancelled" and not 3 <= len(str(reason).strip()) <= 500:
         reject("Enter a cancellation reason (3–500 characters)")
     so = frappe.get_doc("Sales Order", doc.sales_order)
@@ -1436,6 +1456,8 @@ def change(order, target, reason=""):
             reject("The ERPNext order is not active; contact your administrator")
         previous = doc.status
         doc.status, doc.reason = target, str(reason).strip() if target == "Cancelled" else ""
+        if target == "Cancelled":
+            doc.fish_allocations_json = '[]'
         doc.save(ignore_permissions=True)
         doc.add_comment("Info", escape(f"{previous} → {target}. {doc.reason}"))
         order_notifications.status_changed(doc, previous)

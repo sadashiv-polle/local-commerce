@@ -69,6 +69,17 @@ def validate_configuration(doc, method=None):
     ]:
         if doc.get(field):
             company_link(dt, doc.get(field), doc.company, extra)
+    if doc.get("fish_wastage_account"):
+        company_link("Account", doc.fish_wastage_account, doc.company,
+                     {"is_group": 0, "disabled": 0, "root_type": "Expense"})
+    if previous and previous.get("shop_type") == "Fish" and (
+        previous.get("shop_type") != doc.get("shop_type") or previous.warehouse != doc.warehouse
+    ) and frappe.db.exists("LC Fish Lot", {"shop": doc.name}):
+        reject("Fish shop type and warehouse cannot change after lots have been recorded")
+    if previous and previous.get("shop_type") != doc.get("shop_type") and frappe.db.exists(
+        "LC Order", {"shop": doc.name, "status": ["not in", ["Delivered", "Cancelled"]]}
+    ):
+        reject("Finish or cancel active orders before changing the shop type")
     if doc.selling_price_list:
         currency = frappe.db.get_value("Company", doc.company, "default_currency")
         if not frappe.db.exists(
@@ -255,6 +266,13 @@ def detail(shop, item):
 
 
 def serialize_product(doc, product, stock, price, currency):
+    from local_commerce.services import fish
+
+    stock = dict(stock)
+    if fish.enabled(doc, product):
+        stock['available'] = fish.sellable(doc, product, stock['available'])
+        stock['untracked'] = max(0, stock['actual'] - sum(
+            row.remaining for row in fish.lots(doc, product.name)))
     return {
         **{
             key: product.get(key)
@@ -272,9 +290,11 @@ def serialize_product(doc, product, stock, price, currency):
             )
         },
         "stock": stock,
-        "selling_options": frappe.parse_json(
+        "fish_inventory": doc.get("shop_type") == "Fish" and product.stock_uom == "Kg",
+        "validity_hours": frappe.db.get_value("Item", product.name, "lc_stock_validity_hours") or 0,
+        "selling_options": fish.selling_options(doc, product, frappe.parse_json(
             frappe.db.get_value("Item", product.name, "lc_selling_options") or "[]"
-        ),
+        )),
         "warehouse": doc.warehouse,
         "price": price.price_list_rate if price else None,
         "currency": currency,
@@ -386,7 +406,7 @@ def catalog(shop, start=0, search="", status="All"):
 
 def update_product(
     shop, item, modified, item_name, description="", low_stock=0, sold_out=0, archived=0,
-    price=None, selling_options=None
+    price=None, selling_options=None, validity_hours=None
 ):
     doc, product = own_item(shop, item, True)
     if str(product.modified) != str(modified):
@@ -397,6 +417,21 @@ def update_product(
         reject("Description must be at most 5000 characters")
     if str(sold_out) not in ("0", "1") or str(archived) not in ("0", "1"):
         reject("Invalid availability setting")
+    from local_commerce.services import fish
+
+    existing_price = get_price(doc, product)
+    previous_fish = {"price": float(existing_price.price_list_rate) if existing_price else None,
+                     "options": json.loads(product.get("lc_selling_options") or "[]"),
+                     "hours": float(product.get("lc_stock_validity_hours") or 0)}
+    if validity_hours is not None:
+        fish.require_fish(doc, product)
+        try:
+            from local_commerce.services.fish_rules import expiry
+
+            expiry(frappe.utils.now_datetime(), validity_hours)
+        except ValueError as exc:
+            reject(str(exc))
+        product.lc_stock_validity_hours = float(validity_hours)
     product.item_name = item_name.strip()
     product.lc_description = description
     product.description = escape(description) if description else escape(product.item_name)
@@ -460,6 +495,7 @@ def update_product(
         product.add_comment("Edit", "Owner updated product details, availability or selling price")
     finally:
         _item_creation.reset(token)
+    fish.price_changed(doc, product, previous_fish)
     return detail(shop, item)
 
 
@@ -502,8 +538,15 @@ def upload_product_image(shop, item):
     return detail(shop, item)
 
 
-def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0):
+def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
+                 validity_hours=None):
     doc, product = own_item(shop, item, True)
+    from local_commerce.services import fish
+
+    if fish.enabled(doc, product) and not fish._operation.get():
+        return fish.adjust(shop, item, action, quantity, reason, request_key, unit_cost,
+                           validity_hours=(validity_hours if validity_hours is not None
+                                           else product.get("lc_stock_validity_hours")))
     if not isinstance(request_key, str) or not 16 <= len(request_key) <= 100:
         reject("A valid request key is required")
     if not isinstance(reason, str) or not 3 <= len(reason.strip()) <= 500:
@@ -523,6 +566,9 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0)
         "unit_cost": str(unit_cost),
         "reason": reason.strip(),
     }
+    if fish._operation.get():
+        payload["fish"] = {key: value for key, value in fish._metadata.get().items()
+                           if key != "expense_account"}
     payload_hash = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
     previous = frappe.db.get_value(
         "LC Stock Operation", request_id, ["payload_hash", "stock_entry"], as_dict=True
@@ -551,7 +597,8 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0)
         "uom": product.stock_uom,
         "stock_uom": product.stock_uom,
         "conversion_factor": 1,
-        "expense_account": doc.stock_adjustment_account,
+        "expense_account": (fish._metadata.get().get("expense_account")
+                            or doc.stock_adjustment_account),
         "cost_center": doc.cost_center,
     }
     if action == "Add":

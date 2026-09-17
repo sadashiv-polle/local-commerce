@@ -64,6 +64,8 @@ class LCShop(Document):
                     "Only platform administrators can change Company", frappe.PermissionError
                 )
             pricing_fields = (
+                "shop_type",
+                "fish_wastage_account",
                 "minimum_order_amount",
                 "free_delivery_above",
                 "delivery_fee",
@@ -72,7 +74,8 @@ class LCShop(Document):
             )
             if any(previous.get(field) != self.get(field) for field in pricing_fields):
                 frappe.throw(
-                    "Only platform administrators can change delivery pricing",
+                    "Only platform administrators can change shop type, accounts "
+                    "or delivery pricing",
                     frappe.PermissionError,
                 )
             location_fields = (

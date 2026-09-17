@@ -1,0 +1,101 @@
+{
+  "doctype": "DocType",
+  "name": "LC Fish Lot",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "field_order": [
+    "shop",
+    "item",
+    "warehouse",
+    "quantity",
+    "remaining",
+    "unit_cost",
+    "expires_at",
+    "stock_entry",
+    "opening",
+    "validity_hours"
+  ],
+  "fields": [
+    {
+      "fieldname": "shop",
+      "label": "Shop",
+      "fieldtype": "Link",
+      "read_only": 1,
+      "options": "LC Shop",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "item",
+      "label": "Fish",
+      "fieldtype": "Link",
+      "read_only": 1,
+      "options": "Item",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "warehouse",
+      "label": "Warehouse",
+      "fieldtype": "Link",
+      "read_only": 1,
+      "options": "Warehouse"
+    },
+    {
+      "fieldname": "quantity",
+      "label": "Received kg",
+      "fieldtype": "Float",
+      "read_only": 1,
+      "precision": "6"
+    },
+    {
+      "fieldname": "remaining",
+      "label": "Remaining kg",
+      "fieldtype": "Float",
+      "read_only": 1,
+      "precision": "6"
+    },
+    {
+      "fieldname": "unit_cost",
+      "label": "Receipt cost per kg",
+      "fieldtype": "Currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "expires_at",
+      "label": "Valid until",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    },
+    {
+      "fieldname": "stock_entry",
+      "label": "Receipt",
+      "fieldtype": "Link",
+      "read_only": 1,
+      "options": "Stock Entry"
+    },
+    {
+      "fieldname": "opening",
+      "label": "Existing stock",
+      "fieldtype": "Check",
+      "read_only": 1
+    },
+    {
+      "fieldname": "validity_hours",
+      "fieldtype": "Float",
+      "label": "Stock validity hours",
+      "read_only": 1,
+      "precision": "6"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1
+    }
+  ],
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "track_changes": 1
+}

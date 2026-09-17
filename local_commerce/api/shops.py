@@ -39,6 +39,8 @@ def update_shop(
     delivery_fee_per_km=None,
     delivery_included_km=None,
     delivery_fee=None,
+    shop_type=None,
+    fish_wastage_account=None,
 ):
     return shops.update_shop(
         shop,
@@ -60,4 +62,6 @@ def update_shop(
         delivery_fee_per_km,
         delivery_included_km,
         delivery_fee,
+        shop_type,
+        fish_wastage_account,
     )

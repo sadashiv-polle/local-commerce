@@ -34,7 +34,8 @@
     "driver_longitude",
     "driver_location_accuracy",
     "driver_location_at",
-    "reason"
+    "reason",
+    "fish_allocations_json"
   ],
   "fields": [
     {
@@ -229,6 +230,14 @@
       "label": "Reason",
       "fieldtype": "Small Text",
       "read_only": 1
+    },
+    {
+      "fieldname": "fish_allocations_json",
+      "label": "Fish stock allocation",
+      "fieldtype": "Long Text",
+      "hidden": 1,
+      "read_only": 1,
+      "no_copy": 1
     }
   ],
   "permissions": [

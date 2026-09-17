@@ -46,8 +46,12 @@ def summary(shop, period="today"):
         limit_page_length=0,
     )
     low, sold = [], []
+    from local_commerce.services.fish import sellable
+
     for item in products:
         available = balance(item.name, doc.warehouse)["available"] if doc.warehouse else None
+        if available is not None:
+            available = sellable(doc, item, available)
         row = {
             "name": item.name,
             "item_name": item.item_name,

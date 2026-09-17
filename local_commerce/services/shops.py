@@ -45,6 +45,8 @@ def get_shop(shop):
         key: doc.get(key)
         for key in (
             "name",
+            "shop_type",
+            "fish_wastage_account",
             "shop_name",
             "company",
             "status",
@@ -94,9 +96,19 @@ def update_shop(
     delivery_fee_per_km=None,
     delivery_included_km=None,
     delivery_fee=None,
+    shop_type=None,
+    fish_wastage_account=None,
 ):
     require_shop(shop, "write")
     doc = frappe.get_doc("LC Shop", shop)
+    if shop_type is not None:
+        require_platform()
+        if shop_type not in {"General", "Fish"}:
+            reject("Choose General or Fish shop type")
+        doc.shop_type = shop_type
+    if fish_wastage_account is not None:
+        require_platform()
+        doc.fish_wastage_account = fish_wastage_account
     doc.shop_name, doc.status, doc.description = shop_name, status, description
     try:
         response_minutes = int(order_response_minutes)

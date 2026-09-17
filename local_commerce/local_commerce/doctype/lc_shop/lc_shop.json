@@ -10,6 +10,7 @@
     "company",
     "company_country",
     "company_currency",
+    "shop_type",
     "status",
     "description",
     "order_response_minutes",
@@ -26,6 +27,7 @@
     "inventory_section",
     "warehouse",
     "stock_adjustment_account",
+    "fish_wastage_account",
     "cost_center",
     "selling_price_list",
     "delivery_section",
@@ -269,6 +271,20 @@
       "label": "Distance Included in Base Fee (km)",
       "fieldtype": "Float",
       "default": "0"
+    },
+    {
+      "fieldname": "shop_type",
+      "label": "Shop type",
+      "fieldtype": "Select",
+      "options": "General\nFish",
+      "default": "General"
+    },
+    {
+      "fieldname": "fish_wastage_account",
+      "label": "Fish wastage expense account",
+      "fieldtype": "Link",
+      "options": "Account",
+      "depends_on": "eval:doc.shop_type == \"Fish\""
     }
   ],
   "permissions": [

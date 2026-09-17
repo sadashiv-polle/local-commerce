@@ -103,6 +103,9 @@ def finalize(order, modified, weights):
             ):
                 reject("ERPNext changed this piece price; contact the administrator")
         amended.submit()
+        from local_commerce.services import fish
+
+        fish.reserve(doc, amended.items)
         doc.sales_order = amended.name
         doc.selling_lines_json = json.dumps(snapshots)
         doc.save(ignore_permissions=True)

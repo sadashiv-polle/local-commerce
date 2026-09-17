@@ -26,11 +26,11 @@ def configure(shop, warehouse, account, cost_center):
 @frappe.whitelist(methods=["POST"])
 def update_product(
     shop, item, modified, item_name, description="", low_stock=0, sold_out=0, archived=0,
-    price=None, selling_options=None
+    price=None, selling_options=None, validity_hours=None
 ):
     return owner.update_product(
         shop, item, modified, item_name, description, low_stock, sold_out, archived, price,
-        selling_options
+        selling_options, validity_hours
     )
 
 
@@ -40,8 +40,10 @@ def upload_product_image(shop, item):
 
 
 @frappe.whitelist(methods=["POST"])
-def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0):
-    return owner.adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost)
+def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
+                 validity_hours=None):
+    return owner.adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost,
+                              validity_hours)
 
 
 @frappe.whitelist()

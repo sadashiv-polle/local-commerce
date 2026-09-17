@@ -1,0 +1,62 @@
+{
+  "doctype": "DocType",
+  "name": "LC Fish Price Change",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "field_order": [
+    "shop",
+    "item",
+    "weight_price",
+    "selling_options_json",
+    "validity_hours"
+  ],
+  "fields": [
+    {
+      "fieldname": "shop",
+      "label": "Shop",
+      "fieldtype": "Link",
+      "read_only": 1,
+      "options": "LC Shop",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "item",
+      "label": "Fish",
+      "fieldtype": "Link",
+      "read_only": 1,
+      "options": "Item",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "weight_price",
+      "label": "Price per kg",
+      "fieldtype": "Currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "selling_options_json",
+      "label": "Options and piece prices",
+      "fieldtype": "Long Text",
+      "read_only": 1
+    },
+    {
+      "fieldname": "validity_hours",
+      "label": "Default stock validity (hours)",
+      "fieldtype": "Float",
+      "read_only": 1,
+      "precision": "6"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1
+    }
+  ],
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "track_changes": 1
+}
