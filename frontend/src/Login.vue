@@ -21,7 +21,7 @@ async function submit() {
     if (result.verification) { challenge.value = result; return }
     // Reload session/CSRF and resolve the Customer before returning to checkout.
     const session = await call('session.context')
-    window.location.assign('/local-commerce#' + loginDestination(session, candidate))
+    window.location.replace('/local-commerce#' + loginDestination(session, candidate))
     window.location.reload()
   } catch (e) { error.value = e.message }
   finally { busy.value = false }

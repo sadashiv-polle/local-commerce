@@ -1,7 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { defaultPage, loginDestination } from '../src/navigation.js'
+import { authenticatedPage, defaultPage, loginDestination } from '../src/navigation.js'
 const session = roles => ({ user: 'person@example.com', roles })
+test('history navigation skips authentication pages only while logged in', () => {
+  for (const path of ['/login', '/signup']) {
+    assert.equal(authenticatedPage(session(['LC Customer']), path), '/store')
+    assert.equal(authenticatedPage(session(['LC Shop Owner']), path), '/shop')
+    assert.equal(authenticatedPage(session(['LC Delivery Person']), path), '/delivery')
+    assert.equal(authenticatedPage({ user: 'Guest' }, path), null)
+    assert.equal(authenticatedPage(null, path), null)
+  }
+  assert.equal(authenticatedPage(session(['LC Customer']), '/store/fish'), null)
+})
 test('owners and riders open their role workspace by default', () => {
   assert.equal(defaultPage(session(['LC Shop Owner'])), '/shop')
   assert.equal(loginDestination(session(['LC Shop Owner']), '/store'), '/shop')

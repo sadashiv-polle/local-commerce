@@ -6,6 +6,11 @@ export function defaultPage(session) {
   return '/store'
 }
 
+export function authenticatedPage(session, path) {
+  if (session?.user && session.user !== 'Guest' && ['/login', '/signup'].includes(path)) return defaultPage(session)
+  return null
+}
+
 export function loginDestination(session, candidate) {
   if (typeof candidate === 'string' && /^\/(store|shop|orders|account|delivery|favourites|categories|admin|store-settings)(\/|\?|$)/.test(candidate) && candidate !== '/store') return candidate
   return defaultPage(session)

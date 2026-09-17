@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
 import { activeCart, loginUrl } from './cart.js'
-import { defaultPage } from './navigation.js'
+import { authenticatedPage, defaultPage } from './navigation.js'
 import { currentSubscription, disablePush, enablePush, pushSupported } from './push.js'
 import IncomingOrders from './IncomingOrders.vue'
 const session = ref(null), error = ref(''), loggingOut = ref(false), logoutError = ref('')
@@ -163,6 +163,8 @@ async function load() {
   error.value = ''
   try {
     session.value = await call('session.context'); setCsrfToken(session.value.csrf_token)
+    const destination = authenticatedPage(session.value, route.path)
+    if (destination) await router.replace(destination)
     await loadNotifications()
     await loadPushState()
     if (session.value.roles.includes('LC Customer')) {
@@ -172,6 +174,10 @@ async function load() {
     if (route.path === '/') await router.replace(defaultPage(session.value))
   } catch (e) { error.value = e.message }
 }
+const removeAuthGuard = router.beforeEach(to => {
+  const destination = authenticatedPage(session.value, to.path)
+  if (destination) return { path: destination, replace: true }
+})
 async function logout() {
   if (loggingOut.value) return
   loggingOut.value = true; logoutError.value = ''
@@ -195,6 +201,7 @@ onMounted(() => {
   load()
 })
 onBeforeUnmount(() => {
+  removeAuthGuard()
   window.removeEventListener('beforeinstallprompt', captureInstallPrompt)
   window.removeEventListener('appinstalled', installedApp)
   window.removeEventListener('storage', syncSavedCart)

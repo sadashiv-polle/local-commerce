@@ -16,7 +16,7 @@ async function signup() {
     } else {
       await call('customers.complete_signup', { challenge_id: challenge.value, code: code.value, password: password.value }, true)
       password.value = ''; confirmation.value = ''
-      window.location.assign('/local-commerce#' + next); window.location.reload()
+      window.location.replace('/local-commerce#' + next); window.location.reload()
     }
   }
   catch (e) { error.value = e.message }
