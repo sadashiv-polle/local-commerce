@@ -130,6 +130,33 @@ class TestShopCompanyCreation(FrappeTestCase):
         with self.assertRaises(frappe.ValidationError):
             duplicate.insert()
 
+    def test_frontend_new_company_ignores_insertion_company_default(self):
+        from unittest.mock import patch
+
+        from local_commerce.services.admin import create_shop as admin_create_shop
+        from local_commerce.tests.helpers import create_company
+
+        existing = create_company()
+        original = frappe.new_doc
+
+        def inherited_defaults(doctype, *args, **kwargs):
+            doc = original(doctype, *args, **kwargs)
+            if doctype == "LC Shop" and kwargs.get("as_dict"):
+                doc = frappe._dict(doc.copy())
+                doc.company = existing.name
+            return doc
+
+        name = "LC Default Regression " + frappe.generate_hash(length=8)
+        with patch.object(frappe, "new_doc", side_effect=inherited_defaults):
+            result = admin_create_shop(name, country="United States", currency="USD")
+            self.assertEqual(result["company"], name)
+            self.assertEqual(frappe.db.get_value("LC Shop", result["name"], "company"), name)
+            direct = self.new_shop().insert()
+            self.assertEqual(direct.company, direct.shop_name)
+            linked = admin_create_shop("LC Linked " + frappe.generate_hash(length=8),
+                                       company=existing.name)
+            self.assertEqual(linked["company"], existing.name)
+
     def test_owner_cannot_trigger_company_creation_even_with_permission_bypass(self):
         owner = create_user("LC Shop Owner")
         shop = self.new_shop()

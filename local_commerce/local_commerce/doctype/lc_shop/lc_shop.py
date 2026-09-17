@@ -7,6 +7,10 @@ from local_commerce.services.shop_hours import normalize
 
 
 class LCShop(Document):
+    def __setup__(self):
+        # Blank Company requests a new company; insertion defaults run before before_insert.
+        self.dont_update_if_missing = ["company", "selling_price_list"]
+
     def before_insert(self):
         # Frappe can seed this read-only link from global/user defaults.
         # Only inventory setup may assign a dedicated shop price list.

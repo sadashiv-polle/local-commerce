@@ -186,7 +186,7 @@ def create_shop(shop_name, company="", country="", currency=""):
     if not 1 <= len(shop_name) <= 140:
         reject("Enter a shop name (up to 140 characters)")
     doc = frappe.get_doc({"doctype": "LC Shop", "shop_name": shop_name,
-                          "company": company or None, "company_country": country or None,
+                          "company": company or "", "company_country": country or None,
                           "company_currency": currency or None, "status": "Draft"})
     doc.insert()
     return {"name": doc.name, "company": doc.company}
