@@ -15,6 +15,7 @@ scheduler_events = {
 before_install = "local_commerce.install.before_install"
 after_install = "local_commerce.install.after_install"
 after_migrate = "local_commerce.install.after_migrate"
+setup_wizard_complete = "local_commerce.install.after_setup"
 before_migrate = "local_commerce.install.before_migrate"
 fixtures = [
     {

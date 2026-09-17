@@ -38,6 +38,15 @@ def after_install():
     after_migrate()
 
 
+def after_setup(args=None):
+    # Seed after ERPNext's initial setup stages as well as installation/migration.
+    from local_commerce.services.category_menu import seed_menu
+    from local_commerce.services.item_groups import ensure_item_groups
+
+    ensure_item_groups()
+    seed_menu()
+
+
 def after_migrate():
     from erpnext.setup.install import create_address_and_contact_custom_fields
     from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
