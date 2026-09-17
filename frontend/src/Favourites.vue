@@ -1,10 +1,12 @@
 <script setup>
 import { inject, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { call } from './api.js'
 import { readCart, writeCart, changeQuantity } from './cart.js'
 import AuthChoices from './AuthChoices.vue'
 import { setFavourite } from './favourites-state.js'
 const session = inject('session'), items = ref([]), loading = ref(false), busy = ref(false), error = ref(''), message = ref('')
+const router = useRouter()
 function money(item) { return item.rate == null ? 'Unavailable' : new Intl.NumberFormat(undefined, { style: 'currency', currency: item.currency }).format(item.rate) }
 async function load() { loading.value = true; error.value = ''; try { items.value = await call('favourites.list_items') } catch (e) { error.value = e.message } finally { loading.value = false } }
 async function remove(item) { busy.value = true; try { await call('favourites.toggle', { shop: item.shop, item: item.item, saved: 0 }, true); setFavourite(item.item, false); items.value = items.value.filter(row => row.item !== item.item) } catch (e) { error.value = e.message } finally { busy.value = false } }
@@ -13,6 +15,7 @@ async function add(item) {
   try {
     if (sessionStorage.getItem(`lc-delivery:${session.value.user}:${item.shop}`)) throw new Error('Resolve your unconfirmed order request in this shop before changing its cart.')
     const current = await call('orders.product', { shop: item.shop, item: item.item })
+    if (current.selling_options?.length) { await router.push({ name: 'customer-shop', params: { shop: item.shop }, query: { item: item.item } }); return }
     const cart = changeQuantity(readCart(localStorage, item.shop), current, 1)
     if (Object.keys(cart).length > 30) throw new Error('Your cart can contain up to 30 different items.')
     writeCart(localStorage, item.shop, cart)

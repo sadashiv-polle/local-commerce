@@ -102,6 +102,13 @@ def after_migrate():
                     "no_copy": 1,
                 },
                 {
+                    "fieldname": "lc_selling_options",
+                    "label": "Local Commerce Selling Options",
+                    "fieldtype": "Long Text",
+                    "read_only": 1,
+                    "hidden": 1,
+                },
+                {
                     "fieldname": "lc_sold_out",
                     "label": "Local Commerce Sold Out",
                     "fieldtype": "Check",
@@ -243,6 +250,7 @@ def before_migrate():
         ("Item", "lc_creation_key", "Data", None),
         ("Item", "lc_description", "Small Text", None),
         ("Item", "lc_low_stock", "Float", None),
+        ("Item", "lc_selling_options", "Long Text", None),
         ("Item", "lc_sold_out", "Check", None),
         ("Stock Entry", "lc_shop", "Link", "LC Shop"),
     ):

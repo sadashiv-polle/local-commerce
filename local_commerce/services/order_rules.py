@@ -47,10 +47,15 @@ def cart_rows(rows):
         if not isinstance(row, dict) or not isinstance(row.get("item"), str):
             raise ValueError("Invalid product")
         item = row["item"]
-        if not item or len(item) > 140 or item in result:
+        option = row.get("option_id", "")
+        if not isinstance(option, str) or len(option) > 40:
+            raise ValueError("Invalid selling option")
+        key = (item, option)
+        if not item or len(item) > 140 or key in result:
             raise ValueError("Invalid or duplicate product")
-        result[item] = number(row.get("quantity"), "Quantity", positive=True)
-    return [{"item": item, "quantity": str(result[item])} for item in sorted(result)]
+        result[key] = number(row.get("quantity"), "Quantity", positive=True)
+    return [{"item": item, "quantity": str(result[(item, option)]),
+             **({"option_id": option} if option else {})} for item, option in sorted(result)]
 
 
 def address_fields(address):

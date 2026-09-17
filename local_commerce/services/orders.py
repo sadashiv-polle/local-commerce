@@ -31,6 +31,7 @@ from local_commerce.services.owner import (
 )
 from local_commerce.services.product_images import gallery_urls
 from local_commerce.services.reorder_rules import reorder_line
+from local_commerce.services.selling_rules import selected as selected_offer
 from local_commerce.services.shop_hours import availability as shop_availability
 
 _order_operation = ContextVar("lc_order_operation", default=False)
@@ -322,6 +323,7 @@ def product_data(shop, item, browsing=False):
         "rate": float(checked_number(price.price_list_rate, "Price")) if price else None,
         "currency": currency,
         "available": 0 if item.lc_sold_out else balance(item.name, shop.warehouse)["available"],
+        "selling_options": frappe.parse_json(item.get("lc_selling_options") or "[]"),
     }
 
 
@@ -477,14 +479,33 @@ def quote(shop, items, latitude=None, longitude=None):
         reject(str(exc))
     origin = shop_location(doc)
     distance = distance_km(origin, destination) if origin and destination else None
-    subtotal = sum(
-        checked_number(row["quantity"], "Quantity", positive=True)
-        * checked_number(product_data(doc, frappe.get_doc("Item", row["item"]))["rate"], "Price")
-        for row in rows
-    )
+    subtotal = checked_number(0, "Subtotal")
+    for row in rows:
+        product = product_data(doc, frappe.get_doc("Item", row["item"]))
+        quantity, _snapshot = selling_quantity(product, row)
+        subtotal += quantity * checked_number(product["rate"], "Price")
     price = pricing_for(doc, subtotal, distance)
     price.update({"subtotal": float(subtotal), "distance_km": distance})
     return price
+
+
+def selling_quantity(product, row):
+    offers = product.get("selling_options") or []
+    if offers or row.get("option_id"):
+        if product["uom"] != "Kg":
+            reject("Packed-weight products must use Kg as their stock unit")
+        try:
+            offer = selected_offer(offers, row.get("option_id"), row["quantity"])
+        except ValueError as exc:
+            reject(str(exc))
+        snapshot = {"item": product["item"], "option_id": offer["id"],
+                    "label": offer["label"], "kind": offer["kind"],
+                    "option_quantity": offer["quantity"], "packs": offer["packs"],
+                    "estimated_weight": offer["estimated_total_weight"],
+                    "actual_weight": None, "rate_per_kg": product["rate"]}
+        return checked_number(offer["estimated_total_weight"], "Estimated weight",
+                              positive=True), snapshot
+    return checked_number(row["quantity"], "Quantity", positive=True), {}
 
 
 def customer_record(user, company):
@@ -536,18 +557,20 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
             reject(
                 f"This address is {delivery_distance:g} km away and outside the shop delivery area"
             )
-    prepared = []
+    prepared, selling_lines, item_totals = [], [], {}
     for row in rows:
         item = frappe.get_doc("Item", row["item"])
         product = product_data(doc, item)
-        quantity = checked_number(row["quantity"], "Quantity", positive=True)
+        quantity, snapshot = selling_quantity(product, row)
+        selling_lines.append(snapshot)
         try:
             order_rules.whole_quantity(
                 quantity, frappe.db.get_value("UOM", item.stock_uom, "must_be_whole_number")
             )
         except ValueError as exc:
             reject(str(exc))
-        if quantity > checked_number(
+        item_totals[item.name] = item_totals.get(item.name, 0) + quantity
+        if item_totals[item.name] > checked_number(
             balance(item.name, doc.warehouse, lock=True)["available"], "Available stock"
         ):
             reject("Not enough available stock; update your cart")
@@ -563,6 +586,10 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 "conversion_factor": 1,
                 "warehouse": doc.warehouse,
                 "delivery_date": nowdate(),
+                "description": escape(item.item_name + (
+                    f" · {snapshot['label']} × {snapshot['packs']:g}; estimated weight, "
+                    "final price after packing" if snapshot else ""
+                )),
             }
         )
     price = pricing_for(
@@ -585,6 +612,7 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 "doctype": "LC Order",
                 "request_key": key,
                 "request_hash": digest,
+                "selling_lines_json": json.dumps(selling_lines),
                 "shop": shop,
                 "customer_user": user,
                 "status": "Requested",
@@ -688,6 +716,9 @@ def authorize(doc, write=False):
 
 def serialize(doc):
     so = frappe.get_doc("Sales Order", doc.sales_order)
+    selling_lines = json.loads(doc.get("selling_lines_json") or "[]")
+    estimated = any(line.get("option_id") and line.get("actual_weight") is None
+                    for line in selling_lines)
     shop = frappe.get_doc("LC Shop", doc.shop)
     try:
         destination_location = point(doc.destination_latitude, doc.destination_longitude)
@@ -705,6 +736,9 @@ def serialize(doc):
     response_deadline = add_to_date(doc.creation, minutes=int(shop.order_response_minutes or 10))
     return {
         "name": doc.name,
+        "modified": str(doc.modified),
+        "estimated": estimated,
+        "selling_lines": selling_lines,
         "shop": doc.shop,
         "shop_name": frappe.db.get_value("LC Shop", doc.shop, "shop_name"),
         "status": doc.status,
@@ -789,6 +823,11 @@ def reorder_preview(order):
                     and not item.has_batch_no and not item.has_serial_no
                     and not item.has_variants and not item.variant_of):
                 product = product_data(shop, item, browsing=True)
+        if product and product.get("selling_options"):
+            notices.append(
+                f"{row.item_name}: choose your count or weight option in the shop again."
+            )
+            continue
         line, notice = reorder_line(
             {"name": row.item_name, "quantity": row.qty, "uom": row.uom, "rate": row.rate},
             product,
@@ -1115,6 +1154,11 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
         reject(str(exc))
     if not changed:
         return serialize(doc)
+    if target == "Ready" and any(
+        line.get("option_id") and line.get("actual_weight") is None
+        for line in json.loads(doc.get("selling_lines_json") or "[]")
+    ):
+        reject("Enter and save the actual packed weights before marking this order Ready")
     token = _order_operation.set(True)
     owner_token = _owner_operation.set(True)
     try:
@@ -1350,13 +1394,15 @@ def change(order, target, reason=""):
             current_shop = public_shop(doc.shop)
             if so.company != current_shop.company:
                 reject("Order Company no longer matches the shop")
+            item_totals = {}
             for row in sorted(so.items, key=lambda r: r.item_code):
                 item = frappe.get_doc("Item", row.item_code)
                 if item.lc_shop != doc.shop or item.disabled or item.lc_sold_out:
                     reject("An order product is no longer available")
                 company_link("Warehouse", row.warehouse, so.company, {"is_group": 0, "disabled": 0})
                 stock = balance(row.item_code, row.warehouse, lock=True, exclude_order=doc.name)
-                if row.stock_qty > stock["available"]:
+                item_totals[row.item_code] = item_totals.get(row.item_code, 0) + row.stock_qty
+                if item_totals[row.item_code] > stock["available"]:
                     reject("Not enough available stock to accept this order")
             so.submit()
         elif target == "Cancelled":

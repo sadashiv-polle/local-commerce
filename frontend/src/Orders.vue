@@ -33,6 +33,20 @@ const props = defineProps({ shop: { type: String, default: '' }, editable: Boole
 const orders = ref([]), drivers = ref([]), selectedDrivers = ref({}), start = ref(0)
 const error = ref(''), loading = ref(false), busy = ref(false), reasons = ref({})
 const routes = ref({}), routeErrors = ref({})
+const packedWeights = ref({})
+function weightedLines(order) { return (order.selling_lines || []).map((line, index) => ({ ...line, index })).filter(line => line.option_id) }
+function weightValue(order, line) { return packedWeights.value[`${order.name}:${line.index}`] ?? line.actual_weight ?? '' }
+function setWeight(order, index, value) { packedWeights.value[`${order.name}:${index}`] = value }
+async function saveWeights(order) {
+  busy.value = true; error.value = ''
+  try {
+    const weights = Object.fromEntries(weightedLines(order).map(line => [String(line.index), weightValue(order, line)]))
+    await call('orders.finalize_weights', { order: order.name, modified: order.modified, weights }, true)
+    for (const line of weightedLines(order)) delete packedWeights.value[`${order.name}:${line.index}`]
+    await load()
+  } catch (e) { error.value = e.message }
+  finally { busy.value = false }
+}
 const routeRequests = new Set()
 const next = { Requested: 'Accepted', Accepted: 'Preparing', Preparing: 'Ready' }
 const nextLabel = { Requested: 'Accept order', Accepted: 'Start preparing', Preparing: 'Mark ready' }
@@ -112,8 +126,14 @@ onBeforeUnmount(() => {
     <article v-for="order in orders" :key="order.name" class="order-card">
       <div class="workspace-heading"><div><span class="eyebrow">{{ order.shop_name }} · {{ order.name }}</span><h3>{{ order.recipient }}</h3><small>{{ order.created }}</small></div><span class="status-pill">{{ order.status }}</span></div>
       <div class="delivery-progress" :aria-label="`Order status: ${order.status}`"><span v-for="step in steps" :key="step" :class="{ complete: steps.indexOf(step) <= steps.indexOf(order.status) }">{{ step }}</span></div>
-      <ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }} <strong>{{ money(item.amount, order.currency) }}</strong></li></ul>
-      <p><strong>Order total {{ money(order.total, order.currency) }}</strong><br><small>Includes {{ money(order.taxes_and_charges, order.currency) }} in configured taxes and delivery charges. Payment is not collected online yet.</small></p>
+      <ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }} <strong>{{ money(item.amount, order.currency) }}</strong><small v-if="order.selling_lines?.[index]?.option_id" class="order-option-summary">{{ order.selling_lines[index].label }} × {{ order.selling_lines[index].packs }} · {{ order.selling_lines[index].actual_weight == null ? 'Estimated weight' : 'Actual packed weight' }}</small></li></ul>
+      <p v-if="weightedLines(order).length" class="packed-weight-notice">{{ order.estimated ? 'Estimated bill. The shop will confirm the actual packed weight and final price before dispatch.' : 'Final bill confirmed using actual packed weights.' }}</p>
+      <form v-if="shop && editable && weightedLines(order).length && ['Accepted', 'Preparing'].includes(order.status)" class="packed-weight-form" @submit.prevent="saveWeights(order)">
+        <div><span class="eyebrow">PACKING YOUR ORDER</span><h3>Confirm actual packed weights</h3><p>Enter the total kg packed for each line, including all its packs. Prices use the per-kg rate agreed when ordered.</p></div>
+        <fieldset :disabled="busy"><label v-for="line in weightedLines(order)" :key="line.index"><span>{{ order.items[line.index].name }} · {{ line.label }} × {{ line.packs }}</span><small>Estimated {{ line.estimated_weight }} kg · {{ money(line.rate_per_kg, order.currency) }} / kg</small><input :value="weightValue(order, line)" type="number" min="0.000001" step="0.001" required placeholder="Actual packed kg" @input="setWeight(order, line.index, $event.target.value)"></label></fieldset>
+        <button class="lc-primary" :disabled="busy">{{ busy ? 'Saving…' : order.estimated ? 'Save weights & final bill' : 'Update packed weights & bill' }}</button>
+      </form>
+      <p><strong>{{ order.estimated ? 'Estimated total' : 'Order total' }} {{ money(order.total, order.currency) }}</strong><br><small>Includes {{ money(order.taxes_and_charges, order.currency) }} in configured taxes and delivery charges. Payment is not collected online yet.</small></p>
       <p class="payment-summary"><span><small>PAYMENT METHOD</small><strong>{{ order.payment_method }}</strong></span><span><small>PAYMENT STATUS</small><strong :class="{ paid: order.payment_status === 'Reconciled' }">{{ order.payment_status }}</strong></span></p>
       <section v-if="!shop && order.delivery_otp" class="customer-delivery-otp" aria-label="Delivery confirmation code"><div><span aria-hidden="true">✓</span><div><small>DELIVERY CONFIRMATION</small><strong>{{ order.delivery_otp }}</strong></div></div><p>Share this code with the rider only after you receive your order. It is shown here instead of being sent by email.</p></section>
       <details><summary>Delivery details</summary><p>{{ order.address.line1 }}<br>{{ order.address.city }} · {{ order.address.postal_code }}<br><a :href="`tel:${order.phone}`">{{ order.phone }}</a></p></details>
@@ -132,7 +152,7 @@ onBeforeUnmount(() => {
         <small v-if="!drivers.length">No drivers are assigned to this shop. A platform administrator can add a Driver membership in Desk.</small>
       </div>
       <div v-if="(shop && editable) || (!shop && order.status === 'Requested')" class="order-actions">
-        <button v-if="shop && next[order.status]" class="lc-primary" :disabled="busy" @click="change(order, next[order.status])">{{ nextLabel[order.status] }}</button>
+        <button v-if="shop && next[order.status]" class="lc-primary" :disabled="busy || (next[order.status] === 'Ready' && order.estimated)" @click="change(order, next[order.status])">{{ nextLabel[order.status] }}</button>
         <details v-if="cancellable.has(order.status)"><summary>Cancel order</summary><label>Reason<input v-model="reasons[order.name]" minlength="3" maxlength="500"></label><button :disabled="busy || (reasons[order.name] || '').trim().length < 3" @click="change(order, 'Cancelled')">Confirm cancellation</button></details>
       </div>
     </article>

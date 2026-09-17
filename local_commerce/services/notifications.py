@@ -61,6 +61,12 @@ def _create(user, order, audience, title, message, target, seen):
         _notification_operation.reset(token)
 
 
+def packed_weight_updated(order):
+    _create(order.customer_user, order, "Customer", "Your packed weight and bill are ready",
+            "The shop confirmed the actual packed weights. Open your order to see the final bill.",
+            "/orders", set())
+
+
 def order_created(order):
     label = _order_label(order.name)
     seen = set()

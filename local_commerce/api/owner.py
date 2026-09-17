@@ -25,10 +25,12 @@ def configure(shop, warehouse, account, cost_center):
 
 @frappe.whitelist(methods=["POST"])
 def update_product(
-    shop, item, modified, item_name, description="", low_stock=0, sold_out=0, archived=0, price=None
+    shop, item, modified, item_name, description="", low_stock=0, sold_out=0, archived=0,
+    price=None, selling_options=None
 ):
     return owner.update_product(
-        shop, item, modified, item_name, description, low_stock, sold_out, archived, price
+        shop, item, modified, item_name, description, low_stock, sold_out, archived, price,
+        selling_options
     )
 
 

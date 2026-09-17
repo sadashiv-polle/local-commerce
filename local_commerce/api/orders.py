@@ -40,6 +40,13 @@ def change(order, target, reason=""):
     return orders.change(order, target, reason)
 
 
+@frappe.whitelist(methods=["POST"])
+def finalize_weights(order, modified, weights):
+    from local_commerce.services.packing import finalize
+
+    return finalize(order, modified, weights)
+
+
 @frappe.whitelist()
 def drivers(shop):
     return orders.drivers(shop)

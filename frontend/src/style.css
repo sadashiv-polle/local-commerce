@@ -756,3 +756,38 @@ html { scroll-behavior: smooth; }
   #lc-app .commerce-app.customer-view .account > span:first-child { width: 34px; height: 34px; }
   #lc-app .commerce-app.customer-view .logout-button { width: 36px; min-height: 36px; }
 }
+/* Product options and actual-weight packing use the same compact card language. */
+#lc-app .selling-options-editor { margin: 20px 0; padding: 18px; border: 1px solid #dce6dc; border-radius: 18px; background: #f7faf5; }
+#lc-app .selling-options-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+#lc-app .selling-options-heading h3, #lc-app .selling-option-picker h3, #lc-app .packed-weight-form h3 { margin: 0 0 8px; font-size: 19px; }
+#lc-app .selling-options-heading p, #lc-app .packed-weight-form p { margin: 0; color: #64766a; font-size: 13px; line-height: 1.5; }
+#lc-app .selling-options-heading > button { flex-shrink: 0; }
+#lc-app .selling-options-list { display: grid; gap: 12px; margin: 14px 0 0; padding: 0; border: 0; }
+#lc-app .selling-option-editor-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; align-items: end; gap: 10px; padding: 14px; background: white; border: 1px solid #e1e8de; border-radius: 14px; }
+#lc-app .selling-option-editor-row label { min-width: 0; font-size: 12px; }
+#lc-app .selling-option-editor-row input, #lc-app .selling-option-editor-row select { min-width: 0; width: 100%; }
+#lc-app .selling-option-remove { grid-column: 1 / -1; justify-self: end; color: #b23232; font-size: 12px; }
+#lc-app .selling-option-picker { width: 100%; min-width: 0; margin-top: 18px; }
+#lc-app .selling-option-picker > p { font-size: 13px; line-height: 1.5; }
+#lc-app .selling-option-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 14px; border: 1px solid #dce6dc; border-radius: 14px; background: white; }
+#lc-app .selling-option-choice.selected { border-color: #6caa75; background: #f3f9ee; }
+#lc-app .selling-option-choice > div:first-child { min-width: 0; display: grid; gap: 5px; }
+#lc-app .selling-option-choice small { color: #6b7b70; font-size: 12px; }
+#lc-app .selling-option-choice b { font-size: 14px; color: #235840; }
+#lc-app .selling-option-choice .quantity-stepper, #lc-app .selling-option-choice .add-item-button { flex-shrink: 0; }
+#lc-app .packed-weight-notice { padding: 12px 16px; border-radius: 12px; background: #fff8df; color: #74612c; font-size: 13px; line-height: 1.5; }
+#lc-app .order-option-summary { display: block; color: #64766a; font-size: 12px; margin-top: 5px; }
+#lc-app .packed-weight-form { display: grid; gap: 16px; margin: 16px 0; padding: 20px; border: 1px solid #dce6dc; border-radius: 16px; background: #f5faf2; }
+#lc-app .packed-weight-form fieldset { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+#lc-app .packed-weight-form label { display: grid; gap: 8px; min-width: 0; }
+#lc-app .packed-weight-form small { font-size: 12px; color: #64766a; }
+#lc-app .packed-weight-form > button { justify-self: start; }
+@media (max-width: 600px) {
+  #lc-app .selling-options-editor { padding: 12px; }
+  #lc-app .selling-options-heading { flex-direction: column; }
+  #lc-app .selling-option-editor-row { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; }
+  #lc-app .selling-option-editor-row > label:first-child { grid-column: 1 / -1; }
+  #lc-app .packed-weight-form { padding: 14px; }
+  #lc-app .packed-weight-form fieldset { grid-template-columns: 1fr; }
+  #lc-app .packed-weight-form > button { width: 100%; }
+}

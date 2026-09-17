@@ -11,6 +11,7 @@
     "customer_user",
     "sales_order",
     "request_hash",
+    "selling_lines_json",
     "status",
     "delivery_user",
     "delivery_note",
@@ -36,6 +37,13 @@
     "reason"
   ],
   "fields": [
+    {
+      "fieldname": "selling_lines_json",
+      "label": "Selling Option Snapshots",
+      "fieldtype": "Long Text",
+      "read_only": 1,
+      "hidden": 1
+    },
     {
       "fieldname": "request_key",
       "label": "Request Key",

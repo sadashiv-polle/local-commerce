@@ -1,11 +1,26 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readCart, writeCart, clearCart, loginUrl, changeQuantity, activeCart } from '../src/cart.js'
+import { readCart, writeCart, clearCart, loginUrl, changeQuantity, activeCart, cartKey } from '../src/cart.js'
 function storage() {
   const values = new Map()
   return { getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) }
 }
 const cart = { fish: { item: 'fish', item_name: 'Fresh fish', quantity: 2, rate: 100 } }
+test('different selling options survive login and share one stock pool', () => {
+  const product = { item: 'fish', item_name: 'Mackerel', rate: 150, available: 4, stock_available: 2, stock_per_pack: 0.5, option_id: 'seven' }
+  const weight = { ...product, option_id: 'kg', stock_per_pack: 1, rate: 300, available: 2 }
+  let rows = changeQuantity({}, product, 1)
+  rows = changeQuantity(rows, weight, 1)
+  assert.equal(Object.keys(rows).length, 2)
+  assert.equal(rows[cartKey(product)].quantity, 1)
+  assert.throws(() => changeQuantity(rows, weight, 1), /available stock/)
+  const saved = storage()
+  writeCart(saved, 'shop-a', rows)
+  assert.deepEqual(readCart(saved, 'shop-a'), rows)
+  rows = changeQuantity(rows, product, -1)
+  assert.equal(Object.keys(rows).length, 1)
+  assert.throws(() => changeQuantity({}, { ...product, option_id: '', selling_options: [{}] }, 1), /Choose a selling option/)
+})
 test('guest cart survives login/reload using the same shop key', () => {
   const saved = storage()
   writeCart(saved, 'shop-a', cart)

@@ -272,6 +272,9 @@ def serialize_product(doc, product, stock, price, currency):
             )
         },
         "stock": stock,
+        "selling_options": frappe.parse_json(
+            frappe.db.get_value("Item", product.name, "lc_selling_options") or "[]"
+        ),
         "warehouse": doc.warehouse,
         "price": price.price_list_rate if price else None,
         "currency": currency,
@@ -382,7 +385,8 @@ def catalog(shop, start=0, search="", status="All"):
 
 
 def update_product(
-    shop, item, modified, item_name, description="", low_stock=0, sold_out=0, archived=0, price=None
+    shop, item, modified, item_name, description="", low_stock=0, sold_out=0, archived=0,
+    price=None, selling_options=None
 ):
     doc, product = own_item(shop, item, True)
     if str(product.modified) != str(modified):
@@ -398,6 +402,18 @@ def update_product(
     product.description = escape(description) if description else escape(product.item_name)
     product.lc_low_stock = float(checked_number(low_stock, "Low-stock threshold"))
     product.lc_sold_out, product.disabled = int(sold_out), int(archived)
+    if selling_options is not None:
+        from local_commerce.services.selling_rules import options
+
+        try:
+            offers = options(frappe.parse_json(selling_options))
+        except (ValueError, TypeError) as exc:
+            reject(str(exc))
+        if offers and (product.stock_uom != "Kg" or frappe.db.get_value(
+            "UOM", "Kg", "must_be_whole_number"
+        )):
+            reject("Use Kg with fractional quantities for products billed by packed weight")
+        product.lc_selling_options = json.dumps(offers)
     if price not in (None, ""):
         rate = checked_number(price, "Selling price")
         if not doc.selling_price_list:
