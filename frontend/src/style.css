@@ -826,3 +826,6 @@ html { scroll-behavior: smooth; }
 .fish-unit-summary h3 { margin: 12px 0; font-size: clamp(1.15rem, 3vw, 1.6rem); }
 .fish-unit-summary p { margin: 0; }
 @media (max-width: 480px) { .fish-selling-mode, .fish-unit-summaries { gap: 8px; } .fish-selling-mode button, .fish-unit-summary { padding: 14px 12px; } .fish-selling-mode button span { font-size: .78rem; } }
+.product-delete-panel { margin-top: 28px; padding: 20px; border: 1px solid #e8c8c3; border-radius: 16px; background: #fff8f6; }
+.product-delete-panel h3 { color: #9c3025; margin-top: 0; }
+.product-delete-panel p { font-size: .9rem; line-height: 1.5; }

@@ -9,6 +9,7 @@ from local_commerce.permissions.policy import is_platform
 from local_commerce.permissions.scope import identity, memberships, require_shop
 
 _item_creation = ContextVar("lc_item_creation", default=False)
+_unused_item_deletion = ContextVar("lc_unused_item_deletion", default=None)
 
 
 def tenant_user(user=None):
@@ -56,8 +57,53 @@ def validate_item(doc, method=None):
 
 
 def protect_item(doc, method=None, *args, **kwargs):
+    if method == "on_trash" and _unused_item_deletion.get() == doc.name:
+        return
     if doc.get("lc_shop") or tenant_user()[2]:
         frappe.throw("Shop items cannot be deleted or renamed here", frappe.PermissionError)
+
+
+def delete_unused(shop, item, modified, confirmation):
+    from local_commerce.permissions.scope import require_platform
+    from local_commerce.services.owner import own_item, reject
+
+    require_platform()
+    _, product = own_item(shop, item, True)
+    if confirmation != product.name:
+        reject("Confirm the product before deleting it")
+    if str(product.modified) != str(modified):
+        reject("This product changed. Refresh and review it before deleting")
+    # Keep even cancelled transactions and zero-balance stock history intact.
+    references = {
+        "Stock Ledger Entry": "item_code", "Stock Entry Detail": "item_code",
+        "Sales Order Item": "item_code", "Sales Invoice Item": "item_code",
+        "Delivery Note Item": "item_code", "Purchase Order Item": "item_code",
+        "Purchase Receipt Item": "item_code", "Purchase Invoice Item": "item_code",
+        "Stock Reconciliation Item": "item_code", "LC Stock Operation": "item",
+        "LC Fish Lot": "item", "LC Fish Movement": "item",
+    }
+    for doctype, field in references.items():
+        if frappe.db.exists(doctype, {field: item}):
+            reject(f"This product has {doctype} history. Archive it instead of deleting")
+    for row in frappe.get_all("Bin", filters={"item_code": item},
+                              fields=["actual_qty", "reserved_qty", "ordered_qty",
+                                      "planned_qty", "indented_qty"], limit_page_length=0):
+        if any(float(value or 0) != 0 for value in row.values()):
+            reject("This product has stock or pending stock commitments. Archive it instead")
+    token = _unused_item_deletion.set(item)
+    frappe.db.savepoint("lc_delete_unused_product")
+    try:
+        # Native link checks remain enabled, including custom app references.
+        frappe.delete_doc("Item", item, ignore_permissions=True)
+    except frappe.LinkExistsError:
+        frappe.db.rollback(save_point="lc_delete_unused_product")
+        reject("This product has linked records. Archive it instead of deleting")
+    except Exception:
+        frappe.db.rollback(save_point="lc_delete_unused_product")
+        raise
+    finally:
+        _unused_item_deletion.reset(token)
+    return {"deleted": True, "item": item}
 
 
 def options(shop):

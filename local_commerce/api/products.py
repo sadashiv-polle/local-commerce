@@ -3,6 +3,11 @@ import frappe
 from local_commerce.services import products
 
 
+@frappe.whitelist(methods=["POST"])
+def delete_unused(shop, item, modified, confirmation):
+    return products.delete_unused(shop, item, modified, confirmation)
+
+
 @frappe.whitelist()
 def options(shop):
     return products.options(shop)
