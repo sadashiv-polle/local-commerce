@@ -1,0 +1,298 @@
+{
+  "doctype": "Workspace",
+  "name": "Local Commerce",
+  "label": "Local Commerce",
+  "title": "Local Commerce",
+  "module": "Local Commerce",
+  "icon": "shopping-cart",
+  "public": 1,
+  "is_hidden": 0,
+  "for_user": "",
+  "parent_page": "",
+  "sequence_id": 20,
+  "content": "[{\"id\": \"lc-1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Your shop, in one place</b></span>\", \"col\": 12}}, {\"id\": \"lc-2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Shop workspace\", \"col\": 4}}, {\"id\": \"lc-3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Public storefront\", \"col\": 4}}, {\"id\": \"lc-4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Deliveries\", \"col\": 4}}, {\"id\": \"lc-5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Admin dashboard\", \"col\": 4}}, {\"id\": \"lc-6\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Storefront settings\", \"col\": 4}}, {\"id\": \"lc-7\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Daily operations</b></span>\", \"col\": 12}}, {\"id\": \"lc-8\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Shops\", \"col\": 3}}, {\"id\": \"lc-9\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Orders\", \"col\": 3}}, {\"id\": \"lc-10\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Shop team\", \"col\": 3}}, {\"id\": \"lc-11\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"COD collections\", \"col\": 3}}, {\"id\": \"lc-12\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Shop records and setup</b></span>\", \"col\": 12}}, {\"id\": \"lc-13\", \"type\": \"card\", \"data\": {\"card_name\": \"Shops and people\", \"col\": 4}}, {\"id\": \"lc-14\", \"type\": \"card\", \"data\": {\"card_name\": \"Orders and payments\", \"col\": 4}}, {\"id\": \"lc-15\", \"type\": \"card\", \"data\": {\"card_name\": \"Products and stock\", \"col\": 4}}, {\"id\": \"lc-16\", \"type\": \"card\", \"data\": {\"card_name\": \"Fish stock and pricing\", \"col\": 4}}, {\"id\": \"lc-17\", \"type\": \"card\", \"data\": {\"card_name\": \"Storefront and communication\", \"col\": 4}}, {\"id\": \"lc-18\", \"type\": \"card\", \"data\": {\"card_name\": \"Company and accounts\", \"col\": 4}}]",
+  "shortcuts": [
+    {
+      "label": "Shop workspace",
+      "type": "URL",
+      "url": "/local-commerce#/shop",
+      "color": "Green"
+    },
+    {
+      "label": "Public storefront",
+      "type": "URL",
+      "url": "/local-commerce#/store",
+      "color": "Green"
+    },
+    {
+      "label": "Deliveries",
+      "type": "URL",
+      "url": "/local-commerce#/delivery",
+      "color": "Blue"
+    },
+    {
+      "label": "Admin dashboard",
+      "type": "URL",
+      "url": "/local-commerce#/admin",
+      "color": "Orange"
+    },
+    {
+      "label": "Storefront settings",
+      "type": "URL",
+      "url": "/local-commerce#/store-settings",
+      "color": "Orange"
+    },
+    {
+      "label": "Shops",
+      "type": "DocType",
+      "link_to": "LC Shop",
+      "doc_view": "List",
+      "color": "Green"
+    },
+    {
+      "label": "Orders",
+      "type": "DocType",
+      "link_to": "LC Order",
+      "doc_view": "List",
+      "color": "Blue"
+    },
+    {
+      "label": "Shop team",
+      "type": "DocType",
+      "link_to": "LC Shop Member",
+      "doc_view": "List",
+      "color": "Green"
+    },
+    {
+      "label": "COD collections",
+      "type": "DocType",
+      "link_to": "LC COD Collection",
+      "doc_view": "List",
+      "color": "Orange"
+    }
+  ],
+  "links": [
+    {
+      "type": "Card Break",
+      "label": "Shops and people",
+      "link_count": 4
+    },
+    {
+      "type": "Link",
+      "label": "Shops",
+      "link_type": "DocType",
+      "link_to": "LC Shop"
+    },
+    {
+      "type": "Link",
+      "label": "Owners, staff and riders",
+      "link_type": "DocType",
+      "link_to": "LC Shop Member"
+    },
+    {
+      "type": "Link",
+      "label": "Customer accounts",
+      "link_type": "DocType",
+      "link_to": "LC Customer Account"
+    },
+    {
+      "type": "Link",
+      "label": "Saved addresses",
+      "link_type": "DocType",
+      "link_to": "LC Customer Address"
+    },
+    {
+      "type": "Card Break",
+      "label": "Orders and payments",
+      "link_count": 6
+    },
+    {
+      "type": "Link",
+      "label": "Online orders",
+      "link_type": "DocType",
+      "link_to": "LC Order"
+    },
+    {
+      "type": "Link",
+      "label": "COD collections",
+      "link_type": "DocType",
+      "link_to": "LC COD Collection"
+    },
+    {
+      "type": "Link",
+      "label": "Sales orders",
+      "link_type": "DocType",
+      "link_to": "Sales Order"
+    },
+    {
+      "type": "Link",
+      "label": "Delivery notes",
+      "link_type": "DocType",
+      "link_to": "Delivery Note"
+    },
+    {
+      "type": "Link",
+      "label": "Sales invoices",
+      "link_type": "DocType",
+      "link_to": "Sales Invoice"
+    },
+    {
+      "type": "Link",
+      "label": "Payment entries",
+      "link_type": "DocType",
+      "link_to": "Payment Entry"
+    },
+    {
+      "type": "Card Break",
+      "label": "Products and stock",
+      "link_count": 7
+    },
+    {
+      "type": "Link",
+      "label": "Products",
+      "link_type": "DocType",
+      "link_to": "Item"
+    },
+    {
+      "type": "Link",
+      "label": "Item groups",
+      "link_type": "DocType",
+      "link_to": "Item Group"
+    },
+    {
+      "type": "Link",
+      "label": "Selling prices",
+      "link_type": "DocType",
+      "link_to": "Item Price"
+    },
+    {
+      "type": "Link",
+      "label": "Price lists",
+      "link_type": "DocType",
+      "link_to": "Price List"
+    },
+    {
+      "type": "Link",
+      "label": "Warehouses",
+      "link_type": "DocType",
+      "link_to": "Warehouse"
+    },
+    {
+      "type": "Link",
+      "label": "Stock adjustments",
+      "link_type": "DocType",
+      "link_to": "LC Stock Operation"
+    },
+    {
+      "type": "Link",
+      "label": "Stock entries",
+      "link_type": "DocType",
+      "link_to": "Stock Entry"
+    },
+    {
+      "type": "Card Break",
+      "label": "Fish stock and pricing",
+      "link_count": 3
+    },
+    {
+      "type": "Link",
+      "label": "Expiry lots",
+      "link_type": "DocType",
+      "link_to": "LC Fish Lot"
+    },
+    {
+      "type": "Link",
+      "label": "Stock movements and wastage",
+      "link_type": "DocType",
+      "link_to": "LC Fish Movement"
+    },
+    {
+      "type": "Link",
+      "label": "Market price history",
+      "link_type": "DocType",
+      "link_to": "LC Fish Price Change"
+    },
+    {
+      "type": "Card Break",
+      "label": "Storefront and communication",
+      "link_count": 4
+    },
+    {
+      "type": "Link",
+      "label": "Store settings",
+      "link_type": "DocType",
+      "link_to": "LC Store Settings"
+    },
+    {
+      "type": "Link",
+      "label": "Categories",
+      "link_type": "DocType",
+      "link_to": "LC Store Category"
+    },
+    {
+      "type": "Link",
+      "label": "Notifications",
+      "link_type": "DocType",
+      "link_to": "LC Notification"
+    },
+    {
+      "type": "Link",
+      "label": "Email accounts",
+      "link_type": "DocType",
+      "link_to": "Email Account"
+    },
+    {
+      "type": "Card Break",
+      "label": "Company and accounts",
+      "link_count": 5
+    },
+    {
+      "type": "Link",
+      "label": "Companies",
+      "link_type": "DocType",
+      "link_to": "Company"
+    },
+    {
+      "type": "Link",
+      "label": "Accounts",
+      "link_type": "DocType",
+      "link_to": "Account"
+    },
+    {
+      "type": "Link",
+      "label": "Cost centers",
+      "link_type": "DocType",
+      "link_to": "Cost Center"
+    },
+    {
+      "type": "Link",
+      "label": "Payment methods",
+      "link_type": "DocType",
+      "link_to": "Mode of Payment"
+    },
+    {
+      "type": "Link",
+      "label": "Order tax templates",
+      "link_type": "DocType",
+      "link_to": "Sales Taxes and Charges Template"
+    }
+  ],
+  "roles": [
+    {
+      "role": "LC Platform Administrator"
+    },
+    {
+      "role": "LC Shop Owner"
+    },
+    {
+      "role": "LC Shop Staff"
+    },
+    {
+      "role": "LC Delivery Person"
+    }
+  ],
+  "charts": [],
+  "number_cards": [],
+  "quick_lists": [],
+  "custom_blocks": []
+}
