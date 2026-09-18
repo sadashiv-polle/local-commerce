@@ -90,7 +90,9 @@ def list_items(shop, start=0):
     )
 
 
-def create_item(shop, item_name, item_group, stock_uom, request_key=None):
+def create_item(
+    shop, item_name, item_group, stock_uom, request_key=None, pieces=None, approximate_weight=None
+):
     require_shop(shop, "write")
     shop_doc = frappe.get_doc("LC Shop", shop)
     if shop_doc.status == "Disabled":
@@ -103,6 +105,21 @@ def create_item(shop, item_name, item_group, stock_uom, request_key=None):
         frappe.throw("Select a valid item group")
     if not frappe.db.exists("UOM", {"name": stock_uom, "enabled": 1}):
         frappe.throw("Select an enabled unit of measure")
+    selling_options = None
+    if pieces is not None or approximate_weight is not None:
+        from local_commerce.services.owner import reject
+        from local_commerce.services.selling_rules import options
+
+        if shop_doc.get("shop_type") != "Fish" or stock_uom != "Kg":
+            reject("Fish packs require a Fish shop and Kg stock unit")
+        try:
+            selling_options = options([{
+                "id": "fish-pack", "label": item_name.strip(), "kind": "Count",
+                "quantity": pieces, "estimated_weight": approximate_weight,
+                "billing": "Weight", "enabled": True,
+            }])
+        except ValueError as exc:
+            reject(str(exc))
     creation_key = None
     if request_key is not None:
         if not isinstance(request_key, str) or not 16 <= len(request_key) <= 100:
@@ -138,6 +155,8 @@ def create_item(shop, item_name, item_group, stock_uom, request_key=None):
             "item_defaults": [{"company": shop_doc.company}],
         }
     )
+    if selling_options is not None:
+        doc.lc_selling_options = frappe.as_json(selling_options)
     token = _item_creation.set(True)
     try:
         # Only this allowlisted operation bypasses standard Item role permissions.

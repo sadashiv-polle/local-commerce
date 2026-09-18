@@ -24,6 +24,7 @@ const lowCount = computed(() => items.value.filter(i => i.stock.available <= Num
 let sequence = 0
 function key() { return Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, '0')).join('') }
 const creationKey = ref(key())
+const fishPack = ref(false), pieces = ref(''), approximateWeight = ref('')
 function money(value, currency) { return value == null ? 'Not priced' : new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value) }
 async function load(reset = false) {
   if (reset) start.value = 0
@@ -59,8 +60,8 @@ async function configure() {
 async function create() {
   saving.value = true; error.value = ''; success.value = ''
   try {
-    const item = await call('products.create_item', { shop: props.shop, ...form.value, request_key: creationKey.value }, true)
-    creationKey.value = key(); form.value.item_name = ''; showCreate.value = false
+    const item = await call('products.create_item', { shop: props.shop, ...form.value, ...(props.fishShop && fishPack.value ? { stock_uom: 'Kg', pieces: pieces.value, approximate_weight: approximateWeight.value } : {}), request_key: creationKey.value }, true)
+    creationKey.value = key(); form.value.item_name = ''; pieces.value = ''; approximateWeight.value = ''; showCreate.value = false
     await load(true); success.value = `${item.item_name} created. Add a selling price and stock to get it ready.`
   } catch (e) { error.value = e.message; if (e.status === 417) creationKey.value = key() }
   finally { saving.value = false }
@@ -144,7 +145,7 @@ onMounted(init)
       <button class="lc-primary" :disabled="saving">{{ saving ? 'Saving…' : 'Save setup' }}</button>
     </form>
     <form v-if="showCreate && editable" class="inventory-form" @submit.prevent="create">
-      <h3>A new addition to your shelves</h3><div class="form-columns"><label>Product name<input v-model="form.item_name" required maxlength="140" placeholder="e.g. Whole wheat bread" :disabled="saving"></label><label>Category<select v-model="form.item_group" required :disabled="saving"><option value="">Select category</option><option v-for="g in choices.groups" :key="g">{{ g }}</option></select></label><label>Unit<select v-model="form.stock_uom" required :disabled="saving"><option value="">Select unit</option><option v-for="u in choices.uoms" :key="u">{{ u }}</option></select></label></div><button class="lc-primary" :disabled="saving">{{ saving ? 'Creating…' : 'Create product' }}</button>
+      <h3>A new addition to your shelves</h3><div class="form-columns"><label>Product name<input v-model="form.item_name" required maxlength="140" :placeholder="fishShop ? 'e.g. Mackerel (6 pieces)' : 'e.g. Whole wheat bread'" :disabled="saving"></label><label>Category<select v-model="form.item_group" required :disabled="saving"><option value="">Select category</option><option v-for="g in choices.groups" :key="g">{{ g }}</option></select></label><label v-if="!fishShop || !fishPack">Unit<select v-model="form.stock_uom" required :disabled="saving"><option value="">Select unit</option><option v-for="u in choices.uoms" :key="u">{{ u }}</option></select></label></div><template v-if="fishShop"><label class="check-label"><input v-model="fishPack" type="checkbox" :disabled="saving">Sell as a fish pack</label><div v-if="fishPack" class="form-columns"><label>Number of pieces<input v-model="pieces" type="number" min="1" step="1" placeholder="6" required :disabled="saving"></label><label>Approx. pack weight (kg)<input v-model="approximateWeight" type="number" min="0.000001" step="any" placeholder="0.5" required :disabled="saving"></label></div><p v-if="fishPack" class="muted">This is one pack, not stock received. Set your price per kg after creating it. The final bill uses the actual packed weight.</p></template><button class="lc-primary" :disabled="saving">{{ saving ? 'Creating…' : 'Create product' }}</button>
     </form>
     <form class="inventory-toolbar" @submit.prevent="load(true)"><label class="search-label"><span class="sr-only">Search product names</span><input v-model="search" type="search" placeholder="Search your products…" maxlength="140"></label><select v-model="status" aria-label="Filter products" @change="load(true)"><option>All</option><option>Active</option><option>Sold out</option><option>Archived</option></select><button :disabled="loading">Search</button><button type="button" :disabled="loading" @click="load()">Refresh</button></form>
     <div class="warehouse-caption"><span>{{ warehouse || 'No warehouse configured' }}</span><span>{{ total }} matching products</span></div>
