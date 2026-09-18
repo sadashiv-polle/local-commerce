@@ -7,6 +7,7 @@
   "field_order": [
     "shop",
     "item",
+    "stock_uom",
     "warehouse",
     "lot",
     "kind",
@@ -88,6 +89,14 @@
       "fieldname": "reason",
       "label": "Reason",
       "fieldtype": "Small Text",
+      "read_only": 1
+    },
+    {
+      "fieldname": "stock_uom",
+      "label": "Stock unit",
+      "fieldtype": "Link",
+      "options": "UOM",
+      "fetch_from": "item.stock_uom",
       "read_only": 1
     }
   ],

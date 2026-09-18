@@ -7,6 +7,7 @@
   "field_order": [
     "shop",
     "item",
+    "stock_uom",
     "warehouse",
     "quantity",
     "remaining",
@@ -44,21 +45,21 @@
     },
     {
       "fieldname": "quantity",
-      "label": "Received kg",
+      "label": "Received quantity",
       "fieldtype": "Float",
       "read_only": 1,
       "precision": "6"
     },
     {
       "fieldname": "remaining",
-      "label": "Remaining kg",
+      "label": "Remaining quantity",
       "fieldtype": "Float",
       "read_only": 1,
       "precision": "6"
     },
     {
       "fieldname": "unit_cost",
-      "label": "Receipt cost per kg",
+      "label": "Receipt cost per stock unit",
       "fieldtype": "Currency",
       "read_only": 1
     },
@@ -87,6 +88,14 @@
       "label": "Stock validity hours",
       "read_only": 1,
       "precision": "6"
+    },
+    {
+      "fieldname": "stock_uom",
+      "label": "Stock unit",
+      "fieldtype": "Link",
+      "options": "UOM",
+      "fetch_from": "item.stock_uom",
+      "read_only": 1
     }
   ],
   "permissions": [

@@ -290,7 +290,7 @@ def serialize_product(doc, product, stock, price, currency):
             )
         },
         "stock": stock,
-        "fish_inventory": doc.get("shop_type") == "Fish" and product.stock_uom == "Kg",
+        "fish_inventory": fish.enabled(doc, product),
         "validity_hours": frappe.db.get_value("Item", product.name, "lc_stock_validity_hours") or 0,
         "selling_options": fish.selling_options(doc, product, frappe.parse_json(
             frappe.db.get_value("Item", product.name, "lc_selling_options") or "[]"
@@ -587,7 +587,8 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
             unit_cost,
             stock["actual"],
             stock["reserved"],
-            bool(frappe.db.get_value("UOM", product.stock_uom, "must_be_whole_number")),
+            bool(frappe.db.get_value("UOM", product.stock_uom, "must_be_whole_number"))
+            or (fish.enabled(doc, product) and product.stock_uom == "Nos"),
         )
     except ValueError as exc:
         reject(str(exc))

@@ -42,6 +42,9 @@ def item_query(user=None):
 
 def validate_item(doc, method=None):
     previous = doc.get_doc_before_save()
+    if (previous and doc.get("lc_shop") and previous.stock_uom != doc.stock_uom
+            and frappe.db.get_value("LC Shop", doc.lc_shop, "shop_type") == "Fish"):
+        frappe.throw("Stock unit cannot be changed. Create a separate product for Kg or Nos.")
     if previous and previous.get("lc_shop") != doc.get("lc_shop"):
         frappe.throw("Item shop ownership cannot be changed", frappe.PermissionError)
     if doc.is_new() and doc.get("lc_shop") and not _item_creation.get():

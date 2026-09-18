@@ -6,7 +6,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import now_datetime, today
 
-from local_commerce.services import fish, fish_reports, orders, owner, packing
+from local_commerce.services import fish, fish_reports, orders, owner, packing, products
 from local_commerce.tests.helpers import add_member, create_user
 from local_commerce.tests.test_packed_weights import TestPackedWeights
 
@@ -105,3 +105,52 @@ class TestFishInventory(FrappeTestCase):
         self.assertFalse(fish.enabled(frappe._dict(shop_type='General')))
         with self.assertRaises(frappe.PermissionError):
             fish.protect_record(frappe.get_doc('LC Fish Lot', self.opening['lot']))
+
+    def test_piece_item_receipt_sale_and_expiry_without_packed_weight(self):
+        frappe.set_user(self.user.name)
+        item = products.create_item(self.shop.name, 'Mackerel pieces', self.group, 'Nos')['name']
+        fish.adjust(self.shop.name, item, 'Add', 50, 'Fifty fish for four hundred',
+                    'piece-receipt-test-0001', unit_cost=8, validity_hours=24)
+        product = frappe.get_doc('Item', item)
+        owner.update_product(self.shop.name, item, str(product.modified), product.item_name,
+                             price=12, validity_hours=24)
+        self.assertEqual(owner.detail(self.shop.name, item)['selling_options'], [])
+        with self.assertRaises(frappe.ValidationError):
+            fish.adjust(self.shop.name, item, 'Remove', 0.5, 'Invalid half piece',
+                        'piece-fraction-test-0001')
+        frappe.set_user(self.customer.name)
+        request = orders.place(self.shop.name, [{'item': item, 'quantity': 6}],
+                               self.address, 'piece-order-test-0001')
+        self.assertFalse(request['estimated'])
+        frappe.set_user(self.user.name)
+        product.reload()
+        owner.update_product(self.shop.name, item, str(product.modified), product.item_name,
+                             price=20, validity_hours=24)
+        self.assertEqual(owner.detail(self.shop.name, item)['stock']['available'], 44)
+        orders.change(request['name'], 'Accepted')
+        orders.change(request['name'], 'Preparing')
+        ready = orders.change(request['name'], 'Ready')
+        frappe.set_user('Administrator')
+        driver = create_user('LC Delivery Person')
+        add_member(self.shop.name, driver.name, 'Driver')
+        orders.assign_driver(request['name'], driver.name)
+        frappe.set_user(driver.name)
+        orders.delivery_change(request['name'], 'Picked Up')
+        self.assertEqual(owner.balance(item, self.shop.warehouse)['actual'], 44)
+        orders.delivery_change(request['name'], 'Out for Delivery')
+        frappe.set_user(self.customer.name)
+        otp = orders.detail(request['name'])['delivery_otp']
+        frappe.set_user(driver.name)
+        orders.delivery_change(request['name'], 'Delivered', ready['total'], delivery_otp_value=otp)
+        frappe.set_user(self.user.name)
+        lot = fish.lots(self.shop, item)[0]
+        self.expire_lot(lot.name)
+        fish.adjust(self.shop.name, item, 'Wastage', 4, 'Expired four fish',
+                    'piece-waste-test-0001', lot=lot.name)
+        report = fish_reports.report(self.shop.name, today(), today())
+        row = next(row for row in report['items'] if row['item'] == item)
+        self.assertEqual(row['closing_quantity'], 40)
+        self.assertEqual(row['revenue'], 72)
+        self.assertEqual(row['cost'], 48)
+        self.assertEqual(row['wastage_cost'], 32)
+        self.assertEqual(row['profit_after_stock_losses'], -8)

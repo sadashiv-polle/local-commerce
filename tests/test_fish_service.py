@@ -60,7 +60,7 @@ class TestFishService(unittest.TestCase):
 
     def test_reservation_uses_native_stock_kg_and_excludes_the_order_being_repacked(self):
         self.frappe.db.get_value.side_effect = lambda dt, item, field: (
-            'Kg' if item == 'fish' else 'Nos')
+            'Kg' if item == 'fish' else 'Litre')
         self.module.reservations.return_value = {'lot': 5}
         order = Row(name='order', shop='shop')
         rows = [Row(item_code='fish', stock_qty=1.2), Row(item_code='fish', stock_qty=0.5),
@@ -84,3 +84,18 @@ class TestFishService(unittest.TestCase):
             self.module.validate_order(order)
         lot['expires_at'] = self.now + timedelta(hours=1)
         self.module.validate_order(order)
+
+    def test_pieces_have_expiry_and_reservations_without_weight_options(self):
+        item = Row(name='fish', stock_uom='Nos')
+        self.assertTrue(self.module.enabled(self.shop, item))
+        self.assertFalse(self.module.enabled(Row(shop_type='General'), item))
+        self.assertEqual(self.module.selling_options(self.shop, item, []), [])
+        self.module.lots.return_value[0]['remaining'] = 50
+        self.module.reservations.return_value = {'lot': 6}
+        self.assertEqual(self.module.sellable(self.shop, item, 50), 44)
+        self.frappe.db.get_value.return_value = 'Nos'
+        order = Row(name='order', shop='shop')
+        self.module.reserve(order, [Row(item_code='fish', stock_qty=6)])
+        self.assertEqual(json.loads(order.fish_allocations_json)[0]['quantity'], 6)
+        self.module.lots.return_value[0]['expires_at'] = self.now
+        self.assertEqual(self.module.sellable(self.shop, item, 50), 0)

@@ -9,9 +9,18 @@ group, and have Expense as its root type. Other shops retain their existing flow
 Finish or cancel active orders before changing the shop type. Once lots exist,
 the shop type and warehouse are fixed so their stock history cannot be detached.
 
-Fish inventory applies to **Kg products in Fish shops**. Create a product in
-**Products & stock** with unit Kg. A Fish shop defaults new products to the Fish
-category and Kg. Non-Kg products in that shop continue using ordinary inventory.
+Fish inventory applies to **Kg and Nos products in Fish shops**. In **Products &
+stock → Add product**, choose **By weight** or **By pieces**. Create separate items,
+for example Mackerel — Weight and Mackerel — Pieces. Each has independent stock.
+Split each purchase between these items; never receive the same fish into both.
+Other units and General shops continue using their existing inventory workflow.
+
+For a pieces item, receive the count and cost per piece: 50 fish bought for ₹400
+means quantity 50 at cost ₹8 each. Set the market selling price per piece separately.
+Selling 6 pieces at ₹12 bills ₹72 and deducts 6 pieces at pickup, leaving 44. Pending
+orders reserve pieces immediately. No weight entry or packing confirmation is
+required for these Nos lines. Expiry, wastage and price history apply to both units.
+The stock unit of a Fish product cannot change; create another item instead.
 
 ## Daily prices and customer choices
 
@@ -32,7 +41,7 @@ Ready. See [selling options](selling-options.md).
 
 ## Receipts, validity and existing stock
 
-In **Stock & expiry**, choose **Receive stock**, enter Kg, receipt cost per Kg,
+In **Stock & expiry**, choose **Receive stock**, enter quantity in the product’s stock unit, cost per unit,
 validity in hours and a reason. A submitted ERPNext Material Receipt is created,
 with a separate expiry lot and movement record. Default validity can be configured
 on each fish and overridden on a receipt. There is no automatic freshness default:
@@ -74,10 +83,11 @@ available. Stock postings are preserved; use opposite movements for corrections.
 
 **Fish inventory & reports → Reports** supports date ranges up to 366 days:
 
-- Opening, received, issued and closing Kg, plus closing stock value.
+- Opening, received, issued and closing quantities with each item’s Kg or Nos unit.
+  Quantity totals remain separate for kg and pieces; money totals combine both.
 - Invoiced fish Kg and piece quantities, and product revenue at actual invoice prices.
 - Cost of invoiced fish using the corresponding native Delivery Note valuations.
-- Wastage Kg and cost from native stock ledger issues.
+- Wastage quantities and cost from native stock ledger issues.
 - Other removal cost, gross profit, and profit after stock losses.
 - Delivery revenue shown separately from product revenue.
 

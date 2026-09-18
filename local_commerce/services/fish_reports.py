@@ -34,7 +34,7 @@ def report(shop, start_date, end_date):
             inner join `tabLC Order` o on o.name=si.lc_order and o.sales_invoice=si.name
             inner join `tabSales Invoice Item` sii on sii.parent=si.name
             inner join `tabItem` i on i.name=sii.item_code
-            where o.shop=%s and i.stock_uom='Kg' and i.lc_shop=%s
+            where o.shop=%s and i.stock_uom in ('Kg', 'Nos') and i.lc_shop=%s
               and si.company=%s and si.docstatus=1 and si.posting_date >= %s
               and si.posting_date < %s
             group by o.name, o.delivery_note, sii.item_code
@@ -58,7 +58,7 @@ def report(shop, start_date, end_date):
             sum(sle.actual_qty) as closing_kg,
             sum(sle.stock_value_difference) as closing_value
         from `tabStock Ledger Entry` sle inner join `tabItem` i on i.name=sle.item_code
-        where i.lc_shop=%s and i.stock_uom='Kg' and sle.warehouse=%s and sle.company=%s
+        where i.lc_shop=%s and i.stock_uom in ('Kg', 'Nos') and sle.warehouse=%s and sle.company=%s
           and sle.is_cancelled=0 and sle.posting_date < %s
         group by sle.item_code
     ''', (start, start, start, shop, doc.warehouse, doc.company, until), as_dict=True)
@@ -85,9 +85,10 @@ def report(shop, start_date, end_date):
           and sle.is_cancelled=0 and sle.posting_date >= %s and sle.posting_date < %s
         group by sle.item_code
     ''', (shop, doc.warehouse, doc.company, start, until), as_dict=True)
-    products = frappe.get_all('Item', filters={'lc_shop': shop, 'stock_uom': 'Kg'},
-                              fields=['name', 'item_name'], limit_page_length=0)
-    data = {row.name: {'item': row.name, 'item_name': row.item_name} for row in products}
+    products = frappe.get_all('Item', filters={'lc_shop': shop, 'stock_uom': ['in', ['Kg', 'Nos']]},
+                              fields=['name', 'item_name', 'stock_uom'], limit_page_length=0)
+    data = {row.name: {'item': row.name, 'item_name': row.item_name, 'stock_uom': row.stock_uom}
+            for row in products}
     keys = ['sold_kg', 'sold_pieces', 'revenue', 'cost', 'opening_kg', 'stock_in_kg',
             'stock_out_kg', 'closing_kg', 'closing_value', 'wastage_kg', 'wastage_cost',
             'removal_kg', 'removal_cost']
@@ -95,8 +96,16 @@ def report(shop, start_date, end_date):
         for row in records:
             if row.item in data:
                 data[row.item].update({key: float(row.get(key) or 0) for key in keys if key in row})
+    quantity_fields = ['opening', 'stock_in', 'stock_out', 'closing', 'wastage', 'removal']
+    keys += [f'{field}_pieces' for field in quantity_fields]
     totals = dict.fromkeys(keys, 0.0)
     for row in data.values():
+        for field in [*quantity_fields, 'sold']:
+            raw = float(row.get(f'{field}_kg') or 0)
+            row[f'{field}_quantity'] = raw
+            if row['stock_uom'] == 'Nos':
+                row[f'{field}_pieces'] = raw
+                row[f'{field}_kg'] = 0.0
         for key in keys:
             row.setdefault(key, 0.0)
             totals[key] += row[key]

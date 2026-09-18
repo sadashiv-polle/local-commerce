@@ -61,8 +61,9 @@ class TestFishReports(unittest.TestCase):
         fake.db.get_value.return_value = 'INR'
         fake.get_doc.return_value = SimpleNamespace(company='C', warehouse='W')
         fake.get_all.side_effect = lambda *args, **kwargs: self.sql(
-            'select name,item_name from `tabItem` where lc_shop=? and stock_uom=?',
-            (kwargs['filters']['lc_shop'], kwargs['filters']['stock_uom']), as_dict=True)
+            "select name,item_name,stock_uom from `tabItem` "
+            "where lc_shop=? and stock_uom in ('Kg','Nos')",
+            (kwargs['filters']['lc_shop'],), as_dict=True)
         utilities = Mock(getdate=lambda value: date.fromisoformat(value))
         owner = Mock(reject=Mock(side_effect=ValueError))
         path = Path(__file__).resolve().parents[1] / 'local_commerce/services/fish_reports.py'
@@ -118,3 +119,33 @@ class TestFishReports(unittest.TestCase):
                            ('2025-01-01', '2026-09-18'), ('invalid', '2026-09-18')]:
             with self.assertRaises(ValueError):
                 self.module.report('shop-a', start, end)
+
+    def test_piece_stock_and_money_combine_without_adding_pieces_to_kg(self):
+        self.db.executescript("""
+            insert into `tabItem` values ('pieces','Mackerel pieces','Nos','shop-a',12);
+            insert into `tabLC Order` values ('pieces-order','shop-a','DN-pieces','SI-pieces');
+            insert into `tabSales Invoice` values
+                ('SI-pieces','pieces-order','C',1,'2026-09-18');
+            insert into `tabSales Invoice Item` values ('SI-pieces','pieces',6,'Nos',6,72);
+            insert into `tabStock Ledger Entry` values
+                ('pieces',50,400,'Stock Entry','pieces-receipt','W','C',0,'2026-09-18'),
+                ('pieces',-6,-48,'Delivery Note','DN-pieces','W','C',0,'2026-09-18'),
+                ('pieces',-4,-32,'Stock Entry','pieces-waste','W','C',0,'2026-09-18');
+            insert into `tabLC Fish Movement` values ('pieces-waste','shop-a','Wastage');
+        """)
+        report = self.module.report('shop-a', '2026-09-18', '2026-09-18')
+        totals = report['totals']
+        self.assertAlmostEqual(totals['sold_kg'], 1.49)
+        self.assertEqual(totals['sold_pieces'], 13)
+        self.assertEqual(totals['closing_pieces'], 40)
+        self.assertEqual(totals['wastage_pieces'], 4)
+        self.assertEqual(totals['revenue'], 623)
+        self.assertEqual(totals['cost'], 197)
+        self.assertEqual(totals['wastage_cost'], 232)
+        row = next(row for row in report['items'] if row['item'] == 'pieces')
+        self.assertEqual(row['sold_quantity'], 6)
+        self.assertEqual(row['closing_quantity'], 40)
+        self.assertEqual(row['stock_uom'], 'Nos')
+        self.db.execute('update `tabItem` set current_price=100')
+        self.assertEqual(self.module.report('shop-a', '2026-09-18', '2026-09-18')
+                         ['totals']['revenue'], 623)

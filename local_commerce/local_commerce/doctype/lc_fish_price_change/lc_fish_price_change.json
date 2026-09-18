@@ -7,6 +7,7 @@
   "field_order": [
     "shop",
     "item",
+    "stock_uom",
     "weight_price",
     "selling_options_json",
     "validity_hours"
@@ -32,7 +33,7 @@
     },
     {
       "fieldname": "weight_price",
-      "label": "Price per kg",
+      "label": "Price per stock unit",
       "fieldtype": "Currency",
       "read_only": 1
     },
@@ -48,6 +49,14 @@
       "fieldtype": "Float",
       "read_only": 1,
       "precision": "6"
+    },
+    {
+      "fieldname": "stock_uom",
+      "label": "Stock unit",
+      "fieldtype": "Link",
+      "options": "UOM",
+      "fetch_from": "item.stock_uom",
+      "read_only": 1
     }
   ],
   "permissions": [
