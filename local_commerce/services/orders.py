@@ -92,7 +92,7 @@ def is_shop_driver(user, shop):
         and bool(
             frappe.db.exists(
                 "LC Shop Member",
-                {"shop": shop, "user": user, "membership_role": "Driver", "enabled": 1},
+                {"shop": shop, "user": user, "membership_role": "Delivery Person", "enabled": 1},
             )
         )
     )
@@ -915,7 +915,7 @@ def drivers(shop):
     require_shop(shop, "write")
     members = frappe.get_all(
         "LC Shop Member",
-        filters={"shop": shop, "membership_role": "Driver", "enabled": 1},
+        filters={"shop": shop, "membership_role": "Delivery Person", "enabled": 1},
         pluck="user",
         order_by="user asc",
         limit_page_length=0,
@@ -1011,7 +1011,7 @@ def driver_shops(user=None):
     if user == "Guest" or "LC Delivery Person" not in frappe.get_roles(user):
         frappe.throw("Delivery person access required", frappe.PermissionError)
     return sorted(
-        {member.shop for member in memberships(user) if member.membership_role == "Driver"}
+        {member.shop for member in memberships(user) if member.membership_role == "Delivery Person"}
     )
 
 

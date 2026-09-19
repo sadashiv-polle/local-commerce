@@ -236,6 +236,14 @@ def after_migrate():
 
 
 def before_migrate():
+    # Rename stored membership/audience values without removing any assignments.
+    for doctype, field in (("LC Shop Member", "membership_role"),
+                           ("LC Notification", "audience")):
+        if frappe.db.table_exists(doctype) and frappe.db.has_column(doctype, field):
+            frappe.db.sql(
+                f"update `tab{doctype}` set `{field}`=%s where `{field}`=%s",
+                ("Delivery Person", "Driver"),
+            )
     for name in (
         "LC Shop",
         "LC Shop Member",

@@ -50,7 +50,7 @@
       "fieldname": "audience",
       "label": "Audience",
       "fieldtype": "Select",
-      "options": "Customer\nOwner\nDriver",
+      "options": "Customer\nOwner\nDelivery Person",
       "reqd": 1,
       "read_only": 1
     },

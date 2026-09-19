@@ -49,7 +49,7 @@ def overview():
         "riders": frappe.db.sql(
             """select count(distinct m.user) from `tabLC Shop Member` m
             inner join `tabUser` u on u.name=m.user
-            where m.enabled=1 and m.membership_role='Driver' and u.enabled=1"""
+            where m.enabled=1 and m.membership_role='Delivery Person' and u.enabled=1"""
         )[0][0],
         "products": frappe.db.count("Item", {"lc_shop": ["is", "set"], "disabled": 0}),
         "new_orders_today": frappe.db.sql(
@@ -192,10 +192,10 @@ def create_shop(shop_name, company="", country="", currency=""):
     return {"name": doc.name, "company": doc.company}
 
 
-def save_membership(shop, user, membership_role="Driver", name="", enabled=1):
+def save_membership(shop, user, membership_role="Delivery Person", name="", enabled=1):
     require_platform()
-    if membership_role not in {"Owner", "Staff", "Driver"}:
-        reject("Choose Owner, Staff or Driver")
+    if membership_role not in {"Owner", "Staff", "Delivery Person"}:
+        reject("Choose Owner, Staff or Delivery Person")
     if name:
         doc = frappe.get_doc("LC Shop Member", name)
         if doc.shop != shop or doc.user != user:

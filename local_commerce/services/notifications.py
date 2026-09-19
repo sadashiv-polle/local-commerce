@@ -117,7 +117,7 @@ def status_changed(order, previous):
     _create(
         order.delivery_user,
         order,
-        "Driver",
+        "Delivery Person",
         f"Delivery {label}: {order.status}",
         f"The delivery for {order.recipient} moved from {previous} to {order.status}.",
         "/delivery",
@@ -141,7 +141,7 @@ def driver_assigned(order, previous_driver=None):
     _create(
         order.delivery_user,
         order,
-        "Driver",
+        "Delivery Person",
         f"New delivery {label}",
         f"Collect an order for {order.recipient} from the shop.",
         "/delivery",
@@ -151,7 +151,7 @@ def driver_assigned(order, previous_driver=None):
         _create(
             previous_driver,
             order,
-            "Driver",
+            "Delivery Person",
             f"Delivery {label} reassigned",
             "This delivery is no longer assigned to you.",
             "/delivery",

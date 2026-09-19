@@ -201,27 +201,27 @@
     },
     {
       "fieldname": "driver_latitude",
-      "label": "Current Driver Latitude",
+      "label": "Current Delivery Person Latitude",
       "fieldtype": "Float",
       "precision": 6,
       "read_only": 1
     },
     {
       "fieldname": "driver_longitude",
-      "label": "Current Driver Longitude",
+      "label": "Current Delivery Person Longitude",
       "fieldtype": "Float",
       "precision": 6,
       "read_only": 1
     },
     {
       "fieldname": "driver_location_accuracy",
-      "label": "Driver Location Accuracy (m)",
+      "label": "Delivery Person Location Accuracy (m)",
       "fieldtype": "Float",
       "read_only": 1
     },
     {
       "fieldname": "driver_location_at",
-      "label": "Driver Location At",
+      "label": "Delivery Person Location At",
       "fieldtype": "Datetime",
       "read_only": 1
     },

@@ -33,7 +33,7 @@ class PermissionPolicyTests(unittest.TestCase):
         self.assertFalse(can_access_shop(self.user, roles, self.members, "A", "write"))
 
     def test_driver_and_customer_cannot_manage_shops(self):
-        self.members[0]["membership_role"] = "Driver"
+        self.members[0]["membership_role"] = "Delivery Person"
         for role in ("LC Delivery Person", "LC Customer"):
             self.assertFalse(can_access_shop(self.user, [role], self.members, "A"))
 

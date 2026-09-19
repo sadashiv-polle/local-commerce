@@ -25,7 +25,7 @@ class TestAdminDashboard(FrappeTestCase):
                 lambda: admin.setup_options(),
                 lambda: admin.set_accepting(self.shop.name, 0),
                 lambda: admin.create_shop("Unauthorized shop"),
-                lambda: admin.save_membership(self.shop.name, self.user.name, "Driver"),
+                lambda: admin.save_membership(self.shop.name, self.user.name, "Delivery Person"),
             )
             for operation in operations:
                 with self.assertRaises(frappe.PermissionError):
@@ -59,12 +59,14 @@ class TestAdminDashboard(FrappeTestCase):
         self.assertFalse(self.shop.accepting_orders)
         self.assertEqual(self.shop.opening_hours_json, before)
         driver = create_user("LC Customer")
-        member = admin.save_membership(self.shop.name, driver.name, "Driver")
-        self.assertIn(MEMBER_ROLES["Driver"], frappe.get_roles(driver.name))
-        admin.save_membership(self.shop.name, driver.name, "Driver", member["name"], enabled=0)
+        member = admin.save_membership(self.shop.name, driver.name, "Delivery Person")
+        self.assertIn(MEMBER_ROLES["Delivery Person"], frappe.get_roles(driver.name))
+        admin.save_membership(
+            self.shop.name, driver.name, "Delivery Person", member["name"], enabled=0
+        )
         self.assertFalse(frappe.db.get_value("LC Shop Member", member["name"], "enabled"))
         with self.assertRaises(frappe.ValidationError):
-            admin.save_membership(self.other.name, driver.name, "Driver", member["name"])
+            admin.save_membership(self.other.name, driver.name, "Delivery Person", member["name"])
 
     def test_shop_creation_and_overview_return_actual_records(self):
         frappe.set_user("Administrator")

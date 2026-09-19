@@ -22,8 +22,8 @@ class TestLCShopMember(FrappeTestCase):
 
     def test_membership_assigns_matching_role(self):
         user = create_user("LC Customer")
-        member = add_member(self.shop, user, "Driver")
-        self.assertEqual(member.membership_role, "Driver")
+        member = add_member(self.shop, user, "Delivery Person")
+        self.assertEqual(member.membership_role, "Delivery Person")
         self.assertIn("LC Delivery Person", frappe.get_roles(user.name))
         self.assertEqual(
             frappe.db.count(

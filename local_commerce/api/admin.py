@@ -33,5 +33,5 @@ def create_shop(shop_name, company="", country="", currency=""):
 
 
 @frappe.whitelist(methods=["POST"])
-def save_membership(shop, user, membership_role="Driver", name="", enabled=1):
+def save_membership(shop, user, membership_role="Delivery Person", name="", enabled=1):
     return admin.save_membership(shop, user, membership_role, name, enabled)

@@ -98,7 +98,7 @@
     },
     {
       "fieldname": "driver_note",
-      "label": "Driver Note",
+      "label": "Delivery Person Note",
       "fieldtype": "Small Text",
       "read_only": 1
     },

@@ -149,7 +149,7 @@ onBeforeUnmount(() => {
       <div v-if="shop && editable && order.status === 'Ready'" class="driver-assignment">
         <label>Delivery person<select v-model="selectedDrivers[order.name]" :disabled="busy || !drivers.length"><option value="" disabled>Select a rider</option><option v-for="driver in drivers" :key="driver.user" :value="driver.user">{{ driver.full_name }}</option></select></label>
         <button class="lc-primary" :disabled="busy || !selectedDrivers[order.name] || selectedDrivers[order.name] === order.delivery_user" @click="assign(order)">{{ order.delivery_user ? 'Reassign rider' : 'Assign rider' }}</button>
-        <small v-if="!drivers.length">No drivers are assigned to this shop. A platform administrator can add a Driver membership in Desk.</small>
+        <small v-if="!drivers.length">No delivery people are assigned to this shop. A platform administrator can add a Delivery Person membership in Desk.</small>
       </div>
       <div v-if="(shop && editable) || (!shop && order.status === 'Requested')" class="order-actions">
         <button v-if="shop && next[order.status]" class="lc-primary" :disabled="busy || (next[order.status] === 'Ready' && order.estimated)" @click="change(order, next[order.status])">{{ nextLabel[order.status] }}</button>

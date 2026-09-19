@@ -1,7 +1,10 @@
 """Pure authorization decisions, also exercised without a running Bench."""
 
 PLATFORM_ROLE = "LC Platform Administrator"
-MEMBER_ROLES = {"Owner": "LC Shop Owner", "Staff": "LC Shop Staff", "Driver": "LC Delivery Person"}
+MEMBER_ROLES = {
+    "Owner": "LC Shop Owner", "Staff": "LC Shop Staff",
+    "Delivery Person": "LC Delivery Person",
+}
 
 
 def is_platform(user, roles):

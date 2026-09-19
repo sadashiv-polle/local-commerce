@@ -26,7 +26,7 @@ const adminNavigation = ref(null)
 const summary = ref(null), rows = ref([]), recent = ref([]), loading = ref(false), rowsLoading = ref(false), error = ref(''), rowError = ref(''), busy = ref('')
 const search = ref(''), status = ref(''), start = ref(0), hasMore = ref(false)
 const embedded = computed(() => selectedShop.value && ['orders', 'inventory', 'payments'].includes(section.value))
-const statuses = computed(() => ({ shops: ['Draft', 'Active', 'Temporarily Closed', 'Disabled'], orders: ['Requested', 'Accepted', 'Preparing', 'Ready', 'Picked Up', 'Out for Delivery', 'Delivered', 'Cancelled'], people: ['Owner', 'Staff', 'Driver'], payments: ['Awaiting Handover', 'Reconciled'] })[section.value] || [])
+const statuses = computed(() => ({ shops: ['Draft', 'Active', 'Temporarily Closed', 'Disabled'], orders: ['Requested', 'Accepted', 'Preparing', 'Ready', 'Picked Up', 'Out for Delivery', 'Delivered', 'Cancelled'], people: ['Owner', 'Staff', 'Delivery Person'], payments: ['Awaiting Handover', 'Reconciled'] })[section.value] || [])
 const pipeline = ['Requested', 'Accepted', 'Preparing', 'Ready', 'Picked Up', 'Out for Delivery']
 const chart = computed(() => {
   const today = summary.value?.date
@@ -43,7 +43,7 @@ const chart = computed(() => {
 const metrics = computed(() => summary.value ? [
   { title: 'New orders today', value: summary.value.new_orders_today, hint: `${summary.value.pending_orders} waiting for a response`, icon: 'orders', target: 'orders' },
   { title: 'Active shops', value: summary.value.active_shops, hint: `${summary.value.shops} shops on your platform`, icon: 'shops', target: 'shops' },
-  { title: 'Delivery partners', value: summary.value.riders, hint: `${summary.value.out_for_delivery} orders out for delivery`, icon: 'people', target: 'people' },
+  { title: 'Delivery persons', value: summary.value.riders, hint: `${summary.value.out_for_delivery} orders out for delivery`, icon: 'people', target: 'people' },
   { title: 'Customers', value: summary.value.customers, hint: `${summary.value.products} enabled products`, icon: 'customers', target: 'customers' },
 ] : [])
 const systemLinks = [
@@ -53,12 +53,12 @@ const systemLinks = [
 ]
 const setupDialog = ref(null), setupKind = ref('shop'), setup = ref(null), setupLoading = ref(false), setupSaving = ref(false), setupError = ref('')
 const shopForm = ref({ shop_name: '', company: '', country: '', currency: '' })
-const memberForm = ref({ name: '', shop: '', user: '', membership_role: 'Driver', enabled: true }), userSearch = ref('')
+const memberForm = ref({ name: '', shop: '', user: '', membership_role: 'Delivery Person', enabled: true }), userSearch = ref('')
 let generation = 0, searchTimer, refreshTimer, userTimer, userGeneration = 0
 async function openSetup(kind, row = null) {
   setupKind.value = kind; setupError.value = ''; setupLoading.value = true
   shopForm.value = { shop_name: '', company: '', country: '', currency: '' }
-  memberForm.value = row ? { name: row.name, shop: row.shop, user: row.user, membership_role: row.membership_role, enabled: !!row.enabled } : { name: '', shop: selectedShop.value, user: '', membership_role: 'Driver', enabled: true }
+  memberForm.value = row ? { name: row.name, shop: row.shop, user: row.user, membership_role: row.membership_role, enabled: !!row.enabled } : { name: '', shop: selectedShop.value, user: '', membership_role: 'Delivery Person', enabled: true }
   userSearch.value = ''
   await nextTick(); setupDialog.value.showModal()
   try { setup.value = await call('admin.setup_options'); shopForm.value.country = setup.value.country || ''; shopForm.value.currency = setup.value.currency || '' }
@@ -178,7 +178,7 @@ onBeforeUnmount(() => { generation++; window.clearTimeout(searchTimer); window.c
         <form v-if="setup && !setupLoading" @submit.prevent="saveSetup">
           <fieldset :disabled="setupSaving">
             <template v-if="setupKind === 'shop'"><label>Shop name<input v-model="shopForm.shop_name" maxlength="140" required placeholder="Your shop's name"></label><label>Company<select v-model="shopForm.company"><option value="">Create a company with the same shop name</option><option v-for="company in setup.companies" :key="company">{{ company }}</option></select></label><template v-if="!shopForm.company"><div class="admin-dialog-row"><label>Country<select v-model="shopForm.country" required><option value="">Choose country</option><option v-for="country in setup.countries" :key="country">{{ country }}</option></select></label><label>Currency<select v-model="shopForm.currency" required><option value="">Choose currency</option><option v-for="currency in setup.currencies" :key="currency">{{ currency }}</option></select></label></div></template><p class="admin-dialog-note">The shop starts in Draft. Set its warehouse, address, delivery and payment options before opening it to customers.</p></template>
-            <template v-else><label>Shop<select v-model="memberForm.shop" required :disabled="!!memberForm.name"><option value="">Choose a shop</option><option v-for="shop in summary?.shop_options || []" :key="shop.name" :value="shop.name">{{ shop.shop_name }}</option><option v-if="memberForm.shop && !summary?.shop_options.some(shop => shop.name === memberForm.shop)" :value="memberForm.shop">Selected shop</option></select></label><template v-if="!memberForm.name"><label>Find an existing user<input v-model="userSearch" type="search" placeholder="Search a name or email"></label><label>User<select v-model="memberForm.user" required><option value="">Choose user</option><option v-for="user in setup.users" :key="user.name" :value="user.name">{{ user.full_name }} · {{ user.name }}</option><option v-if="memberForm.user && !setup.users.some(user => user.name === memberForm.user)" :value="memberForm.user">{{ memberForm.user }}</option></select></label></template><p v-else class="admin-dialog-note">{{ memberForm.user }}</p><label>Membership role<select v-model="memberForm.membership_role"><option value="Owner">Shop owner</option><option value="Staff">Shop staff</option><option value="Driver">Delivery partner</option></select></label><label class="admin-dialog-checkbox"><input v-model="memberForm.enabled" type="checkbox">Membership enabled</label><p class="admin-dialog-note">The matching app role is assigned automatically. A rider can have memberships in multiple shops.</p></template>
+            <template v-else><label>Shop<select v-model="memberForm.shop" required :disabled="!!memberForm.name"><option value="">Choose a shop</option><option v-for="shop in summary?.shop_options || []" :key="shop.name" :value="shop.name">{{ shop.shop_name }}</option><option v-if="memberForm.shop && !summary?.shop_options.some(shop => shop.name === memberForm.shop)" :value="memberForm.shop">Selected shop</option></select></label><template v-if="!memberForm.name"><label>Find an existing user<input v-model="userSearch" type="search" placeholder="Search a name or email"></label><label>User<select v-model="memberForm.user" required><option value="">Choose user</option><option v-for="user in setup.users" :key="user.name" :value="user.name">{{ user.full_name }} · {{ user.name }}</option><option v-if="memberForm.user && !setup.users.some(user => user.name === memberForm.user)" :value="memberForm.user">{{ memberForm.user }}</option></select></label></template><p v-else class="admin-dialog-note">{{ memberForm.user }}</p><label>Membership role<select v-model="memberForm.membership_role"><option value="Owner">Shop owner</option><option value="Staff">Shop staff</option><option value="Delivery Person">Delivery person</option></select></label><label class="admin-dialog-checkbox"><input v-model="memberForm.enabled" type="checkbox">Membership enabled</label><p class="admin-dialog-note">The matching app role is assigned automatically. A rider can have memberships in multiple shops.</p></template>
             <div class="admin-dialog-actions"><button type="button" @click="closeSetup">Cancel</button><button type="submit" class="admin-primary">{{ setupSaving ? 'Saving…' : setupKind === 'shop' ? 'Create shop' : 'Save membership' }}</button></div>
           </fieldset>
         </form>

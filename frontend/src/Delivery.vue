@@ -14,7 +14,7 @@ const trackingOrder = ref(''), locationMessage = ref(''), locationError = ref(''
 const routes = ref({}), routeErrors = ref({})
 const routeRequests = new Set()
 let locationWatch = null, locationTimer = null, latestPosition = null, sendingLocation = false
-const allowed = computed(() => session.value.roles.includes('LC Delivery Person') && session.value.memberships.some(member => member.membership_role === 'Driver'))
+const allowed = computed(() => session.value.roles.includes('LC Delivery Person') && session.value.memberships.some(member => member.membership_role === 'Delivery Person'))
 const collectionVariance = computed(() => collectingOrder.value ? Number(collectedAmount.value || 0) - Number(collectingOrder.value.total) : 0)
 const next = { Ready: 'Picked Up', 'Picked Up': 'Out for Delivery', 'Out for Delivery': 'Delivered' }
 const labels = { Ready: 'Confirm pickup', 'Picked Up': 'Start delivery', 'Out for Delivery': 'Confirm delivered' }
@@ -180,7 +180,7 @@ onBeforeUnmount(() => stopTracking('', false))
 </script>
 
 <template>
-  <section v-if="!allowed" class="lc-empty delivery-empty"><h2>Delivery access is not configured</h2><p>Your account needs the LC Delivery Person role and an enabled Driver membership for a shop.</p></section>
+  <section v-if="!allowed" class="lc-empty delivery-empty"><h2>Delivery access is not configured</h2><p>Your account needs the LC Delivery Person role and an enabled Delivery Person membership for a shop.</p></section>
   <section v-else class="delivery-page">
     <header class="delivery-hero"><div><span class="eyebrow">RIDER WORKSPACE</span><h1>Hello, {{ session.full_name.split(' ')[0] }}.</h1><p>Your profile, assigned shops, and every delivery in one place.</p></div><div class="rider-avatar" aria-hidden="true">{{ session.full_name.slice(0, 1).toUpperCase() }}</div></header>
 
@@ -189,7 +189,7 @@ onBeforeUnmount(() => stopTracking('', false))
         <div class="profile-avatar"><img v-if="profile?.profile.user_image" :src="profile.profile.user_image" :alt="`${profile.profile.full_name} profile`"><span v-else aria-hidden="true">{{ session.full_name.slice(0, 1).toUpperCase() }}</span></div>
         <span class="online-badge">● Ready for delivery</span>
         <h2>{{ profile?.profile.full_name || session.full_name }}</h2>
-        <p class="profile-role">Delivery partner</p>
+        <p class="profile-role">Delivery person</p>
         <dl class="profile-details">
           <div><dt>Email</dt><dd>{{ profile?.profile.email || session.user }}</dd></div>
           <div><dt>Mobile</dt><dd>{{ profile?.profile.mobile_no || 'Not added' }}</dd></div>

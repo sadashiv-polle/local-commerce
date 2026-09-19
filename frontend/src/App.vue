@@ -41,7 +41,7 @@ const adminView = computed(() => route.path === '/admin' || route.path.startsWit
 const ownerView = computed(() => route.path === '/shop' || route.path.startsWith('/shop/') || route.path === '/store-settings' || adminView.value)
 const deliveryView = computed(() => route.path === '/delivery')
 const canManage = computed(() => session.value && (session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role))))
-const canDeliver = computed(() => session.value?.roles.includes('LC Delivery Person') && session.value.memberships.some(m => m.membership_role === 'Driver'))
+const canDeliver = computed(() => session.value?.roles.includes('LC Delivery Person') && session.value.memberships.some(m => m.membership_role === 'Delivery Person'))
 const ownerShops = computed(() => [...new Set(session.value?.memberships.filter(m => m.membership_role === 'Owner').map(m => m.shop) || [])])
 let notificationTimer
 provide('session', session)
