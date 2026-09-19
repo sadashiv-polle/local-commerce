@@ -62,9 +62,15 @@ def _create(user, order, audience, title, message, target, seen):
 
 
 def packed_weight_updated(order):
-    _create(order.customer_user, order, "Customer", "Your packed weight and bill are ready",
-            "The shop confirmed the actual packed weights. Open your order to see the final bill.",
-            "/orders", set())
+    _create(
+        order.customer_user,
+        order,
+        "Customer",
+        "Your final bill is ready",
+        "Your items have been weighed and the bill updated. Open your order to review the total.",
+        "/orders",
+        set(),
+    )
 
 
 def order_created(order):
@@ -76,7 +82,7 @@ def order_created(order):
             order,
             "Owner",
             f"New order {label}",
-            f"{order.recipient} placed a new delivery order.",
+            f"{order.recipient} placed an order. Open it to accept or decline.",
             f"/shop/{order.shop}?tab=orders",
             seen,
         )
@@ -84,42 +90,108 @@ def order_created(order):
 
 def status_changed(order, previous):
     label = _order_label(order.name)
-    shop_name = frappe.db.get_value("LC Shop", order.shop, "shop_name") or "Shop"
+    shop_name = frappe.db.get_value("LC Shop", order.shop, "shop_name") or "The shop"
     expired = order.status == "Cancelled" and order.reason == "Shop response timeout"
-    seen = set()
-    _create(
-        order.customer_user,
-        order,
-        "Customer",
-        f"Order {label} expired" if expired else f"Order {label}: {order.status}",
-        (
-            f"{shop_name} did not confirm your order in time. Reserved stock was released."
-            if expired
-            else f"Your order from {shop_name} moved from {previous} to {order.status}."
+    customer_copy = {
+        "Requested": ("Order received", f"Your order is with {shop_name}, awaiting confirmation."),
+        "Accepted": (
+            "Your order is accepted",
+            f"{shop_name} accepted your order and will start preparing it soon.",
         ),
-        "/orders",
-        seen,
-    )
+        "Preparing": ("Your order is being prepared", f"{shop_name} is getting your items ready."),
+        "Ready": (
+            "Your order is ready",
+            "Your items are packed and waiting for the delivery person to collect them.",
+        ),
+        "Picked Up": (
+            "Your order has been collected",
+            f"Your delivery person has collected your order from {shop_name}.",
+        ),
+        "Out for Delivery": (
+            "Your order is on its way",
+            "Your delivery person is heading to you. Open your order for updates.",
+        ),
+        "Delivered": (
+            "Your order has arrived",
+            "Your delivery is complete. Thank you for shopping!",
+        ),
+        "Cancelled": (
+            "Your order was cancelled",
+            "Open your order to see the cancellation details.",
+        ),
+    }
+    owner_copy = {
+        "Requested": ("New order to review", "Open the order to accept or decline it."),
+        "Accepted": ("Order accepted", "Start preparing the items for this order."),
+        "Preparing": ("Preparation started", "The order is being prepared for collection."),
+        "Ready": ("Order ready for collection", "Check the delivery assignment for this order."),
+        "Picked Up": ("Order collected", "The delivery person has collected the order."),
+        "Out for Delivery": (
+            "Delivery is underway",
+            "The delivery person is heading to the customer.",
+        ),
+        "Delivered": ("Order delivered", "Delivery is complete. Review payment and cash handover."),
+        "Cancelled": (
+            "Order cancelled",
+            "Stop preparing this order and check the cancellation details.",
+        ),
+    }
+    delivery_copy = {
+        "Requested": ("Order awaiting confirmation", "Wait for the shop to confirm the order."),
+        "Accepted": ("Shop accepted the order", "The shop will prepare this order for collection."),
+        "Preparing": (
+            "Shop is preparing your pickup",
+            "Wait for the shop to mark the order ready.",
+        ),
+        "Ready": ("Your pickup is ready", "Collect the order from the shop and confirm pickup."),
+        "Picked Up": (
+            "Pickup confirmed",
+            "When you leave, tap Start delivery to share your progress.",
+        ),
+        "Out for Delivery": (
+            "Delivery started",
+            "Follow the delivery address and keep location sharing on.",
+        ),
+        "Delivered": (
+            "Delivery completed",
+            "Thank you! Check your deliveries and any cash handover due.",
+        ),
+        "Cancelled": (
+            "Delivery cancelled",
+            "Do not continue this delivery. Check the order details.",
+        ),
+    }
+    if expired:
+        customer_copy["Cancelled"] = (
+            "The shop could not confirm your order",
+            f"{shop_name} did not respond in time, so your order was cancelled. You can try again.",
+        )
+        owner_copy["Cancelled"] = (
+            "Order missed",
+            "This order was cancelled because it was not accepted within the response time.",
+        )
+    seen = set()
+    fallback = ("Order update", "Open the order to see the latest details.")
+    title, message = customer_copy.get(order.status, fallback)
+    _create(order.customer_user, order, "Customer", f"{title} · {label}", message, "/orders", seen)
+    title, message = owner_copy.get(order.status, fallback)
     for user in _shop_owners(order.shop):
         _create(
             user,
             order,
             "Owner",
-            f"Order {label} expired" if expired else f"Order {label}: {order.status}",
-            (
-                f"{order.recipient}'s order was cancelled because it was not answered in time."
-                if expired
-                else f"{order.recipient}'s order moved from {previous} to {order.status}."
-            ),
+            f"{title} · {label}",
+            f"{order.recipient}: {message}",
             f"/shop/{order.shop}?tab=orders",
             seen,
         )
+    title, message = delivery_copy.get(order.status, fallback)
     _create(
         order.delivery_user,
         order,
         "Delivery Person",
-        f"Delivery {label}: {order.status}",
-        f"The delivery for {order.recipient} moved from {previous} to {order.status}.",
+        f"{title} · {label}",
+        message,
         "/delivery",
         seen,
     )
@@ -127,14 +199,17 @@ def status_changed(order, previous):
 
 def driver_assigned(order, previous_driver=None):
     label = _order_label(order.name)
-    driver_name = frappe.db.get_value("User", order.delivery_user, "full_name") or "A rider"
+    driver_name = (
+        frappe.db.get_value("User", order.delivery_user, "full_name") or "Your delivery person"
+    )
     seen = set()
     _create(
         order.customer_user,
         order,
         "Customer",
-        f"Rider assigned to {label}",
-        f"{driver_name} is assigned to your delivery.",
+        f"Delivery person assigned · {label}",
+        f"{driver_name} will handle your delivery. "
+        "We’ll let you know when your order is on its way.",
         "/orders",
         seen,
     )
@@ -153,7 +228,8 @@ def driver_assigned(order, previous_driver=None):
             order,
             "Delivery Person",
             f"Delivery {label} reassigned",
-            "This delivery is no longer assigned to you.",
+            "Another delivery person will handle this order. "
+            "Check your list for your current deliveries.",
             "/delivery",
             seen,
         )
@@ -162,7 +238,7 @@ def driver_assigned(order, previous_driver=None):
             user,
             order,
             "Owner",
-            f"Rider assigned to {label}",
+            f"Delivery person assigned · {label}",
             f"{driver_name} is assigned to {order.recipient}'s delivery.",
             f"/shop/{order.shop}?tab=orders",
             seen,
@@ -199,9 +275,7 @@ def list_notifications(start=0):
     )
     return {
         "items": rows,
-        "unread": frappe.db.count(
-            "LC Notification", {"recipient_user": user, "read": 0}
-        ),
+        "unread": frappe.db.count("LC Notification", {"recipient_user": user, "read": 0}),
         "has_more": len(rows) == 20,
     }
 
