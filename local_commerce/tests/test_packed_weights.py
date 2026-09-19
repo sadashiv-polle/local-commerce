@@ -130,4 +130,4 @@ class TestPackedWeights(FrappeTestCase):
             "LC Order", request["name"], "sales_order"))
         self.assertEqual(so.items[0].qty, 3)
         self.assertEqual(so.items[0].rate, 150)
-        self.assertAlmostEqual(so.items[0].stock_qty, 0.55, places=5)
+        self.assertAlmostEqual(so.items[0].stock_qty, 0.55, delta=0.002)

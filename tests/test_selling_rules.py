@@ -83,6 +83,14 @@ class TestPieceStockPrecision(unittest.TestCase):
             self.assertTrue(stock_weight_matches(actual, expected, pieces, 6, 6))
 
     def test_real_weight_changes_and_coarse_rounding_remain_rejected(self):
-        for actual, expected, pieces, precision in [(0.51, 0.5, 3, 6), (0.501, 0.5, 3, 3),
+        for actual, expected, pieces, precision in [(0.51, 0.5, 3, 6), (0.51, 0.5, 3, 3),
                                                     (0, 0.5, 3, 6), (0.6, 0.5, 300, 2)]:
             self.assertFalse(stock_weight_matches(actual, expected, pieces, precision, precision))
+
+    def test_site_with_three_decimal_places(self):
+        # 0.5 / 3 -> 0.167; native stock is 0.501 kg, not exactly 0.5.
+        self.assertTrue(stock_weight_matches(0.501, 0.5, 3, 3, 3))
+        self.assertTrue(stock_weight_matches(1.002, 1, 6, 3, 3))
+        # Confirming a different packed weight keeps the same conversion rules.
+        self.assertTrue(stock_weight_matches(0.549, 0.55, 3, 3, 3))
+        self.assertFalse(stock_weight_matches(0.503, 0.5, 3, 3, 3))
