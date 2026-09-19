@@ -22,7 +22,7 @@ def finalize(order, modified, weights):
     if doc.status not in {"Accepted", "Preparing"}:
         reject("Packed weights can be edited after acceptance and before the order is Ready")
     snapshots = json.loads(doc.get("selling_lines_json") or "[]")
-    if not any(line.get("option_id") for line in snapshots):
+    if not any(line.get("option_id") and not line.get("preweighed") for line in snapshots):
         reject("This order has no products billed by packed weight")
     try:
         actual = packed_weights(snapshots, frappe.parse_json(weights))

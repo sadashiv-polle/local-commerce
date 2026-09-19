@@ -327,6 +327,7 @@ def product_data(shop, item, browsing=False):
         "rate": float(checked_number(price.price_list_rate, "Price")) if price else None,
         "currency": currency,
         "available": fish.sellable(shop, item, available_stock),
+        "preweighed_weights": fish.enabled(shop, item),
         "selling_options": [row for row in fish.selling_options(
             shop, item, frappe.parse_json(item.get("lc_selling_options") or "[]")
         ) if row.get("enabled", True)],
@@ -510,7 +511,12 @@ def selling_quantity(product, row):
                     "label": offer["label"], "kind": offer["kind"],
                     "option_quantity": offer["quantity"], "packs": offer["packs"],
                     "estimated_weight": offer["estimated_total_weight"],
-                    "actual_weight": None, "rate_per_kg": product["rate"],
+                    "actual_weight": (offer["estimated_total_weight"]
+                                      if product.get("preweighed_weights")
+                                      and offer["kind"] == "Weight" else None),
+                    "preweighed": bool(product.get("preweighed_weights")
+                                       and offer["kind"] == "Weight"),
+                    "rate_per_kg": product["rate"],
                     "billing": offer["billing"], "piece_price": offer["piece_price"]}
         snapshot["fixed_amount"] = (float(checked_number(offer["piece_price"], "Price")
                                           * checked_number(offer["quantity"], "Pieces")
@@ -604,9 +610,10 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 "warehouse": doc.warehouse,
                 "delivery_date": nowdate(),
                 "description": escape(item.item_name + (
-                    f" · {snapshot['label']} × {snapshot['packs']:g}; estimated weight, "
+                    f" · {snapshot['label']} × {snapshot['packs']:g}; "
+                    + ("pre-weighed pack" if snapshot.get("preweighed") else "estimated weight, "
                     + ("fixed piece price" if snapshot.get("billing") == "Pieces"
-                     else "final price after packing") if snapshot else ""
+                     else "final price after packing")) if snapshot else ""
                 )),
             }
         )

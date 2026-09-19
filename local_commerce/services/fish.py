@@ -28,7 +28,7 @@ def require_fish(shop, item=None):
 
 def selling_options(shop, item, rows):
     if enabled(shop, item) and item.stock_uom == 'Kg' and not rows:
-        # Every fish weight order needs an actual packed-weight confirmation.
+        # Default fish option is a pre-weighed one-kilogram pack.
         return [{'id': 'fish-weight', 'label': '1 kg', 'kind': 'Weight', 'quantity': 1,
                  'estimated_weight': 1, 'billing': 'Weight', 'enabled': True}]
     return rows

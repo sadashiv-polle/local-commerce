@@ -10,7 +10,7 @@ function setDisplay(value) {
   emit('update:modelValue', props.modelValue.map(row => ({ ...row, enabled: value === 'Both' || row.kind === (value === 'Pieces' ? 'Count' : 'Weight') })))
 }
 function add() {
-  emit('update:modelValue', [...props.modelValue, { id: crypto.randomUUID(), label: '', kind: 'Count', quantity: '', estimated_weight: '', billing: 'Pieces', piece_price: '', enabled: true }])
+  emit('update:modelValue', [...props.modelValue, { id: crypto.randomUUID(), label: '', kind: 'Weight', quantity: '', estimated_weight: '', billing: 'Weight', piece_price: '', enabled: true }])
 }
 function update(index, field, value) {
   emit('update:modelValue', props.modelValue.map((row, i) => i === index ? { ...row, [field]: value, ...(field === 'kind' && value !== row.kind ? { quantity: '', estimated_weight: '', billing: value === 'Weight' ? 'Weight' : 'Pieces', piece_price: '' } : {}) } : row))
@@ -21,7 +21,7 @@ function remove(index) { emit('update:modelValue', props.modelValue.filter((_, i
   <section class="selling-options-editor">
     <div class="selling-options-heading"><div><h3>Selling options</h3><p>Set weight prices and piece prices for the same product.</p></div><button type="button" :disabled="disabled || uom !== 'Kg' || modelValue.length >= 20" @click="add">+ Add option</button></div>
     <p v-if="uom !== 'Kg'" class="muted">Create this product with unit Kg to use shared stock and pricing by packed weight.</p>
-    <p v-else class="muted">Selling price above is per kg. Names and quantities are yours to choose; count weights are estimates for stock. Piece pricing stays fixed after packing.</p>
+    <p v-else class="muted">Selling price above is per kg. For fish weight packs, enter the weighed quantity, such as 0.500, 0.530 or 0.600 kg; no packing confirmation is needed. count weights are estimates for stock. Piece pricing stays fixed after packing.</p>
     <label v-if="modelValue.length">Show to customers<select :value="display" :disabled="disabled" @change="setDisplay($event.target.value)"><option>Weight</option><option>Pieces</option><option>Both</option></select></label>
     <fieldset :disabled="disabled" class="selling-options-list">
       <article v-for="(row, index) in modelValue" :key="row.id" class="selling-option-editor-row">

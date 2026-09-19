@@ -57,7 +57,8 @@ def selected(rows, identifier, packs):
 
 
 def packed_weights(lines, entries):
-    expected = {str(index) for index, line in enumerate(lines) if line.get("option_id")}
+    expected = {str(index) for index, line in enumerate(lines)
+                if line.get("option_id") and not line.get("preweighed")}
     if not isinstance(entries, dict) or set(entries) != expected:
         raise ValueError("Enter the total packed weight for every selling-option line")
     return {int(index): float(number(value, "Packed weight", positive=True))

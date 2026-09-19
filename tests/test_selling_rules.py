@@ -94,3 +94,11 @@ class TestPieceStockPrecision(unittest.TestCase):
         # Confirming a different packed weight keeps the same conversion rules.
         self.assertTrue(stock_weight_matches(0.549, 0.55, 3, 3, 3))
         self.assertFalse(stock_weight_matches(0.503, 0.5, 3, 3, 3))
+
+
+class TestPreweighedPacking(unittest.TestCase):
+    def test_fixed_weight_lines_cannot_be_repriced_by_packing(self):
+        lines = [{"option_id": "530g", "preweighed": True}, {"option_id": "legacy"}]
+        self.assertEqual(packed_weights(lines, {"1": 0.6}), {1: 0.6})
+        with self.assertRaises(ValueError):
+            packed_weights(lines, {"0": 0.7, "1": 0.6})

@@ -131,3 +131,17 @@ class TestPackedWeights(FrappeTestCase):
         self.assertEqual(so.items[0].qty, 3)
         self.assertEqual(so.items[0].rate, 150)
         self.assertAlmostEqual(so.items[0].stock_qty, 0.55, delta=0.002)
+
+    def test_preweighed_fish_snapshot_is_final_at_checkout(self):
+        product = {"item": self.item, "uom": "Kg", "rate": 800,
+                   "preweighed_weights": True, "selling_options": [
+                       {"id": "530g", "label": "530 g", "kind": "Weight", "quantity": 0.53}]}
+        quantity, snapshot = orders.selling_quantity(
+            product, {"option_id": "530g", "quantity": 2})
+        self.assertEqual(float(quantity), 1.06)
+        self.assertEqual(snapshot["actual_weight"], 1.06)
+        self.assertTrue(snapshot["preweighed"])
+        self.assertEqual(float(quantity) * snapshot["rate_per_kg"], 848)
+        product["preweighed_weights"] = False
+        _, legacy = orders.selling_quantity(product, {"option_id": "530g", "quantity": 1})
+        self.assertIsNone(legacy["actual_weight"])
