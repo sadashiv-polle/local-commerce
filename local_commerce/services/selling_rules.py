@@ -62,3 +62,18 @@ def packed_weights(lines, entries):
         raise ValueError("Enter the total packed weight for every selling-option line")
     return {int(index): float(number(value, "Packed weight", positive=True))
             for index, value in entries.items()}
+
+
+def stock_weight_matches(actual, expected, pieces, stock_precision, conversion_precision):
+    """Allow native UOM rounding, capped at 0.01 gram; never rewrite ledger quantities.
+
+    A pack's kg/piece factor can recur (0.5 / 3). ERPNext rounds that factor
+    and the resulting stock quantity separately. Reservations and deliveries
+    must continue using ERPNext's resulting stock_qty, not the display estimate.
+    """
+    actual, expected, pieces = (Decimal(str(value)) for value in (actual, expected, pieces))
+    if not all(value.is_finite() and value > 0 for value in (actual, expected, pieces)):
+        return False
+    tolerance = (Decimal(10) ** -stock_precision / 2
+                 + pieces * Decimal(10) ** -conversion_precision / 2)
+    return abs(actual - expected) <= min(tolerance, Decimal("0.00001"))

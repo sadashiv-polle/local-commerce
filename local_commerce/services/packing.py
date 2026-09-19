@@ -6,7 +6,7 @@ from html import escape
 import frappe
 
 from local_commerce.services.owner import _owner_operation, balance, checked_number, reject
-from local_commerce.services.selling_rules import packed_weights
+from local_commerce.services.selling_rules import packed_weights, stock_weight_matches
 
 
 def finalize(order, modified, weights):
@@ -91,9 +91,15 @@ def finalize(order, modified, weights):
         amended.flags.ignore_permissions = True
         amended.insert(ignore_permissions=True)
         for index, weight in actual.items():
-            if checked_number(amended.items[index].stock_qty, "Stock quantity") != checked_number(
-                weight, "Packed weight"
-            ):
+            row = amended.items[index]
+            matches = (
+                stock_weight_matches(row.stock_qty, weight, row.qty,
+                                     row.precision("stock_qty"), row.precision("conversion_factor"))
+                if snapshots[index].get("billing") == "Pieces"
+                else checked_number(row.stock_qty, "Stock quantity")
+                == checked_number(weight, "Packed weight")
+            )
+            if not matches:
                 reject("ERPNext quantity precision changed this weight; enter a supported weight")
             snapshot = snapshots[index]
             if snapshot.get("billing") == "Pieces" and frappe.utils.flt(

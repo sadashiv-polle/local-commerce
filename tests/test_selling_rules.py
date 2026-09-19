@@ -1,7 +1,12 @@
 import unittest
 
 from local_commerce.services.order_rules import cart_rows
-from local_commerce.services.selling_rules import options, packed_weights, selected
+from local_commerce.services.selling_rules import (
+    options,
+    packed_weights,
+    selected,
+    stock_weight_matches,
+)
 
 
 class TestSellingRules(unittest.TestCase):
@@ -69,3 +74,15 @@ class TestSellingRules(unittest.TestCase):
                         {"0": 0, "2": 1}, {"0": "NaN", "2": 1}]:
             with self.assertRaises(ValueError):
                 packed_weights(lines, entries)
+
+
+class TestPieceStockPrecision(unittest.TestCase):
+    def test_three_piece_half_kg_pack_and_multipacks(self):
+        for actual, expected, pieces in [(0.500001, 0.5, 3), (0.499999999999, 0.5, 3),
+                                         (1.000002, 1, 6), (0.550002, 0.55, 3)]:
+            self.assertTrue(stock_weight_matches(actual, expected, pieces, 6, 6))
+
+    def test_real_weight_changes_and_coarse_rounding_remain_rejected(self):
+        for actual, expected, pieces, precision in [(0.51, 0.5, 3, 6), (0.501, 0.5, 3, 3),
+                                                    (0, 0.5, 3, 6), (0.6, 0.5, 300, 2)]:
+            self.assertFalse(stock_weight_matches(actual, expected, pieces, precision, precision))

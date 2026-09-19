@@ -108,3 +108,26 @@ class TestPackedWeights(FrappeTestCase):
         self.assertEqual([row["id"] for row in public["selling_options"]], ["seven"])
         with self.assertRaises(frappe.ValidationError):
             self.request()
+
+    def test_three_pieces_at_150_with_half_kg_estimate(self):
+        frappe.set_user(self.user.name)
+        item = frappe.get_doc("Item", self.item)
+        offers = [{"id": "three", "label": "Three pieces", "kind": "Count",
+                   "quantity": 3, "estimated_weight": 0.5,
+                   "billing": "Pieces", "piece_price": 150}]
+        owner.update_product(self.shop.name, self.item, str(item.modified), item.item_name,
+                             selling_options=offers)
+        frappe.set_user(self.customer.name)
+        request = orders.place(self.shop.name,
+                               [{"item": self.item, "option_id": "three", "quantity": 1}],
+                               self.address, "three-piece-rounding-test")
+        self.assertAlmostEqual(sum(row["amount"] for row in request["items"]), 450)
+        frappe.set_user(self.user.name)
+        accepted = orders.change(request["name"], "Accepted")
+        final = packing.finalize(request["name"], accepted["modified"], {"0": 0.55})
+        self.assertAlmostEqual(sum(row["amount"] for row in final["items"]), 450)
+        so = frappe.get_doc("Sales Order", frappe.db.get_value(
+            "LC Order", request["name"], "sales_order"))
+        self.assertEqual(so.items[0].qty, 3)
+        self.assertEqual(so.items[0].rate, 150)
+        self.assertAlmostEqual(so.items[0].stock_qty, 0.55, places=5)

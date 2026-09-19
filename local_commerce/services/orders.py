@@ -32,6 +32,7 @@ from local_commerce.services.owner import (
 from local_commerce.services.product_images import gallery_urls
 from local_commerce.services.reorder_rules import reorder_line
 from local_commerce.services.selling_rules import selected as selected_offer
+from local_commerce.services.selling_rules import stock_weight_matches
 from local_commerce.services.shop_hours import availability as shop_availability
 
 _order_operation = ContextVar("lc_order_operation", default=False)
@@ -712,8 +713,9 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 reject("ERPNext quantity precision changed this order; use a supported quantity")
         for snapshot, posted in zip(selling_lines, so.items, strict=True):
             if snapshot.get("billing") == "Pieces":
-                if checked_number(posted.stock_qty, "Stock quantity") != checked_number(
-                    snapshot["estimated_weight"], "Estimated weight"
+                if not stock_weight_matches(
+                    posted.stock_qty, snapshot["estimated_weight"], posted.qty,
+                    posted.precision("stock_qty"), posted.precision("conversion_factor"),
                 ):
                     reject("ERPNext stock precision changed this option; use a supported weight")
                 if frappe.utils.flt(posted.amount, posted.precision("amount")) != frappe.utils.flt(
