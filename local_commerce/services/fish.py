@@ -83,7 +83,10 @@ def reserve(order, rows):
                                     + Decimal(str(row.stock_qty)))
     for item, quantity in sorted(totals.items()):
         try:
-            parts.extend(fish_rules.allocate(lots(shop, item), quantity, held, now_datetime()))
+            cutoff = (get_datetime(frappe.db.get_value(
+                'LC Delivery Slot', order.scheduled_slot, 'delivery_end'))
+                if order.get('scheduled_slot') else now_datetime())
+            parts.extend(fish_rules.allocate(lots(shop, item), quantity, held, cutoff))
         except ValueError as exc:
             reject(str(exc))
     order.fish_allocations_json = json.dumps(parts)

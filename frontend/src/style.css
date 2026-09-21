@@ -829,3 +829,10 @@ html { scroll-behavior: smooth; }
 .product-delete-panel { margin-top: 28px; padding: 20px; border: 1px solid #e8c8c3; border-radius: 16px; background: #fff8f6; }
 .product-delete-panel h3 { color: #9c3025; margin-top: 0; }
 .product-delete-panel p { font-size: .9rem; line-height: 1.5; }
+
+.scheduled-panel { padding: 1.25rem; border: 1px solid #dce5dc; border-radius: 20px; background: #f7faf5; margin-block: 1rem; min-width: 0; }
+.scheduled-slot { padding: 1rem; background: white; border: 1px solid #dce5dc; border-radius: 14px; margin-block: .75rem; overflow-wrap: anywhere; }
+.scheduled-editor { margin-block: 1.5rem; }
+.scheduled-panel select, .scheduled-panel input, .scheduled-panel textarea { max-width: 100%; }
+.scheduled-panel .button-row { flex-wrap: wrap; gap: .75rem; }
+@media (max-width: 600px) { .scheduled-panel { padding: .85rem; } .scheduled-panel .form-columns { grid-template-columns: 1fr; } .scheduled-panel input[type="datetime-local"] { min-width: 0; width: 100%; } }

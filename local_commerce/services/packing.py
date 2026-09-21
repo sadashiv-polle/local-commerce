@@ -67,7 +67,8 @@ def finalize(order, modified, weights):
         amended.ignore_pricing_rule = 1
         subtotal = sum(checked_number(row.qty, "Quantity") * checked_number(row.rate, "Price")
                        for row in amended.items)
-        price = orders.pricing_for(shop, subtotal, doc.delivery_distance_km)
+        price = orders.pricing_for(shop, subtotal, doc.delivery_distance_km,
+                                   doc.get("delivery_mode") or "Normal")
         if price["needs_location"]:
             reject("Select a valid delivery location before finalizing packed weights")
         amended.set("taxes", [row for row in amended.taxes

@@ -35,7 +35,9 @@
     "driver_location_accuracy",
     "driver_location_at",
     "reason",
-    "fish_allocations_json"
+    "fish_allocations_json",
+    "delivery_mode",
+    "scheduled_slot"
   ],
   "fields": [
     {
@@ -238,6 +240,21 @@
       "hidden": 1,
       "read_only": 1,
       "no_copy": 1
+    },
+    {
+      "fieldname": "delivery_mode",
+      "label": "Delivery booking",
+      "fieldtype": "Select",
+      "options": "Normal\nScheduled",
+      "default": "Normal",
+      "read_only": 1
+    },
+    {
+      "fieldname": "scheduled_slot",
+      "label": "Scheduled delivery batch",
+      "fieldtype": "Link",
+      "options": "LC Delivery Slot",
+      "read_only": 1
     }
   ],
   "permissions": [

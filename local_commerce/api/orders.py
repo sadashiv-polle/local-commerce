@@ -15,8 +15,11 @@ def catalog(shop, start=0, search="", category="", in_stock=0):
 
 
 @frappe.whitelist(methods=["POST"])
-def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
-    return orders.place(shop, items, address, request_key, payment_method)
+def place(shop, items, address, request_key, payment_method="Cash on Delivery",
+          delivery_mode="Normal", scheduled_slot=None):
+    return orders.place(
+        shop, items, address, request_key, payment_method, delivery_mode, scheduled_slot
+    )
 
 
 @frappe.whitelist()
@@ -99,8 +102,8 @@ def reconcile_cod(collection, owner_note=""):
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 @rate_limit(limit=600, seconds=3600)
-def quote(shop, items, latitude=None, longitude=None):
-    return orders.quote(shop, items, latitude, longitude)
+def quote(shop, items, latitude=None, longitude=None, delivery_mode="Normal", scheduled_slot=None):
+    return orders.quote(shop, items, latitude, longitude, delivery_mode, scheduled_slot)
 
 
 @frappe.whitelist(methods=["GET"])

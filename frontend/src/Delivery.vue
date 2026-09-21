@@ -1,10 +1,15 @@
 <script setup>
-import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { call } from './api.js'
 import MapView from './MapView.vue'
+import ScheduledRoute from './ScheduledRoute.vue'
 import { forgetTracking, rememberTracking, savedTracking } from './tracking.js'
 
 const session = inject('session')
+const batchSlots = ref([])
+async function openBatchOrder(name) {
+  try { const order = await call('orders.detail', { order: name }); assignments.value = [order, ...assignments.value.filter(row => row.name !== name)]; await nextTick(); document.getElementById(`delivery-${name}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) } catch(e) { error.value = e.message }
+}
 const profile = ref(null), assignments = ref([]), view = ref('active'), start = ref(0)
 const loading = ref(false), error = ref(''), busyOrder = ref('')
 const paymentDialog = ref(null), collectingOrder = ref(null)
@@ -50,6 +55,7 @@ async function load(delta = 0) {
   start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
   try {
     assignments.value = await call('orders.delivery_assignments', { start: start.value, view: view.value })
+    batchSlots.value = view.value === 'active' ? (await call('scheduled.rider_batches')).map(row => row.scheduled_slot) : []
     loadRoutes(assignments.value)
     return true
   } catch (e) { error.value = e.message; return false }
@@ -213,7 +219,7 @@ onBeforeUnmount(() => stopTracking('', false))
         <p v-if="loading" role="status">Loading your deliveries…</p>
         <p v-else-if="!assignments.length" class="lc-empty">{{ view === 'active' ? 'No active deliveries right now.' : 'No completed deliveries yet.' }}</p>
         <div v-else class="delivery-list">
-          <article v-for="order in assignments" :key="order.name" class="delivery-card" :class="{ finished: ['Delivered', 'Cancelled'].includes(order.status) }">
+          <ScheduledRoute v-for="slot in batchSlots" :key="slot" :slot-name="slot" manageable @open-order="openBatchOrder" /><article v-for="order in assignments" :id="`delivery-${order.name}`" :key="order.name" class="delivery-card" :class="{ finished: ['Delivered', 'Cancelled'].includes(order.status) }">
             <header><div><span class="eyebrow" :title="order.name">{{ order.shop_name }} · {{ orderLabel(order.name) }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>
             <div class="delivery-address"><span aria-hidden="true">⌖</span><div><strong>{{ order.address.line1 }}</strong><p>{{ order.address.city }} · {{ order.address.postal_code }}</p><a :href="`tel:${order.phone}`">Call {{ order.phone }}</a></div></div>
             <div v-if="order.destination_location" class="delivery-map-panel"><MapView :config="order.map" :points="mapPoints(order)" :route="routes[order.name]?.points || []" height="235px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Customer</span><span v-if="order.driver_location"><i class="legend-rider"></i>You</span><span v-if="routes[order.name]" class="route-summary">{{ routes[order.name].distance_km }} km · about {{ routes[order.name].duration_minutes }} min</span><a :href="navigationLink(order)" target="_blank" rel="noopener">{{ order.status === 'Ready' ? 'Navigate to shop' : 'Start navigation' }} ↗</a></div><small v-if="routes[order.name]" class="route-attribution"><a :href="routes[order.name].attribution_url" target="_blank" rel="noopener">{{ routes[order.name].attribution }}</a></small><p v-if="routeErrors[order.name]" class="route-error">{{ routeErrors[order.name] }}</p></div>

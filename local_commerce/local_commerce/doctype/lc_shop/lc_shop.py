@@ -64,6 +64,8 @@ class LCShop(Document):
                     "Only platform administrators can change Company", frappe.PermissionError
                 )
             pricing_fields = (
+                "delivery_enabled",
+                "scheduled_enabled",
                 "shop_type",
                 "fish_wastage_account",
                 "minimum_order_amount",

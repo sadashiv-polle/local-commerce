@@ -43,7 +43,8 @@
     "payment_section",
     "cod_enabled",
     "cod_cash_account",
-    "cod_mode_of_payment"
+    "cod_mode_of_payment",
+    "scheduled_enabled"
   ],
   "fields": [
     {
@@ -292,6 +293,13 @@
       "label": "Shop Map Pin",
       "fieldtype": "Geolocation",
       "description": "Admin only: use the marker tool to place one shop pin. Save to store its latitude and longitude. Move or remove the existing marker before adding another."
+    },
+    {
+      "fieldname": "scheduled_enabled",
+      "label": "Enable Scheduled Delivery",
+      "fieldtype": "Check",
+      "default": "0",
+      "permlevel": 1
     }
   ],
   "permissions": [

@@ -12,7 +12,7 @@ from frappe.utils import add_to_date, getdate, now_datetime, nowdate, time_diff_
 from local_commerce.permissions.policy import can_access_shop
 from local_commerce.permissions.scope import identity, memberships, require_shop, shop_query
 from local_commerce.services import notifications as order_notifications
-from local_commerce.services import order_rules
+from local_commerce.services import order_rules, scheduled
 from local_commerce.services.delivery_pricing import delivery_price
 from local_commerce.services.location_rules import (
     accuracy_metres,
@@ -133,7 +133,7 @@ def validate_delivery(doc, method=None):
             "Mode of Payment", {"name": doc.cod_mode_of_payment, "type": "Cash"}
         ):
             reject("Select a valid cash Mode of Payment")
-    if not doc.delivery_enabled:
+    if not doc.delivery_enabled and not doc.get("scheduled_enabled"):
         return
     if not location:
         reject("Set the shop location on the map before enabling delivery")
@@ -165,12 +165,14 @@ def validate_delivery(doc, method=None):
         company_link("Account", doc.delivery_account, doc.company, {"is_group": 0, "disabled": 0})
 
 
-def public_shop(name, browsing=False):
+def public_shop(name, browsing=False, scheduled_delivery=False):
     doc = frappe.get_doc("LC Shop", name)
-    if doc.status != "Active" or (not browsing and not doc.delivery_enabled):
+    enabled = doc.get("scheduled_enabled") if scheduled_delivery else doc.delivery_enabled
+    if doc.status != "Active" or (not browsing and not enabled):
         reject("This shop is not accepting delivery requests")
+
     hours = shop_availability(doc)
-    if not browsing and not hours["open"]:
+    if not browsing and not scheduled_delivery and not hours["open"]:
         reject(hours["message"])
     if not browsing:
         validate_delivery(doc)
@@ -186,6 +188,7 @@ SHOP_LISTING_FIELDS = [
     "latitude",
     "longitude",
     "delivery_enabled",
+    "scheduled_enabled",
     "cod_enabled",
     "accepting_orders",
     "opening_hours_json",
@@ -202,7 +205,8 @@ def serialize_public_shop(row):
     hours = shop_availability(row)
     row.availability = hours
     row.accepting_orders = bool(
-        row.delivery_enabled and row.cod_enabled and row.location and hours["open"]
+        (row.delivery_enabled and hours["open"] or row.get("scheduled_enabled"))
+        and row.cod_enabled and row.location
     )
     for internal in ("delivery_enabled", "cod_enabled", "opening_hours_json"):
         row.pop(internal, None)
@@ -449,9 +453,14 @@ def catalog(shop, start=0, search="", category="", in_stock=0):
         "shop_location": location,
         "map": map_config(),
         "accepting_orders": bool(
-            doc.delivery_enabled and doc.cod_enabled and location and hours["open"]
+            (doc.delivery_enabled and hours["open"] or doc.get("scheduled_enabled"))
+            and doc.cod_enabled and location
         ),
         "availability": hours,
+        "normal_enabled": bool(doc.delivery_enabled),
+        "scheduled_enabled": bool(doc.get("scheduled_enabled")),
+        "delivery_slots": scheduled.slots(doc.name),
+        "timezone": frappe.utils.get_system_timezone(),
         "items": products,
         "has_more": has_more,
         "categories": categories,
@@ -466,7 +475,10 @@ def catalog(shop, start=0, search="", category="", in_stock=0):
     }
 
 
-def pricing_for(shop, subtotal, distance):
+def pricing_for(shop, subtotal, distance, delivery_mode="Normal"):
+    if delivery_mode == "Scheduled":
+        return delivery_price(subtotal, base=0, per_km=0, included_km=0, distance=distance,
+                              minimum=shop.minimum_order_amount, free_above=0)
     return delivery_price(
         subtotal,
         base=shop.delivery_fee,
@@ -478,7 +490,8 @@ def pricing_for(shop, subtotal, distance):
     )
 
 
-def quote(shop, items, latitude=None, longitude=None):
+def quote(shop, items, latitude=None, longitude=None, delivery_mode="Normal",
+          scheduled_slot=None):
     doc = public_shop(shop, browsing=True)
     try:
         rows = order_rules.cart_rows(frappe.parse_json(items))
@@ -494,7 +507,8 @@ def quote(shop, items, latitude=None, longitude=None):
         subtotal += (checked_number(snapshot["fixed_amount"], "Piece total")
                      if snapshot.get("billing") == "Pieces"
                      else quantity * checked_number(product["rate"], "Price"))
-    price = pricing_for(doc, subtotal, distance)
+    scheduled.validate_booking(doc, delivery_mode, scheduled_slot, rows)
+    price = pricing_for(doc, subtotal, distance, delivery_mode)
     price.update({"subtotal": float(subtotal), "distance_km": distance})
     return price
 
@@ -536,7 +550,8 @@ def customer_record(user, company):
     return ensure_customer()["name"]
 
 
-def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
+def place(shop, items, address, request_key, payment_method="Cash on Delivery",
+          delivery_mode="Normal", scheduled_slot=None):
     user = customer_access()
     try:
         rows = order_rules.cart_rows(frappe.parse_json(items))
@@ -549,7 +564,9 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
     if payment_method != "Cash on Delivery":
         reject("Select a supported payment method")
     digest = hashlib.sha256(
-        json.dumps([rows, address, payment_method], sort_keys=True).encode()
+        json.dumps([rows, address, payment_method] + (
+            [delivery_mode, scheduled_slot] if delivery_mode != "Normal" else []
+        ), sort_keys=True).encode()
     ).hexdigest()
     legacy_digest = hashlib.sha256(json.dumps([rows, address], sort_keys=True).encode()).hexdigest()
     # Same lock order as owner stock operations. One shop's checkout is serialized.
@@ -558,10 +575,13 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
         "LC Order", {"request_key": key}, ["name", "request_hash"], as_dict=True
     )
     if previous:
-        if previous.request_hash not in {digest, legacy_digest}:
+        if previous.request_hash != digest and not (
+            delivery_mode == "Normal" and previous.request_hash == legacy_digest
+        ):
             reject("This request key was already used for another order")
         return detail(previous.name)
-    doc = public_shop(shop)
+    doc = public_shop(shop, scheduled_delivery=delivery_mode == "Scheduled")
+    slot = scheduled.validate_booking(doc, delivery_mode, scheduled_slot, rows, address)
     if not doc.cod_enabled:
         reject("Cash on Delivery is not configured for this shop")
     origin = shop_location(doc)
@@ -571,7 +591,7 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
         if not destination:
             reject("Select your delivery location on the map")
         delivery_distance = distance_km(origin, destination)
-        if delivery_distance > float(
+        if delivery_mode == "Normal" and delivery_distance > float(
             checked_number(doc.service_radius_km, "Delivery radius", positive=True)
         ):
             reject(
@@ -609,7 +629,7 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 "stock_uom": item.stock_uom,
                 "conversion_factor": float(quantity) / sale_qty if by_piece else 1,
                 "warehouse": doc.warehouse,
-                "delivery_date": nowdate(),
+                "delivery_date": getdate(slot.delivery_start) if slot else nowdate(),
                 "description": escape(item.item_name + (
                     f" · {snapshot['label']} × {snapshot['packs']:g}; "
                     + ("pre-weighed pack" if snapshot.get("preweighed") else "estimated weight, "
@@ -624,7 +644,7 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
             checked_number(row["qty"], "Quantity") * checked_number(row["rate"], "Price")
             for row in prepared
         ),
-        delivery_distance,
+        delivery_distance, delivery_mode,
     )
     if price["minimum_remaining"]:
         reject(f"Add {price['minimum_remaining']:g} more to meet the shop minimum order amount")
@@ -642,6 +662,8 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 "shop": shop,
                 "customer_user": user,
                 "status": "Requested",
+                "delivery_mode": delivery_mode,
+                "scheduled_slot": slot.name if slot else None,
                 "payment_method": payment_method,
                 "payment_status": "Pending",
                 "recipient": address["recipient"],
@@ -680,7 +702,7 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery"):
                 "company": doc.company,
                 "customer": customer,
                 "transaction_date": nowdate(),
-                "delivery_date": nowdate(),
+                "delivery_date": getdate(slot.delivery_start) if slot else nowdate(),
                 "order_type": "Sales",
                 "selling_price_list": doc.selling_price_list,
                 "currency": frappe.db.get_value("Company", doc.company, "default_currency"),
@@ -773,11 +795,18 @@ def serialize(doc):
     except ValueError:
         driver_location = None
     is_customer = frappe.session.user != "Guest" and doc.customer_user == frappe.session.user
-    response_deadline = add_to_date(doc.creation, minutes=int(shop.order_response_minutes or 10))
+    response_start = (frappe.db.get_value("LC Delivery Slot", doc.scheduled_slot, "ordering_end")
+                      if doc.get("scheduled_slot") else doc.creation)
+    response_deadline = add_to_date(response_start, minutes=int(shop.order_response_minutes or 10))
     return {
         "name": doc.name,
         "modified": str(doc.modified),
         "estimated": estimated,
+        "delivery_mode": doc.get("delivery_mode") or "Normal",
+        "scheduled_slot": doc.get("scheduled_slot"),
+        "scheduled_period": (frappe.db.get_value("LC Delivery Slot", doc.scheduled_slot,
+            ["title", "delivery_start", "delivery_end"], as_dict=True)
+            if doc.get("scheduled_slot") else None),
         "selling_lines": selling_lines,
         "shop": doc.shop,
         "shop_name": frappe.db.get_value("LC Shop", doc.shop, "shop_name"),
@@ -1194,6 +1223,12 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
         reject(str(exc))
     if not changed:
         return serialize(doc)
+    if target == "Out for Delivery" and doc.get("scheduled_slot"):
+        from frappe.utils import get_datetime
+
+        starts = frappe.db.get_value('LC Delivery Slot', doc.scheduled_slot, 'delivery_start')
+        if now_datetime() < get_datetime(starts):
+            reject('Scheduled delivery starts at ' + str(starts))
     if target == "Ready" and any(
         line.get("option_id") and line.get("actual_weight") is None
         for line in json.loads(doc.get("selling_lines_json") or "[]")
@@ -1485,11 +1520,12 @@ def expire_requested_orders():
         select o.name
         from `tabLC Order` o
         inner join `tabLC Shop` s on s.name=o.shop
+        left join `tabLC Delivery Slot` ds on ds.name=o.scheduled_slot
         where o.status='Requested'
           and timestampadd(
             minute,
             coalesce(nullif(s.order_response_minutes, 0), 10),
-            o.creation
+            coalesce(ds.ordering_end, o.creation)
           ) <= %s
         order by o.creation asc
         limit 200

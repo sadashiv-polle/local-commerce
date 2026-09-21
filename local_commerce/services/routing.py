@@ -99,3 +99,65 @@ def road_route(origin, destination):
         reject("Road route is temporarily unavailable. You can still open navigation")
     except LockError:
         reject("Road route is busy. Please wait a moment and try again")
+
+
+def batch_route(origin, destinations):
+    """Greedy nearest road-time stops, followed by one continuous OSRM road route."""
+    from local_commerce.services.schedule_rules import nearest_stops
+
+    locations = [origin, *destinations]
+    if not 2 <= len(locations) <= 31:
+        reject("A scheduled route needs between 1 and 30 stops")
+    locations = [point(p["latitude"], p["longitude"], required=True) for p in locations]
+    endpoint = _endpoint()
+    key = (
+        "lc-batch-route:"
+        + hashlib.sha256(json.dumps([endpoint, locations], sort_keys=True).encode()).hexdigest()
+    )
+    cached = frappe.cache.get_value(key)
+    if cached:
+        return cached
+
+    def fetch(url):
+        request = Request(
+            url, headers={"Accept": "application/json", "User-Agent": "LocalCommerce/0.1"}
+        )
+        with urlopen(request, timeout=15) as response:  # nosec B310 - trusted HTTPS endpoint
+            raw = response.read(1048577)
+        if len(raw) > 1048576:
+            raise ValueError("Route response too large")
+        payload = json.loads(raw)
+        if payload.get("code") != "Ok":
+            raise ValueError("Road routing failed")
+        return payload
+
+    try:
+        if "/route/v1/" not in endpoint:
+            reject("Configure an OSRM route/v1 endpoint for scheduled routes")
+        coordinates = ";".join(f"{p['longitude']},{p['latitude']}" for p in locations)
+        matrix = fetch(
+            endpoint.replace("/route/v1/", "/table/v1/")
+            + "/"
+            + coordinates
+            + "?annotations=duration"
+        )["durations"]
+        sequence = nearest_stops(matrix)
+        ordered = [locations[0], *[locations[index + 1] for index in sequence]]
+        coordinates = ";".join(f"{p['longitude']},{p['latitude']}" for p in ordered)
+        road = fetch(
+            endpoint + "/" + coordinates + "?overview=simplified&geometries=geojson&steps=false"
+        )["routes"][0]
+        result = {
+            "sequence": sequence,
+            "points": _coordinates(road["geometry"]["coordinates"]),
+            "distance_km": round(road["distance"] / 1000, 1),
+            "duration_minutes": round(road["duration"] / 60),
+            "attribution": "Route by OSRM · © OpenStreetMap contributors",
+            "attribution_url": "https://project-osrm.org/",
+        }
+        frappe.cache.set_value(key, result, expires_in_sec=3600)
+        return result
+    except (HTTPError, URLError, TimeoutError, ValueError, KeyError, TypeError, IndexError):
+        reject(
+            "Road route unavailable. Orders remain accessible for individual delivery. Retry later"
+        )

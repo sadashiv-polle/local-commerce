@@ -1,0 +1,109 @@
+{
+  "doctype": "DocType",
+  "name": "LC Delivery Slot",
+  "module": "Local Commerce",
+  "autoname": "hash",
+  "title_field": "title",
+  "show_title_field_in_link": 1,
+  "field_order": [
+    "shop",
+    "title",
+    "enabled",
+    "ordering_start",
+    "ordering_end",
+    "delivery_start",
+    "delivery_end",
+    "capacity",
+    "products",
+    "postcodes",
+    "radius_km",
+    "compiled"
+  ],
+  "fields": [
+    {
+      "fieldname": "shop",
+      "label": "Shop",
+      "fieldtype": "Link",
+      "options": "LC Shop",
+      "reqd": 1
+    },
+    {
+      "fieldname": "title",
+      "label": "Slot name",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "enabled",
+      "label": "Accept bookings",
+      "fieldtype": "Check",
+      "default": "1"
+    },
+    {
+      "fieldname": "ordering_start",
+      "label": "Ordering starts",
+      "fieldtype": "Datetime",
+      "reqd": 1
+    },
+    {
+      "fieldname": "ordering_end",
+      "label": "Ordering closes",
+      "fieldtype": "Datetime",
+      "reqd": 1
+    },
+    {
+      "fieldname": "delivery_start",
+      "label": "Delivery starts",
+      "fieldtype": "Datetime",
+      "reqd": 1
+    },
+    {
+      "fieldname": "delivery_end",
+      "label": "Delivery ends",
+      "fieldtype": "Datetime",
+      "reqd": 1
+    },
+    {
+      "fieldname": "capacity",
+      "label": "Maximum orders (1\u201330)",
+      "fieldtype": "Int",
+      "reqd": 1,
+      "default": "20"
+    },
+    {
+      "fieldname": "products",
+      "label": "Available products",
+      "fieldtype": "Small Text",
+      "description": "One per line. Leave blank for all shop products."
+    },
+    {
+      "fieldname": "postcodes",
+      "label": "Delivery postal codes",
+      "fieldtype": "Small Text",
+      "description": "One per line. Leave blank to use radius only."
+    },
+    {
+      "fieldname": "radius_km",
+      "label": "Delivery radius (km)",
+      "fieldtype": "Float",
+      "reqd": 1,
+      "default": "5"
+    },
+    {
+      "fieldname": "compiled",
+      "label": "Batch compiled",
+      "fieldtype": "Check",
+      "read_only": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    }
+  ],
+  "sort_field": "delivery_start",
+  "sort_order": "DESC"
+}

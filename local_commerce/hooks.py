@@ -8,7 +8,8 @@ required_apps = ["erpnext"]
 
 scheduler_events = {
     "cron": {
-        "* * * * *": ["local_commerce.services.orders.expire_requested_orders"],
+        "* * * * *": ["local_commerce.services.orders.expire_requested_orders",
+                         "local_commerce.services.scheduled.compile_due"],
     }
 }
 

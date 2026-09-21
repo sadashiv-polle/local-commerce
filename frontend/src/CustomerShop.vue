@@ -13,6 +13,7 @@ const route = useRoute(), router = useRouter(), session = inject('session')
 const search = ref(''), category = ref(''), inStockOnly = ref(false)
 let searchTimer, catalogGeneration = 0, openedProduct = ''
 const catalog = ref(null), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
+const deliveryMode = ref('Normal'), scheduledSlot = ref('')
 const cart = ref({}), pending = ref(null), checkout = ref(false), cartOpen = ref(false)
 const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '', latitude: null, longitude: null, delivery_instructions: '' })
 const productDialog = ref(null), selectedProduct = ref(null), selectedPhoto = ref(0)
@@ -42,12 +43,13 @@ const deliveryQuote = ref(null), quoting = ref(false), quoteError = ref('')
 let quoteTimer, quoteGeneration = 0
 const storageKey = computed(() => `lc-delivery:${session.value.user}:${route.params.shop}`)
 const subtotal = computed(() => Object.values(cart.value).reduce((sum, row) => sum + row.rate * Number(row.quantity), 0))
-const hasEstimatedWeights = computed(() => Object.values(cart.value).some(row => row.option_id && row.billing !== 'Pieces'))
+const hasEstimatedWeights = computed(() => Object.values(cart.value).some(row => row.option_id && row.billing !== 'Pieces' && !(row.preweighed_weights && row.option_kind === 'Weight')))
 function requestItems() { return Object.values(cart.value).map(row => ({ item: row.item, quantity: row.quantity, ...(row.option_id ? { option_id: row.option_id } : {}) })) }
-const quotedFee = computed(() => deliveryQuote.value?.delivery_fee ?? Number(catalog.value?.delivery_fee || 0))
+watch(catalog, value => { if (!value || pending.value) return; if (!value.normal_enabled && value.scheduled_enabled) deliveryMode.value = 'Scheduled'; else if (!value.scheduled_enabled) deliveryMode.value = 'Normal' })
+const quotedFee = computed(() => deliveryQuote.value?.delivery_fee ?? (deliveryMode.value === 'Scheduled' ? 0 : Number(catalog.value?.delivery_fee || 0)))
 const estimatedTotal = computed(() => (deliveryQuote.value?.subtotal ?? subtotal.value) + quotedFee.value)
 const deliveryDistance = computed(() => distanceKm(catalog.value?.shop_location, address.value))
-const outsideDeliveryRange = computed(() => deliveryDistance.value != null && deliveryDistance.value > Number(catalog.value?.shop_location?.service_radius_km || 0))
+const outsideDeliveryRange = computed(() => deliveryMode.value === 'Normal' && deliveryDistance.value != null && deliveryDistance.value > Number(catalog.value?.shop_location?.service_radius_km || 0))
 const deliveryPoints = computed(() => {
   const points = []
   if (catalog.value?.shop_location) points.push({ ...catalog.value.shop_location, kind: 'shop', label: catalog.value.shop_name })
@@ -62,13 +64,13 @@ function scheduleQuote() {
   quoting.value = true
   quoteTimer = window.setTimeout(async () => {
     try {
-      const result = await call('orders.quote', { shop: route.params.shop, items: requestItems(), latitude: address.value.latitude, longitude: address.value.longitude }, true)
+      const result = await call('orders.quote', { shop: route.params.shop, items: requestItems(), latitude: address.value.latitude, longitude: address.value.longitude, delivery_mode: deliveryMode.value, scheduled_slot: scheduledSlot.value }, true)
       if (generation === quoteGeneration) deliveryQuote.value = result
     } catch (e) { if (generation === quoteGeneration) quoteError.value = e.message }
     finally { if (generation === quoteGeneration) quoting.value = false }
   }, 350)
 }
-watch(() => [cart.value, address.value.latitude, address.value.longitude, route.params.shop], scheduleQuote, { deep: true, immediate: true })
+watch(() => [deliveryMode.value, scheduledSlot.value, cart.value, address.value.latitude, address.value.longitude, route.params.shop], scheduleQuote, { deep: true, immediate: true })
 function money(value) { if (value == null) return 'Price coming soon'; return new Intl.NumberFormat(undefined, { style: 'currency', currency: catalog.value.currency }).format(value) }
 async function load(delta = 0) {
   const generation = ++catalogGeneration
@@ -161,7 +163,7 @@ async function place() {
   try {
     if (!pending.value) {
       const bytes = crypto.getRandomValues(new Uint8Array(20))
-      pending.value = { shop: route.params.shop, items: requestItems(), address: { ...address.value }, payment_method: 'Cash on Delivery', request_key: Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('') }
+      pending.value = { shop: route.params.shop, items: requestItems(), address: { ...address.value }, payment_method: 'Cash on Delivery', delivery_mode: deliveryMode.value, scheduled_slot: scheduledSlot.value, request_key: Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('') }
       try { sessionStorage.setItem(storageKey.value, JSON.stringify(pending.value)) }
       catch { pending.value = null; throw new Error('Enable session storage before sending an order request so retries are safe.') }
     }
@@ -180,7 +182,7 @@ watch(() => [route.params.shop, route.query.item], () => {
     cart.value = readCart(localStorage, route.params.shop)
     if (Object.keys(cart.value).length) writeCart(localStorage, route.params.shop, cart.value)
   } catch { cart.value = {}; error.value = 'Your saved cart could not be read.' }
-  try { pending.value = JSON.parse(sessionStorage.getItem(storageKey.value) || 'null') } catch { /* Server validates recovered payloads. */ }
+  try { pending.value = JSON.parse(sessionStorage.getItem(storageKey.value) || 'null'); if (pending.value) { deliveryMode.value = pending.value.delivery_mode || 'Normal'; scheduledSlot.value = pending.value.scheduled_slot || '' } } catch { /* Server validates recovered payloads. */ }
   load()
   loadSavedAddresses()
   if (route.query.cart === '1') cartOpen.value = true
@@ -254,7 +256,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-open-cart', openCartEvent
           <p v-if="hasEstimatedWeights" class="packed-weight-notice">Weight-priced options are estimates until packing. Piece-priced options keep their agreed price.</p><div class="cart-line-list">
             <article v-for="item in cart" :key="cartKey(item)" class="cart-line"><div class="cart-line-art"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" decoding="async" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</span></div><div><strong>{{ item.item_name }}</strong><small>{{ item.option_label || item.uom }}</small><small>{{ item.option_id && item.billing !== 'Pieces' && !(item.preweighed_weights && item.option_kind === 'Weight') ? '≈ ' : '' }}{{ money(item.rate) }} / {{ item.option_id ? 'pack' : item.uom }}</small></div><div class="quantity-stepper"><button type="button" :disabled="busy || !!pending" :aria-label="`Remove one ${item.item_name}`" @click="updateQuantity(item, -1)">−</button><strong>{{ item.quantity }}</strong><button type="button" :disabled="busy || !!pending || item.quantity >= item.available" :aria-label="`Add one ${item.item_name}`" @click="updateQuantity(item, 1)">+</button></div><strong>{{ money(item.rate * item.quantity) }}</strong></article>
           </div>
-          <section class="bill-details"><h3>Bill details</h3><p v-if="quoting" role="status">Updating delivery fee…</p><p v-if="quoteError" role="alert">{{ quoteError }}</p><p v-if="deliveryQuote?.free_delivery_remaining > 0" class="free-delivery-progress">Add {{ money(deliveryQuote.free_delivery_remaining) }} more for free delivery</p><p v-else-if="deliveryQuote?.free_delivery" class="free-delivery-progress">✓ Free delivery unlocked</p><p v-if="deliveryQuote?.minimum_remaining > 0" role="status">Add {{ money(deliveryQuote.minimum_remaining) }} more to meet the minimum order.</p><p><span>Item total</span><strong>{{ money(deliveryQuote?.subtotal ?? subtotal) }}</strong></p><p><span>Delivery fee</span><strong>{{ deliveryQuote?.needs_location ? 'Select location' : money(quotedFee) }}</strong></p><p class="bill-total"><span>Estimated total</span><strong>{{ money(estimatedTotal) }}</strong></p><small>ERPNext calculates applicable taxes when your request is saved.</small></section>
+          <section class="scheduled-panel"><h3>Delivery booking</h3><label v-if="catalog.normal_enabled" class="check-label"><input v-model="deliveryMode" type="radio" value="Normal" :disabled="!!pending">Normal delivery</label><label v-if="catalog.scheduled_enabled" class="check-label"><input v-model="deliveryMode" type="radio" value="Scheduled" :disabled="!!pending">Scheduled delivery · Free</label><template v-if="deliveryMode === 'Scheduled' && catalog.scheduled_enabled"><label>Ordering window &amp; delivery slot<select v-model="scheduledSlot" :disabled="!!pending"><option value="">Choose a slot</option><option v-for="slot in catalog.delivery_slots" :key="slot.name" :value="slot.name" :disabled="!slot.bookable">{{ slot.title }} · Order {{ slot.ordering_start }} – {{ slot.ordering_end }} · Delivery {{ slot.delivery_start }} – {{ slot.delivery_end }}{{ slot.bookable ? '' : ' (Unavailable)' }}</option></select></label><p>Times use {{ catalog.timezone }}. No delivery fee. Products and delivery area must be eligible for the selected slot.</p></template><p v-if="!catalog.normal_enabled && !catalog.scheduled_enabled">Delivery bookings are disabled.</p></section><section class="bill-details"><h3>Bill details</h3><p v-if="quoting" role="status">Updating delivery fee…</p><p v-if="quoteError" role="alert">{{ quoteError }}</p><p v-if="deliveryQuote?.free_delivery_remaining > 0" class="free-delivery-progress">Add {{ money(deliveryQuote.free_delivery_remaining) }} more for free delivery</p><p v-else-if="deliveryQuote?.free_delivery" class="free-delivery-progress">✓ Free delivery unlocked</p><p v-if="deliveryQuote?.minimum_remaining > 0" role="status">Add {{ money(deliveryQuote.minimum_remaining) }} more to meet the minimum order.</p><p><span>Item total</span><strong>{{ money(deliveryQuote?.subtotal ?? subtotal) }}</strong></p><p><span>Delivery fee</span><strong>{{ deliveryQuote?.needs_location ? 'Select location' : money(quotedFee) }}</strong></p><p class="bill-total"><span>Estimated total</span><strong>{{ money(estimatedTotal) }}</strong></p><small>ERPNext calculates applicable taxes when your request is saved.</small></section>
           <AuthChoices v-if="checkout && session.user === 'Guest'" />
           <form v-else class="cart-checkout-form" @submit.prevent="place">
             <fieldset v-if="session.user !== 'Guest'" :disabled="busy || !!pending">
