@@ -84,7 +84,13 @@ class TestScheduledDelivery(FrappeTestCase):
         self.shop.accepting_orders = 0
         self.shop.save()
         frappe.set_user(self.customer.name)
-        self.assertEqual(self.request()["delivery_mode"], "Scheduled")
+        request = self.request()
+        self.assertEqual(request["delivery_mode"], "Scheduled")
+        frappe.set_user(self.user.name)
+        accepted = orders.change(request["name"], "Accepted")
+        self.assertEqual(accepted["status"], "Accepted")
+        self.assertEqual(accepted["total"], 20)
+        frappe.set_user(self.customer.name)
         with self.assertRaises(frappe.ValidationError):
             orders.place(
                 self.shop.name,

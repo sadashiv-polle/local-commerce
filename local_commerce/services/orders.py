@@ -1479,7 +1479,9 @@ def change(order, target, reason=""):
     try:
         so.flags.ignore_permissions = True
         if target == "Accepted":
-            current_shop = public_shop(doc.shop)
+            current_shop = public_shop(
+                doc.shop, scheduled_delivery=doc.get("delivery_mode") == "Scheduled"
+            )
             if so.company != current_shop.company:
                 reject("Order Company no longer matches the shop")
             item_totals = {}
