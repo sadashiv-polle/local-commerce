@@ -30,3 +30,27 @@ def nearest_stops(matrix):
         result.append(current - 1)
         pending.remove(current)
     return result
+
+
+BATCH_STAGES = ["Accepted", "Preparing", "Ready", "Picked Up", "Out for Delivery", "Delivered"]
+
+
+def batch_transition(rows, target):
+    """Advance one stage; skip already advanced orders to make retries safe."""
+    if target not in BATCH_STAGES[1:-1]:
+        raise ValueError("Accept requests and confirm customer deliveries individually")
+    source_index = BATCH_STAGES.index(target) - 1
+    pending = []
+    for row in rows:
+        status = row["status"]
+        if status == "Cancelled":
+            continue
+        if status not in BATCH_STAGES or BATCH_STAGES.index(status) < source_index:
+            raise ValueError(
+                "Every active order must reach "
+                + BATCH_STAGES[source_index]
+                + " before this batch action"
+            )
+        if status == BATCH_STAGES[source_index]:
+            pending.append(row["name"])
+    return pending

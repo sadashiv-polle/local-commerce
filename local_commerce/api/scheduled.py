@@ -38,3 +38,13 @@ def route(slot):
 @frappe.whitelist(methods=['GET'])
 def rider_batches():
     return scheduled.rider_batches()
+
+
+@frappe.whitelist(methods=['GET'])
+def batch_actions(slot):
+    return scheduled.batch_actions(slot)
+
+
+@frappe.whitelist(methods=['POST'])
+def advance_batch(slot, target):
+    return scheduled.advance_batch(slot, target)

@@ -113,3 +113,48 @@ class TestScheduledBooking(unittest.TestCase):
                     self.service.validate_booking(
                         self.shop, "Scheduled", "slot", [{"item": "item"}], changed
                     )
+
+    def test_batch_rolls_back_when_one_order_fails(self):
+        import local_commerce.services as services
+
+        orders = Mock()
+        orders.change.side_effect = [None, ValueError("Stock expired")]
+        self.service.batch = Mock(
+            return_value=(
+                self.slot,
+                [{"name": "a", "status": "Preparing"}, {"name": "b", "status": "Preparing"}],
+            )
+        )
+        with patch.object(services, "orders", orders, create=True):
+            with self.assertRaisesRegex(ValueError, "Stock expired"):
+                self.service.advance_batch("slot", "Ready")
+        self.frappe.db.rollback.assert_called_once_with(save_point="lc_batch_transition")
+        self.assertEqual(orders.change.call_count, 2)
+        self.scope.require_shop.assert_called_with("shop", "write")
+
+    def test_batch_retry_skips_orders_already_advanced(self):
+        import local_commerce.services as services
+
+        orders = Mock()
+        self.service.batch = Mock(
+            return_value=(
+                self.slot,
+                [{"name": "a", "status": "Preparing"}, {"name": "b", "status": "Ready"}],
+            )
+        )
+        with patch.object(services, "orders", orders, create=True):
+            result = self.service.advance_batch("slot", "Preparing")
+        self.assertEqual(result["changed"], 0)
+        orders.change.assert_not_called()
+        self.frappe.db.rollback.assert_not_called()
+
+    def test_batch_pickup_requires_assigned_delivery_person(self):
+        import local_commerce.services as services
+        orders = Mock()
+        orders.is_shop_driver.return_value = False
+        self.frappe.PermissionError = PermissionError
+        self.frappe.throw.side_effect = PermissionError
+        with patch.object(services, 'orders', orders, create=True):
+            with self.assertRaises(PermissionError):
+                self.service.advance_batch('slot', 'Picked Up')
+        orders.delivery_change.assert_not_called()

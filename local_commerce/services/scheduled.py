@@ -255,7 +255,7 @@ def assign(slot_name, delivery_user):
     from local_commerce.services import orders
 
     slot = frappe.get_doc("LC Delivery Slot", slot_name)
-    require_platform()
+    require_shop(slot.shop, "write")
     frappe.db.sql("select name from `tabLC Shop` where name=%s for update", slot.shop)
     _, rows = batch(slot_name)
     if not rows or any(row["status"] != "Ready" for row in rows):
@@ -304,3 +304,66 @@ def rider_batches():
         group_by="scheduled_slot",
         limit_page_length=100,
     )
+
+
+def batch_actions(slot_name):
+    from local_commerce.permissions.policy import can_access_shop
+    from local_commerce.permissions.scope import identity, memberships
+    from local_commerce.services import orders
+    from local_commerce.services.schedule_rules import batch_transition
+
+    slot, rows = batch(slot_name)
+    owner = can_access_shop(*identity(), memberships(frappe.session.user), slot.shop, "write")
+    rider = bool(rows) and all(row.get("delivery_user") == frappe.session.user for row in rows)
+    rider = rider and orders.is_shop_driver(frappe.session.user, slot.shop)
+    targets = (["Preparing", "Ready"] if owner else []) + (
+        ["Picked Up", "Out for Delivery"] if rider else []
+    )
+    actions, counts = [], {}
+    for row in rows:
+        counts[row["status"]] = counts.get(row["status"], 0) + 1
+    for target in targets:
+        try:
+            names = batch_transition(rows, target)
+            if names:
+                actions.append({"target": target, "count": len(names)})
+        except ValueError:
+            pass
+    return {"title": slot.title, "counts": counts, "actions": actions}
+
+
+def advance_batch(slot_name, target):
+    from local_commerce.services import orders
+    from local_commerce.services.schedule_rules import batch_transition
+
+    slot = frappe.get_doc("LC Delivery Slot", slot_name)
+    frappe.db.sql("select name from `tabLC Shop` where name=%s for update", slot.shop)
+    if target in ("Preparing", "Ready"):
+        require_shop(slot.shop, "write")
+    elif target in ("Picked Up", "Out for Delivery"):
+        if not orders.is_shop_driver(frappe.session.user, slot.shop):
+            frappe.throw(
+                "Only the assigned delivery person can advance this batch", frappe.PermissionError
+            )
+    else:
+        reject("Accept each request and confirm each customer delivery separately")
+    _, rows = batch(slot_name)
+    if target in ("Picked Up", "Out for Delivery") and any(
+        row.get("delivery_user") != frappe.session.user for row in rows
+    ):
+        frappe.throw("Every batch order must be assigned to you", frappe.PermissionError)
+    try:
+        names = batch_transition(rows, target)
+    except ValueError as exc:
+        reject(str(exc))
+    frappe.db.savepoint("lc_batch_transition")
+    try:
+        for name in names:
+            if target in ("Preparing", "Ready"):
+                orders.change(name, target)
+            else:
+                orders.delivery_change(name, target)
+    except Exception:
+        frappe.db.rollback(save_point="lc_batch_transition")
+        raise
+    return {"changed": len(names), "target": target}

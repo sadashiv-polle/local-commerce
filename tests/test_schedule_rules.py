@@ -26,3 +26,35 @@ class TestScheduleRules(unittest.TestCase):
             nearest_stops([[0, None], [None, 0]])
         with self.assertRaises(ValueError):
             nearest_stops([[0, float("nan")], [1, 0]])
+
+
+class TestBatchTransitions(unittest.TestCase):
+    def test_each_stage_and_safe_retries(self):
+        from local_commerce.services.schedule_rules import batch_transition
+
+        for source, target in [
+            ("Accepted", "Preparing"),
+            ("Preparing", "Ready"),
+            ("Ready", "Picked Up"),
+            ("Picked Up", "Out for Delivery"),
+        ]:
+            rows = [
+                {"name": "a", "status": source},
+                {"name": "b", "status": target},
+                {"name": "cancelled", "status": "Cancelled"},
+            ]
+            self.assertEqual(batch_transition(rows, target), ["a"])
+            rows[0]["status"] = target
+            self.assertEqual(batch_transition(rows, target), [])
+
+    def test_individual_acceptance_and_delivery_are_required(self):
+        from local_commerce.services.schedule_rules import batch_transition
+
+        for target in ["Accepted", "Delivered", "Cancelled"]:
+            with self.assertRaises(ValueError):
+                batch_transition([], target)
+        for target in ["Preparing", "Ready", "Picked Up", "Out for Delivery"]:
+            with self.assertRaises(ValueError):
+                batch_transition([{"name": "unaccepted", "status": "Requested"}], target)
+        with self.assertRaises(ValueError):
+            batch_transition([{"name": "a", "status": "Accepted"}], "Ready")

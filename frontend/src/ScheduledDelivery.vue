@@ -1,6 +1,7 @@
 <script setup>
 import { inject, onMounted, ref } from 'vue'
 import { call } from './api.js'
+import BatchActions from './BatchActions.vue'
 import BatchRoute from './ScheduledRoute.vue'
 const props = defineProps({ shop: { type: String, required: true } })
 const session = inject('session'), settings = ref(null), error = ref(''), message = ref(''), busy = ref(false)
@@ -37,7 +38,7 @@ onMounted(load)
           <button class="lc-primary" type="submit">Save slot</button><button v-if="editing" type="button" @click="editing = ''; form = blank(); selectedItems = []">Cancel editing</button>
         </fieldset>
       </form>
-      <article v-for="slot in settings.slots" :key="slot.name" class="scheduled-slot"><h4>{{ slot.title }}</h4><p>Order: {{ slot.ordering_start }} – {{ slot.ordering_end }}</p><p>Delivery: {{ slot.delivery_start }} – {{ slot.delivery_end }}</p><p>{{ slot.order_count }} / {{ slot.capacity }} orders · {{ slot.compiled ? 'Compiled' : 'Awaiting ordering cutoff' }}</p><div class="button-row"><button v-if="session.platform_admin" type="button" @click="edit(slot)">Edit slot</button><button type="button" @click="routeSlot = slot.name">View batch route</button></div><div v-if="session.platform_admin" class="button-row"><select v-model="rider"><option value="">Choose delivery person</option><option v-for="driver in drivers" :key="driver.user" :value="driver.user">{{ driver.full_name }}</option></select><button type="button" :disabled="busy || !rider" @click="run(() => call('scheduled.assign', { slot: slot.name, delivery_user: rider }, true), 'Batch assigned.')">Assign ready batch</button></div></article>
+      <article v-for="slot in settings.slots" :key="slot.name" class="scheduled-slot"><h4>{{ slot.title }}</h4><p>Order: {{ slot.ordering_start }} – {{ slot.ordering_end }}</p><p>Delivery: {{ slot.delivery_start }} – {{ slot.delivery_end }}</p><p>{{ slot.order_count }} / {{ slot.capacity }} orders · {{ slot.compiled ? 'Compiled' : 'Awaiting ordering cutoff' }}</p><div class="button-row"><button v-if="session.platform_admin" type="button" @click="edit(slot)">Edit slot</button><button type="button" @click="routeSlot = slot.name">View batch route</button></div><BatchActions :slot-name="slot.name" @changed="load" /><div class="button-row"><select v-model="rider"><option value="">Choose delivery person</option><option v-for="driver in drivers" :key="driver.user" :value="driver.user">{{ driver.full_name }}</option></select><button type="button" :disabled="busy || !rider" @click="run(() => call('scheduled.assign', { slot: slot.name, delivery_user: rider }, true), 'Batch assigned.')">Assign ready batch</button></div></article>
       <BatchRoute v-if="routeSlot" :slot-name="routeSlot" />
     </template>
   </section>

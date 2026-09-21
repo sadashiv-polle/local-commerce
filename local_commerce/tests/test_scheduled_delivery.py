@@ -98,3 +98,26 @@ class TestScheduledDelivery(FrappeTestCase):
                 self.address,
                 "disabled-normal-test-001",
             )
+
+    def test_owner_accepts_individually_then_advances_closed_batch(self):
+        first = self.request()
+        second = self.request("scheduled-test-second-order")
+        frappe.set_user("Administrator")
+        frappe.db.set_value(
+            "LC Delivery Slot",
+            self.slot.name,
+            "ordering_end",
+            add_to_date(now_datetime(), minutes=-1),
+        )
+        frappe.set_user(self.user.name)
+        orders.change(first["name"], "Accepted")
+        with self.assertRaises(frappe.ValidationError):
+            scheduled.advance_batch(self.slot.name, "Preparing")
+        orders.change(second["name"], "Accepted")
+        self.assertEqual(scheduled.advance_batch(self.slot.name, "Preparing")["changed"], 2)
+        self.assertEqual(scheduled.advance_batch(self.slot.name, "Preparing")["changed"], 0)
+        self.assertEqual(scheduled.advance_batch(self.slot.name, "Ready")["changed"], 2)
+        for name in (first["name"], second["name"]):
+            self.assertEqual(frappe.db.get_value("LC Order", name, "status"), "Ready")
+        with self.assertRaises(frappe.ValidationError):
+            scheduled.advance_batch(self.slot.name, "Delivered")

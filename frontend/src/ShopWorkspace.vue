@@ -122,7 +122,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
         <CashReconciliation v-if="tab === 'cash'" :shop="shop.name" :editable="canEdit" />
         <Products v-show="tab === 'inventory'" :key="`${shop.name}:${shop.shop_type}`" :shop="shop.name" :editable="canEdit" :fish-shop="shop.shop_type === 'Fish'" />
         <FishInventory v-if="tab === 'fish' && shop.shop_type === 'Fish' && canEdit" :shop="shop.name" />
-        <ScheduledDelivery v-if="session.platform_admin && tab === 'settings'" :shop="shop.name" /><form v-show="tab === 'settings'" class="lc-form" @submit.prevent="save">
+        <ScheduledDelivery v-if="(session.platform_admin && tab === 'settings') || (canEdit && tab === 'orders')" :shop="shop.name" /><form v-show="tab === 'settings'" class="lc-form" @submit.prevent="save">
           <h2>Shop settings</h2><p class="muted">Keep your shop details and availability up to date.</p>
           <fieldset :disabled="!canEdit || saving" class="workspace-fields">
             <label>Name<input v-model="shop.shop_name" required></label>

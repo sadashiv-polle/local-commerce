@@ -7,7 +7,8 @@ Existing shops retain their normal delivery flag; scheduled delivery starts disa
 ## Admin setup
 
 Open Shop workspace → Settings → Delivery bookings. Only platform administrators can
-change either enable switch, create/edit slots, or assign an entire ready batch.
+change either enable switch or create/edit slots. Shop owners and platform administrators
+can assign an entire ready batch.
 Normal and Scheduled switches are independent. Both off prevents delivery checkout.
 The existing normal delivery prices, opening hours and processing remain in place.
 
@@ -70,3 +71,18 @@ product and shop restrictions, administrator access, and road-time sequencing.
 free scheduled vs charged normal delivery, retries, capacity and scheduled-only booking.
 Run integration checks only on a disposable test site. Test real mobile maps, scheduler,
 rider OTP/COD, and simultaneous final-slot bookings on a staging server before rollout.
+
+## Confirm each batch stage
+
+After the ordering cutoff, owners use Shop workspace → Orders → Batch progress.
+Each request must first be accepted or rejected individually. Then **Start preparing batch**
+and **Mark batch ready** each show one confirmation for all eligible orders. An unaccepted
+request blocks later batch stages. Cancelled orders are excluded.
+
+After assignment, the delivery person uses **Confirm batch pickup** and **Start batch delivery**
+above the scheduled route. These preserve per-order stock, expiry and delivery-start checks.
+A failed order rolls back the whole stage; retries skip orders already advanced. GPS sharing
+can be resumed through the existing live tracking controls.
+
+Delivered remains a per-customer action requiring the customer's OTP and cash confirmation.
+There is no bulk Delivered action that bypasses those checks. The rider may choose any stop.
