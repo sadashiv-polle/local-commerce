@@ -328,6 +328,7 @@ def product_data(shop, item, browsing=False):
         "currency": currency,
         "available": fish.sellable(shop, item, available_stock),
         "preweighed_weights": fish.enabled(shop, item),
+        "fixed_piece_pricing": fish.enabled(shop, item) and item.stock_uom == "Nos",
         "selling_options": [row for row in fish.selling_options(
             shop, item, frappe.parse_json(item.get("lc_selling_options") or "[]")
         ) if row.get("enabled", True)],
