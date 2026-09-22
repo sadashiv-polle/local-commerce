@@ -1,10 +1,11 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
 import { activeCart, loginUrl } from './cart.js'
 import { authenticatedPage, defaultPage } from './navigation.js'
 import { currentSubscription, disablePush, enablePush, pushSupported } from './push.js'
+import { installOverlayScrollLock } from './overlay-scroll.js'
 import IncomingOrders from './IncomingOrders.vue'
 const session = ref(null), error = ref(''), loggingOut = ref(false), logoutError = ref('')
 const route = useRoute(), router = useRouter()
@@ -43,6 +44,7 @@ const deliveryView = computed(() => route.path === '/delivery')
 const canManage = computed(() => session.value && (session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role))))
 const canDeliver = computed(() => session.value?.roles.includes('LC Delivery Person') && session.value.memberships.some(m => m.membership_role === 'Delivery Person'))
 const ownerShops = computed(() => [...new Set(session.value?.memberships.filter(m => m.membership_role === 'Owner').map(m => m.shop) || [])])
+let releaseOverlayLock
 let notificationTimer
 provide('session', session)
 function isInstalledApp() {
@@ -142,7 +144,6 @@ function notificationTime(value) {
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
 }
 async function openNotification(notification) {
-  notificationMenu.value?.removeAttribute('open')
   if (!notification.read) {
     notification.read = 1
     unreadNotifications.value = Math.max(0, unreadNotifications.value - 1)
@@ -158,7 +159,23 @@ async function markAllNotifications() {
     unreadNotifications.value = 0
   } catch { await loadNotifications() }
 }
-function toggleNotifications() { if (notificationMenu.value?.open) loadNotifications() }
+function toggleNotifications() {
+  if (notificationMenu.value?.open) {
+    loadNotifications()
+    if (route.query.notifications !== '1') router.push({ path: route.path, query: { ...route.query, notifications: '1' } })
+  } else if (route.query.notifications === '1') {
+    const query = { ...route.query }; delete query.notifications
+    router.replace({ path: route.path, query })
+  }
+}
+watch(() => route.fullPath, () => {
+  if (notificationMenu.value) notificationMenu.value.open = route.query.notifications === '1'
+  headerAddressMenu.value?.removeAttribute('open')
+})
+function receiveNotification(event) {
+  const path = event.data?.path
+  if (event.data?.type === 'lc-open-notification' && typeof path === 'string' && /^\/(orders|delivery|shop)(\/|\?|$)/.test(path)) router.push(path)
+}
 async function load() {
   error.value = ''
   try {
@@ -172,6 +189,14 @@ async function load() {
       try { await call('customers.ensure', {}, true); await loadHeaderAddress() } catch { /* Account/checkout show actionable errors. */ }
     }
     if (route.path === '/') await router.replace(defaultPage(session.value))
+    const launch = new URL(window.location.href)
+    if (launch.searchParams.get('notification') === '1') {
+      launch.searchParams.delete('notification')
+      window.history.replaceState(window.history.state, '', launch.href)
+      const target = route.fullPath, home = defaultPage(session.value)
+      await router.replace(home)
+      if (target !== home) await router.push(target)
+    }
   } catch (e) { error.value = e.message }
 }
 const removeAuthGuard = router.beforeEach(to => {
@@ -189,6 +214,8 @@ async function logout() {
   finally { loggingOut.value = false }
 }
 onMounted(() => {
+  releaseOverlayLock = installOverlayScrollLock(document.getElementById('lc-app'))
+  navigator.serviceWorker?.addEventListener('message', receiveNotification)
   installAvailable.value = !isInstalledApp()
   window.addEventListener('beforeinstallprompt', captureInstallPrompt)
   window.addEventListener('appinstalled', installedApp)
@@ -201,6 +228,8 @@ onMounted(() => {
   load()
 })
 onBeforeUnmount(() => {
+  releaseOverlayLock?.()
+  navigator.serviceWorker?.removeEventListener('message', receiveNotification)
   removeAuthGuard()
   window.removeEventListener('beforeinstallprompt', captureInstallPrompt)
   window.removeEventListener('appinstalled', installedApp)
@@ -217,7 +246,7 @@ onBeforeUnmount(() => {
     <header class="topbar">
       <div class="brand-stack"><RouterLink class="brand" to="/store">local<span>●</span><small v-if="ownerView || deliveryView">{{ adminView ? 'ADMIN' : ownerView ? 'BUSINESS' : 'DELIVERY' }}</small></RouterLink><details v-if="!ownerView && !deliveryView" ref="headerAddressMenu" class="header-address-menu"><summary class="header-delivery-address"><small>DELIVERING TO</small><strong v-if="headerAddress">{{ headerAddress.address_label }} · {{ headerAddress.line1 }}</strong><strong v-else>{{ session?.user === 'Guest' ? 'Choose delivery location' : 'Add delivery address' }}</strong><span aria-hidden="true">⌄</span></summary><div class="header-address-options"><span class="eyebrow">SAVED ADDRESSES</span><button v-for="address in headerAddresses" :key="address.name" type="button" :class="{ selected: address.name === headerAddress?.name }" @click="chooseHeaderAddress(address)"><span class="address-icon" aria-hidden="true">{{ address.address_type === 'Home' ? '⌂' : address.address_type === 'Work' ? '▦' : '⌖' }}</span><span><strong>{{ address.address_label }}</strong><small>{{ address.line1 }} · {{ address.city }}</small></span><b v-if="address.name === headerAddress?.name">✓</b></button><p v-if="!headerAddresses.length">No saved addresses yet.</p><button type="button" class="header-add-address" @click="addHeaderAddress">+ {{ session?.user === 'Guest' ? 'Login to add address' : 'Add address' }}</button></div></details></div>
       <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : deliveryView ? 'Your rider workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : deliveryView ? 'Every order, right on track.' : 'Delivery from your local shops' }}</small></div></div>
-      <nav aria-label="Main navigation"><div class="header-shortcuts"><RouterLink v-if="!ownerView && !deliveryView" to="/favourites">♡ Favourites</RouterLink><RouterLink v-if="canManage" :to="ownerView ? '/store' : session.platform_admin ? '/admin' : '/shop'">{{ ownerView ? 'View storefront ↗' : session.platform_admin ? 'Admin dashboard ↗' : 'Shop workspace ↗' }}</RouterLink><RouterLink v-if="canDeliver" to="/delivery">Deliveries</RouterLink></div><div class="header-account-controls"><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><details v-else-if="session" ref="notificationMenu" class="notification-menu" @toggle="toggleNotifications"><summary aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><span v-if="unreadNotifications" class="notification-badge">{{ unreadNotifications > 99 ? '99+' : unreadNotifications }}</span></summary><section class="notification-panel"><header><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2></div><button type="button" :disabled="!unreadNotifications" @click="markAllNotifications">Mark all read</button></header><div v-if="pushState !== 'loading'" class="push-settings"><div><strong>{{ pushState === 'enabled' ? 'Phone alerts are on' : 'Get phone alerts' }}</strong><small v-if="pushState === 'available'">Receive order updates when this app is closed.</small><small v-else-if="pushState === 'enabled'">This device can receive background order alerts.</small><small v-else-if="pushState === 'unconfigured'">The server needs its free push key configured.</small><small v-else-if="pushState === 'denied'">Allow notifications in your phone or browser settings.</small><small v-else-if="pushState === 'unsupported'">On iPhone, add Local to your Home Screen, then open it there.</small><small v-else>Phone alerts are unavailable right now.</small></div><button v-if="pushState === 'available'" type="button" :disabled="pushBusy" @click="turnOnPush">{{ pushBusy ? 'Enabling…' : 'Enable' }}</button><button v-else-if="pushState === 'enabled'" type="button" :disabled="pushBusy" @click="turnOffPush">{{ pushBusy ? 'Turning off…' : 'Turn off' }}</button></div><p v-if="pushMessage" class="push-message" role="status">{{ pushMessage }}</p><p v-if="notificationsLoading && !notifications.length" role="status">Checking updates…</p><p v-else-if="!notifications.length" class="notification-empty">No order updates yet.</p><button v-for="notification in notifications" :key="notification.name" type="button" class="notification-item" :class="{ unread: !notification.read }" @click="openNotification(notification)"><span class="notification-dot" aria-hidden="true"></span><span><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small><time>{{ notificationTime(notification.creation) }}</time></span></button></section></details><RouterLink v-if="session && session.user !== 'Guest'" class="account" :aria-label="`Account for ${session.full_name}`" :to="session.roles.includes('LC Customer') ? '/account' : canDeliver ? '/delivery' : '/shop'"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink><button v-if="session && session.user !== 'Guest'" class="logout-button" aria-label="Log out" title="Log out" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg><span class="logout-button-label">Log out</span></button></div></nav>
+      <nav aria-label="Main navigation"><div class="header-shortcuts"><RouterLink v-if="!ownerView && !deliveryView" to="/favourites">♡ Favourites</RouterLink><RouterLink v-if="canManage" :to="ownerView ? '/store' : session.platform_admin ? '/admin' : '/shop'">{{ ownerView ? 'View storefront ↗' : session.platform_admin ? 'Admin dashboard ↗' : 'Shop workspace ↗' }}</RouterLink><RouterLink v-if="canDeliver" to="/delivery">Deliveries</RouterLink></div><div class="header-account-controls"><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><details v-else-if="session" ref="notificationMenu" class="notification-menu" @toggle="toggleNotifications"><summary aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><span v-if="unreadNotifications" class="notification-badge">{{ unreadNotifications > 99 ? '99+' : unreadNotifications }}</span></summary><section class="notification-panel"><header><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2></div><button type="button" aria-label="Close notifications" @click="notificationMenu.open = false">✕</button><button type="button" :disabled="!unreadNotifications" @click="markAllNotifications">Mark all read</button></header><div v-if="pushState !== 'loading'" class="push-settings"><div><strong>{{ pushState === 'enabled' ? 'Phone alerts are on' : 'Get phone alerts' }}</strong><small v-if="pushState === 'available'">Receive order updates when this app is closed.</small><small v-else-if="pushState === 'enabled'">This device can receive background order alerts.</small><small v-else-if="pushState === 'unconfigured'">The server needs its free push key configured.</small><small v-else-if="pushState === 'denied'">Allow notifications in your phone or browser settings.</small><small v-else-if="pushState === 'unsupported'">On iPhone, add Local to your Home Screen, then open it there.</small><small v-else>Phone alerts are unavailable right now.</small></div><button v-if="pushState === 'available'" type="button" :disabled="pushBusy" @click="turnOnPush">{{ pushBusy ? 'Enabling…' : 'Enable' }}</button><button v-else-if="pushState === 'enabled'" type="button" :disabled="pushBusy" @click="turnOffPush">{{ pushBusy ? 'Turning off…' : 'Turn off' }}</button></div><p v-if="pushMessage" class="push-message" role="status">{{ pushMessage }}</p><p v-if="notificationsLoading && !notifications.length" role="status">Checking updates…</p><p v-else-if="!notifications.length" class="notification-empty">No order updates yet.</p><button v-for="notification in notifications" :key="notification.name" type="button" class="notification-item" :class="{ unread: !notification.read }" @click="openNotification(notification)"><span class="notification-dot" aria-hidden="true"></span><span><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small><time>{{ notificationTime(notification.creation) }}</time></span></button></section></details><RouterLink v-if="session && session.user !== 'Guest'" class="account" :aria-label="`Account for ${session.full_name}`" :to="session.roles.includes('LC Customer') ? '/account' : canDeliver ? '/delivery' : '/shop'"><span aria-hidden="true">{{ session.full_name?.slice(0, 1).toUpperCase() }}</span><span>{{ session.full_name }}</span></RouterLink><button v-if="session && session.user !== 'Guest'" class="logout-button" aria-label="Log out" title="Log out" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg><span class="logout-button-label">Log out</span></button></div></nav>
     </header>
     <main>
       <aside v-if="installAvailable" class="install-app-banner"><div class="install-app-icon" aria-hidden="true">L<span>●</span></div><div><strong>Get the Local app</strong><small>Add it to your Home Screen for quicker ordering and phone alerts.</small></div><button type="button" @click="installApp">Install app</button></aside>

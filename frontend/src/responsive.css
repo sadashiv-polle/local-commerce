@@ -625,3 +625,20 @@
   #lc-app .header-account-controls .logout-button-label { display: none; }
   #lc-app .header-account-controls .logout-button svg { display: block; flex-shrink: 0; width: 18px; height: 18px; margin: 0; }
 }
+
+/* Keep mobile sheets within the visible viewport and isolate their scrolling. */
+#lc-app dialog, #lc-app .notification-panel, #lc-app .cart-drawer,
+#lc-app .incoming-order-card { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#lc-app .cart-backdrop { height: 100dvh; }
+#lc-app .cart-drawer { max-height: 100dvh; min-width: 0; }
+#lc-app .scheduled-panel, #lc-app .scheduled-editor, #lc-app .scheduled-slot,
+#lc-app .form-columns > *, #lc-app fieldset { min-width: 0; }
+@media (max-width: 600px) {
+  #lc-app input:not([type=checkbox]):not([type=radio]), #lc-app select, #lc-app textarea { font-size: 16px; }
+  #lc-app .notification-panel { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  #lc-app dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 32px); overflow: auto; }
+}
+#lc-app .cart-backdrop { overflow: hidden; max-width: 100%; }
+#lc-app .cart-drawer { flex: 0 1 480px; width: 100%; max-width: 100%; overflow-x: hidden; overscroll-behavior: none; }
+#lc-app .cart-drawer > *, #lc-app .cart-drawer label { min-width: 0; max-width: 100%; }
+#lc-app .cart-drawer-header > button { flex: 0 0 40px; }
