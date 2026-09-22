@@ -158,3 +158,21 @@ class TestScheduledBooking(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 self.service.advance_batch('slot', 'Picked Up')
         orders.delivery_change.assert_not_called()
+
+    def test_admin_history_keeps_past_and_hidden_slots_with_pagination(self):
+        self.frappe.get_all.return_value = []
+        self.service.slots('shop', admin=True, start=100)
+        kwargs = self.frappe.get_all.call_args.kwargs
+        self.assertEqual(kwargs['filters'], {'shop': 'shop'})
+        self.assertEqual(kwargs['start'], 100)
+        self.scope.require_shop.assert_called_with('shop')
+
+    def test_customers_only_see_enabled_future_slots(self):
+        self.shop.status = 'Active'
+        self.frappe.get_doc.return_value = self.shop
+        self.frappe.get_all.return_value = []
+        self.service.slots('shop')
+        kwargs = self.frappe.get_all.call_args.kwargs
+        self.assertEqual(kwargs['filters']['enabled'], 1)
+        self.assertIn('delivery_end', kwargs['filters'])
+        self.assertEqual(kwargs['start'], 0)

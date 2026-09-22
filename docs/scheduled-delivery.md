@@ -86,3 +86,13 @@ can be resumed through the existing live tracking controls.
 
 Delivered remains a per-customer action requiring the customer's OTP and cash confirmation.
 There is no bulk Delivered action that bypasses those checks. The rider may choose any stop.
+
+## Reuse slots
+
+The admin list retains past and hidden slots, with pagination. **Show to customers** changes
+only booking visibility, not existing orders. Expired slots remain unavailable to customers
+even when checked. **Reuse for another day** copies the slot into a new unsaved form and
+defaults to tomorrow in the shop timezone. Choosing a new delivery date shifts the ordering
+and delivery dates together while preserving their times and any overnight ordering window.
+Review and save the new slot to open bookings. Old orders, batch status and dates stay intact.
+Slots without bookings can still be edited directly; booked slots offer reuse instead.

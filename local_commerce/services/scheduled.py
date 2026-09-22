@@ -72,24 +72,29 @@ def validate_slot(doc):
             reject("Select products belonging to this shop")
 
 
-def slots(shop, admin=False):
+def slots(shop, admin=False, start=0):
     if admin:
         require_shop(shop)
     else:
         doc = frappe.get_doc("LC Shop", shop)
         if doc.status != "Active" or not doc.get("scheduled_enabled"):
             return []
-    filters = {"shop": shop, "delivery_end": [">", now_datetime()]}
+    start = max(0, int(start)) if admin else 0
+    filters = {"shop": shop}
     if not admin:
-        filters["enabled"] = 1
+        filters.update(enabled=1, delivery_end=[">", now_datetime()])
     rows = frappe.get_all(
         "LC Delivery Slot",
         filters=filters,
         fields=SLOT_FIELDS,
-        order_by="delivery_start asc",
+        order_by="delivery_start desc, name asc" if admin else "delivery_start asc, name asc",
+        start=start,
         limit_page_length=100,
     )
     for row in rows:
+        if admin:
+            row['has_bookings'] = bool(frappe.db.exists('LC Order', {'scheduled_slot': row.name}))
+            row['past'] = get_datetime(row.delivery_end) <= now_datetime()
         row["order_count"] = frappe.db.count(
             "LC Order", {"scheduled_slot": row.name, "status": ["!=", "Cancelled"]}
         )
@@ -128,13 +133,13 @@ def configure(shop, normal, scheduled):
     return settings(shop)
 
 
-def settings(shop):
+def settings(shop, start=0):
     require_shop(shop)
     doc = frappe.get_doc("LC Shop", shop)
     return {
         "normal": bool(doc.delivery_enabled),
         "scheduled": bool(doc.get("scheduled_enabled")),
-        "slots": slots(shop, admin=True),
+        "slots": slots(shop, admin=True, start=start),
         "timezone": frappe.utils.get_system_timezone(),
     }
 

@@ -10,8 +10,8 @@ def slots(shop):
 
 
 @frappe.whitelist(methods=['GET'])
-def settings(shop):
-    return scheduled.settings(shop)
+def settings(shop, start=0):
+    return scheduled.settings(shop, start)
 
 
 @frappe.whitelist(methods=['POST'])
