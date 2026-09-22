@@ -9,3 +9,8 @@ class LCDeliverySchedule(Document):
 
     def on_update(self):
         sync_schedule(self)
+
+    def on_trash(self):
+        from local_commerce.services.recurring_delivery import cleanup_schedule
+
+        cleanup_schedule(self)

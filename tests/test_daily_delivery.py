@@ -92,3 +92,14 @@ class TestDailyGeneration(unittest.TestCase):
         self.assertEqual(tomorrow.delivery_start.hour, 11)
         self.assertEqual(tomorrow.capacity, 25)
         self.assertEqual(tomorrow.enabled, 0)
+
+    def test_deleting_schedule_retains_booked_batches_and_removes_empty_ones(self):
+        self.frappe.get_all.return_value = ['booked', 'empty']
+        self.booked.add('booked')
+        self.service.cleanup_schedule(self.schedule)
+        self.frappe.db.set_value.assert_called_once_with(
+            'LC Delivery Slot', 'booked', {'daily_schedule': None, 'enabled': 0}
+        )
+        self.frappe.delete_doc.assert_called_once_with(
+            'LC Delivery Slot', 'empty', ignore_permissions=True
+        )

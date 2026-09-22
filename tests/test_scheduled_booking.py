@@ -82,8 +82,8 @@ class TestScheduledBooking(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.service.validate_booking(self.shop, "Scheduled", "slot", [{"item": "item"}])
 
-    def test_admin_required_before_configuration(self):
-        self.scope.require_platform.side_effect = PermissionError
+    def test_schedule_permission_required_before_configuration(self):
+        self.scope.require_schedule.side_effect = PermissionError
         with self.assertRaises(PermissionError):
             self.service.configure("shop", 1, 1)
         self.frappe.get_doc.assert_not_called()

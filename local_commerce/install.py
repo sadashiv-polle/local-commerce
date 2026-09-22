@@ -51,6 +51,10 @@ def after_setup(args=None):
 
 
 def after_migrate():
+    if not frappe.db.exists("Role", "LC Scheduled Delivery Manager"):
+        frappe.get_doc({"doctype": "Role", "role_name": "LC Scheduled Delivery Manager",
+                        "desk_access": 0}).insert(ignore_permissions=True)
+
     from erpnext.setup.install import create_address_and_contact_custom_fields
     from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 

@@ -20,6 +20,7 @@ const locationError = ref(''), locating = ref(false)
 const timeOptions = Array.from({ length: 48 }, (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`)
 function timeLabel(value) { const [hour, minute] = value.split(':').map(Number); return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}` }
 const canEdit = computed(() => shop.value && (session.value.platform_admin || session.value.memberships.some(m => m.shop === shop.value.name && m.membership_role === 'Owner')))
+const canSchedule = computed(() => session.value.platform_admin || (canEdit.value && session.value.roles.includes('LC Scheduled Delivery Manager')))
 const canEditLocation = computed(() => shop.value && session.value.platform_admin)
 const shopPoints = computed(() => {
   const latitude = shop.value?.latitude, longitude = shop.value?.longitude
@@ -118,12 +119,12 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
       <template v-if="shop">
         <header class="workspace-heading"><div><span class="eyebrow">YOUR SHOP</span><h1>{{ shop.shop_name }}</h1><p class="muted">{{ shop.company }}</p></div><span class="status-pill">{{ shop.status }}</span></header>
         <Dashboard v-if="tab === 'overview' && canEdit" :shop="shop.name" @open="tab = $event" />
-        <ScheduledDelivery v-if="tab === 'orders' && canEdit" :shop="shop.name" batches-only @changed="orderRefresh++" />
+        <ScheduledDelivery v-if="tab === 'orders' && canSchedule" :shop="shop.name" batches-only @changed="orderRefresh++" />
         <Orders v-if="tab === 'orders'" :key="orderRefresh" :shop="shop.name" :editable="canEdit" />
         <CashReconciliation v-if="tab === 'cash'" :shop="shop.name" :editable="canEdit" />
         <Products v-show="tab === 'inventory'" :key="`${shop.name}:${shop.shop_type}`" :shop="shop.name" :editable="canEdit" :fish-shop="shop.shop_type === 'Fish'" />
         <FishInventory v-if="tab === 'fish' && shop.shop_type === 'Fish' && canEdit" :shop="shop.name" />
-        <ScheduledDelivery v-if="session.platform_admin && tab === 'settings'" :shop="shop.name" /><form v-show="tab === 'settings'" class="lc-form" @submit.prevent="save">
+        <ScheduledDelivery v-if="canSchedule && tab === 'settings'" :shop="shop.name" /><form v-show="tab === 'settings'" class="lc-form" @submit.prevent="save">
           <h2>Shop settings</h2><p class="muted">Keep your shop details and availability up to date.</p>
           <fieldset :disabled="!canEdit || saving" class="workspace-fields">
             <label>Name<input v-model="shop.shop_name" required></label>

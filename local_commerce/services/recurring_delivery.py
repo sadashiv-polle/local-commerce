@@ -5,7 +5,7 @@ from datetime import timedelta
 import frappe
 from frappe.utils import now_datetime
 
-from local_commerce.permissions.scope import require_platform
+from local_commerce.permissions.scope import require_schedule
 from local_commerce.services.owner import reject
 from local_commerce.services.schedule_rules import daily_window
 
@@ -16,7 +16,7 @@ FIELDS = [
 
 
 def validate_schedule(doc):
-    require_platform()
+    require_schedule(doc.shop)
     frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
     old = doc.get_doc_before_save()
     if old and old.shop != doc.shop:
@@ -37,7 +37,7 @@ def validate_schedule(doc):
 
 
 def save_schedule(shop, values, name=None):
-    require_platform()
+    require_schedule(shop)
     values = frappe.parse_json(values)
     doc = frappe.get_doc("LC Delivery Schedule", name) if name else frappe.new_doc(
         "LC Delivery Schedule"
@@ -95,3 +95,21 @@ def generate_daily():
         except Exception:
             frappe.db.rollback(save_point="daily_schedule")
             frappe.log_error(title="Daily delivery schedule generation failed")
+
+
+def remove_schedule(name):
+    doc = frappe.get_doc("LC Delivery Schedule", name)
+    require_schedule(doc.shop)
+    frappe.delete_doc("LC Delivery Schedule", name, ignore_permissions=True)
+    return {"deleted": True}
+
+
+def cleanup_schedule(doc):
+    require_schedule(doc.shop)
+    frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
+    for name in frappe.get_all("LC Delivery Slot", filters={"daily_schedule": doc.name},
+                               pluck="name", limit_page_length=0):
+        if frappe.db.exists("LC Order", {"scheduled_slot": name}):
+            frappe.db.set_value("LC Delivery Slot", name, {"daily_schedule": None, "enabled": 0})
+        else:
+            frappe.delete_doc("LC Delivery Slot", name, ignore_permissions=True)

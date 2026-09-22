@@ -131,3 +131,20 @@ cancelling existing orders. Past batches and order history are retained. Legacy
 dated slots are not automatically converted: create a daily rule once, and disable
 any overlapping unbooked dated slot if necessary. Migrate the site before using
 this feature to install the new DocType and daily-schedule link.
+
+## Selected owner access and deletion
+
+Grant **LC Scheduled Delivery Manager** in Desk → User → Roles, in addition to
+**LC Shop Owner** and an enabled Owner membership. Migration creates this role;
+it is never assigned automatically. These owners can configure normal/scheduled
+booking modes, create and edit daily schedules, change visibility and delete
+schedules only for their own shops. Platform administrators retain access to all
+shops. Shops stay normal-only unless scheduled delivery is explicitly enabled.
+Existing customer commitments are not cancelled when a user's role is removed.
+
+Daily schedule cards appear before the creation form with **Edit times & settings**,
+**Show to customers every day**, and **Delete schedule**. Deletion asks for confirmation,
+removes empty generated batches, and hides/unlinks booked batches while retaining
+their orders and fulfillment history. One-off slots can be deleted only without
+any order history; booked slots can be hidden instead. Edit scrolls to the populated
+form. Changes to booked daily batches remain restricted as described above.

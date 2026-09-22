@@ -27,3 +27,12 @@ def can_access_shop(user, roles, memberships, shop, permission="read"):
         and m["user"] == user
         for m in memberships
     )
+
+
+SCHEDULE_ROLE = "LC Scheduled Delivery Manager"
+
+
+def can_manage_schedule(user, roles, memberships, shop):
+    return is_platform(user, roles) or (
+        SCHEDULE_ROLE in roles and can_access_shop(user, roles, memberships, shop, "write")
+    )

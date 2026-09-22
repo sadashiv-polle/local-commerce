@@ -642,3 +642,15 @@
 #lc-app .cart-drawer { flex: 0 1 480px; width: 100%; max-width: 100%; overflow-x: hidden; overscroll-behavior: none; }
 #lc-app .cart-drawer > *, #lc-app .cart-drawer label { min-width: 0; max-width: 100%; }
 #lc-app .cart-drawer-header > button { flex: 0 0 40px; }
+#lc-app .schedule-list-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+#lc-app .schedule-list-heading span { color: #65746b; font-size: 12px; }
+#lc-app .scheduled-editor { padding: 22px; margin-top: 24px; border: 1px solid var(--lc-line); border-radius: 16px; background: #f5f8f2; }
+#lc-app .scheduled-slot { padding: 20px; }
+#lc-app .scheduled-slot h4 { margin-top: 0; font-size: 18px; }
+#lc-app button.schedule-delete { border-color: #edc2bd; background: #fff1ef; color: #a52f25; }
+#lc-app .schedule-delete-confirm { position: sticky; top: 12px; z-index: 5; padding: 20px; border: 1px solid #edc2bd; border-radius: 16px; background: #fff6f3; box-shadow: 0 8px 30px #40201020; }
+@media (max-width: 600px) {
+  #lc-app .scheduled-editor, #lc-app .scheduled-slot { padding: 14px; }
+  #lc-app .scheduled-slot .button-row { display: flex; flex-wrap: wrap; }
+  #lc-app .scheduled-slot .button-row > button { flex: 1 1 130px; min-height: 44px; }
+}

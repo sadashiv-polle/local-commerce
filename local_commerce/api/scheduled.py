@@ -60,3 +60,15 @@ def save_schedule(shop, values, name=None):
     from local_commerce.services.recurring_delivery import save_schedule as save
 
     return save(shop, values, name)
+
+
+@frappe.whitelist(methods=['POST'])
+def delete_schedule(name):
+    from local_commerce.services.recurring_delivery import remove_schedule
+
+    return remove_schedule(name)
+
+
+@frappe.whitelist(methods=['POST'])
+def delete_slot(name):
+    return scheduled.delete_slot(name)

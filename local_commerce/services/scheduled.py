@@ -3,7 +3,7 @@
 import frappe
 from frappe.utils import get_datetime, now_datetime
 
-from local_commerce.permissions.scope import require_platform, require_shop
+from local_commerce.permissions.scope import require_schedule, require_shop
 from local_commerce.services.owner import reject
 from local_commerce.services.schedule_rules import window
 
@@ -30,7 +30,7 @@ def lines(value):
 
 def validate_slot(doc):
     if not doc.flags.get("daily_generation"):
-        require_platform()
+        require_schedule(doc.shop)
     frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
     try:
         window(doc.ordering_start, doc.ordering_end, doc.delivery_start, doc.delivery_end)
@@ -109,7 +109,7 @@ def slots(shop, admin=False, start=0):
 
 
 def save_slot(shop, values, name=None):
-    require_platform()
+    require_schedule(shop)
     values = frappe.parse_json(values)
     doc = frappe.get_doc("LC Delivery Slot", name) if name else frappe.new_doc("LC Delivery Slot")
     if name and doc.shop != shop:
@@ -127,7 +127,7 @@ def save_slot(shop, values, name=None):
 
 
 def configure(shop, normal, scheduled):
-    require_platform()
+    require_schedule(shop)
     doc = frappe.get_doc("LC Shop", shop)
     doc.delivery_enabled = int(str(normal) in {"1", "True", "true"})
     doc.scheduled_enabled = int(str(scheduled) in {"1", "True", "true"})
@@ -403,3 +403,15 @@ def tracking_anchor(slot_name):
         limit_page_length=1,
     )
     return orders.detail(names[0]) if names else None
+
+
+def delete_slot(name):
+    slot = frappe.get_doc("LC Delivery Slot", name)
+    require_schedule(slot.shop)
+    frappe.db.sql("select name from `tabLC Shop` where name=%s for update", slot.shop)
+    if slot.daily_schedule:
+        reject("Delete or hide the daily schedule to stop its automatic batches")
+    if frappe.db.exists("LC Order", {"scheduled_slot": name}):
+        reject("This batch has order history. Hide it instead of deleting it")
+    frappe.delete_doc("LC Delivery Slot", name, ignore_permissions=True)
+    return {"deleted": True}

@@ -74,6 +74,12 @@ class LCShop(Document):
                 "delivery_fee_per_km",
                 "delivery_included_km",
             )
+            from local_commerce.permissions.policy import SCHEDULE_ROLE
+
+            if SCHEDULE_ROLE in roles:
+                pricing_fields = tuple(f for f in pricing_fields if f not in (
+                    "delivery_enabled", "scheduled_enabled"
+                ))
             if any(previous.get(field) != self.get(field) for field in pricing_fields):
                 frappe.throw(
                     "Only platform administrators can change shop type, accounts "

@@ -56,3 +56,14 @@ def require_shop(shop, permission="read"):
     user, roles = identity()
     if not can_access_shop(user, roles, memberships(user), shop, permission):
         frappe.throw("Shop access denied", frappe.PermissionError)
+
+
+def require_schedule(shop):
+    from local_commerce.permissions.policy import can_manage_schedule
+
+    user, roles = identity()
+    if not can_manage_schedule(user, roles, memberships(user), shop):
+        frappe.throw(
+            "Ask the administrator to grant LC Scheduled Delivery Manager for scheduled delivery",
+            frappe.PermissionError,
+        )
