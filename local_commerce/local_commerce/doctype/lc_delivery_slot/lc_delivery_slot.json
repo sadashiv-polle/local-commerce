@@ -18,7 +18,8 @@
     "postcodes",
     "radius_km",
     "compiled",
-    "daily_schedule"
+    "daily_schedule",
+    "archived"
   ],
   "fields": [
     {
@@ -101,6 +102,13 @@
       "label": "Daily schedule",
       "fieldtype": "Link",
       "options": "LC Delivery Schedule",
+      "read_only": 1
+    },
+    {
+      "fieldname": "archived",
+      "label": "Archived from schedule settings",
+      "fieldtype": "Check",
+      "default": "0",
       "read_only": 1
     }
   ],

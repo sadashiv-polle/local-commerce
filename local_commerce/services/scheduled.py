@@ -21,6 +21,7 @@ SLOT_FIELDS = [
     "enabled",
     "compiled",
     "daily_schedule",
+    "archived",
 ]
 
 
@@ -119,7 +120,7 @@ def save_slot(shop, values, name=None):
         {
             key: values[key]
             for key in SLOT_FIELDS
-            if key in values and key not in {"name", "compiled", "daily_schedule"}
+            if key in values and key not in {"name", "compiled", "daily_schedule", "archived"}
         }
     )
     doc.save(ignore_permissions=True)
@@ -145,7 +146,7 @@ def settings(shop, start=0):
         "timezone": frappe.utils.get_system_timezone(),
         "schedules": frappe.get_all(
             "LC Delivery Schedule", filters={"shop": shop},
-            fields=["name", *SLOT_FIELDS[1:-2]], order_by="ordering_start asc",
+            fields=["name", *SLOT_FIELDS[1:-3]], order_by="ordering_start asc",
             limit_page_length=0,
         ),
     }
@@ -415,3 +416,15 @@ def delete_slot(name):
         reject("This batch has order history. Hide it instead of deleting it")
     frappe.delete_doc("LC Delivery Slot", name, ignore_permissions=True)
     return {"deleted": True}
+
+
+def archive_slot(name, archived=1):
+    slot = frappe.get_doc("LC Delivery Slot", name)
+    require_schedule(slot.shop)
+    frappe.db.sql("select name from `tabLC Shop` where name=%s for update", slot.shop)
+    hidden = int(str(archived) in {"1", "true", "True"})
+    values = {"archived": hidden}
+    if hidden:
+        values["enabled"] = 0
+    frappe.db.set_value("LC Delivery Slot", name, values)
+    return {"archived": hidden}

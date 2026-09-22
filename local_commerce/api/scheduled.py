@@ -72,3 +72,8 @@ def delete_schedule(name):
 @frappe.whitelist(methods=['POST'])
 def delete_slot(name):
     return scheduled.delete_slot(name)
+
+
+@frappe.whitelist(methods=['POST'])
+def archive_slot(name, archived=1):
+    return scheduled.archive_slot(name, archived)

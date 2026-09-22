@@ -176,3 +176,17 @@ class TestScheduledBooking(unittest.TestCase):
         self.assertEqual(kwargs['filters']['enabled'], 1)
         self.assertIn('delivery_end', kwargs['filters'])
         self.assertEqual(kwargs['start'], 0)
+
+    def test_archive_preserves_orders_and_stops_new_bookings(self):
+        self.service.archive_slot("slot")
+        self.scope.require_schedule.assert_called_once_with("shop")
+        self.frappe.db.set_value.assert_called_once_with(
+            "LC Delivery Slot", "slot", {"archived": 1, "enabled": 0}
+        )
+        self.frappe.delete_doc.assert_not_called()
+
+    def test_restore_does_not_reopen_bookings(self):
+        self.service.archive_slot("slot", 0)
+        self.frappe.db.set_value.assert_called_once_with(
+            "LC Delivery Slot", "slot", {"archived": 0}
+        )

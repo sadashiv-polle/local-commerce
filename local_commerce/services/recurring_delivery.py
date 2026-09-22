@@ -65,6 +65,8 @@ def sync_schedule(schedule):
         slot = frappe.get_doc("LC Delivery Slot", identity) if exists else frappe.new_doc(
             "LC Delivery Slot"
         )
+        if exists and slot.get("archived"):
+            continue
         before = {f: str(slot.get(f) or "") for f in FIELDS} if exists else None
         booked = exists and frappe.db.exists("LC Order", {"scheduled_slot": identity})
         if exists and not booked and slot.delivery_end < now_datetime():
