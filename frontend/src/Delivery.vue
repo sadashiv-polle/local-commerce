@@ -1,4 +1,5 @@
 <script setup>
+import OrderReference from './OrderReference.vue'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { call } from './api.js'
 import MapView from './MapView.vue'
@@ -26,7 +27,6 @@ const next = { Ready: 'Picked Up', 'Picked Up': 'Out for Delivery', 'Out for Del
 const labels = { Ready: 'Confirm pickup', 'Picked Up': 'Start delivery', 'Out for Delivery': 'Confirm delivered' }
 
 function money(value, currency) { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value) }
-function orderLabel(value) { const name = String(value || ''); return name.length > 12 ? `#${name.slice(0, 8).toUpperCase()}` : name }
 function deliveredAt(value) { return value ? String(value).split('.')[0].replace(' ', ' · ') : '' }
 function mapPoints(order) {
   const points = []
@@ -229,7 +229,7 @@ onBeforeUnmount(() => stopTracking('', false))
         <p v-else-if="!assignments.length" class="lc-empty">{{ view === 'active' ? 'No active deliveries right now.' : 'No completed deliveries yet.' }}</p>
         <div v-else class="delivery-list">
           <ScheduledRoute v-for="slot in batchSlots" :key="slot" :slot-name="slot" :rider-location="trackingSlot === slot ? riderLocation : null" manageable @open-order="openBatchOrder" @changed="batchChanged" @resume-tracking="resumeBatchTracking" /><article v-for="order in assignments" :id="`delivery-${order.name}`" :key="order.name" class="delivery-card" :class="{ finished: ['Delivered', 'Cancelled'].includes(order.status) }">
-            <header><div><span class="eyebrow" :title="order.name">{{ order.shop_name }} · {{ orderLabel(order.name) }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>
+            <OrderReference :order-id="order.name" /><header><div><span class="eyebrow" :title="order.name">{{ order.shop_name }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>
             <div class="delivery-address"><span aria-hidden="true">⌖</span><div><strong>{{ order.address.line1 }}</strong><p>{{ order.address.city }} · {{ order.address.postal_code }}</p><a :href="`tel:${order.phone}`">Call {{ order.phone }}</a></div></div>
             <div v-if="order.destination_location" class="delivery-map-panel"><MapView :config="order.map" :points="mapPoints(order)" :route="routes[order.name]?.points || []" height="235px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Customer</span><span v-if="order.driver_location"><i class="legend-rider"></i>You</span><span v-if="routes[order.name]" class="route-summary">{{ routes[order.name].distance_km }} km · about {{ routes[order.name].duration_minutes }} min</span><a :href="navigationLink(order)" target="_blank" rel="noopener">{{ order.status === 'Ready' ? 'Navigate to shop' : 'Start navigation' }} ↗</a></div><small v-if="routes[order.name]" class="route-attribution"><a :href="routes[order.name].attribution_url" target="_blank" rel="noopener">{{ routes[order.name].attribution }}</a></small><p v-if="routeErrors[order.name]" class="route-error">{{ routeErrors[order.name] }}</p></div>
             <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
@@ -246,7 +246,7 @@ onBeforeUnmount(() => stopTracking('', false))
     </div>
     <dialog ref="paymentDialog" class="payment-dialog" aria-labelledby="payment-title">
       <div class="cash-symbol" aria-hidden="true">₹</div><span class="eyebrow">CASH ON DELIVERY</span><h2 id="payment-title">Confirm cash collection</h2>
-      <p v-if="collectingOrder">Collect <strong>{{ money(collectingOrder.total, collectingOrder.currency) }}</strong> from {{ collectingOrder.recipient }} before completing this delivery.</p>
+      <OrderReference v-if="collectingOrder" :order-id="collectingOrder.name" /><p v-if="collectingOrder">Collect <strong>{{ money(collectingOrder.total, collectingOrder.currency) }}</strong> from {{ collectingOrder.recipient }} before completing this delivery.</p>
       <label class="cash-field">Cash received<input v-model="collectedAmount" type="number" min="0" step="0.01" inputmode="decimal" required></label>
       <p v-if="collectingOrder && collectionVariance" class="variance-note" :class="{ shortage: collectionVariance < 0 }">{{ collectionVariance < 0 ? 'Short' : 'Extra' }} by {{ money(Math.abs(collectionVariance), collectingOrder.currency) }}</p>
       <label v-if="collectionVariance" class="cash-field">Reason for difference<textarea v-model="collectionNote" maxlength="500" placeholder="Explain why the amount is different" required></textarea></label>

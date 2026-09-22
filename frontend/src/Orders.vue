@@ -1,4 +1,5 @@
 <script setup>
+import OrderReference from './OrderReference.vue'
 import { inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { writeCart } from './cart.js'
@@ -124,7 +125,8 @@ onBeforeUnmount(() => {
     <p v-if="loading" role="status">Loading orders…</p>
     <p v-else-if="!orders.length" class="lc-empty">No delivery orders yet.</p>
     <article v-for="order in orders" :key="order.name" class="order-card">
-      <div class="workspace-heading"><div><span class="eyebrow">{{ order.shop_name }} · {{ order.name }}</span><h3>{{ order.recipient }}</h3><small>{{ order.created }}</small></div><span class="status-pill">{{ order.status }}</span></div>
+      <OrderReference :order-id="order.name" />
+      <div class="workspace-heading"><div><span class="eyebrow">{{ order.shop_name }}</span><h3>{{ order.recipient }}</h3><small>{{ order.created }}</small></div><span class="status-pill">{{ order.status }}</span></div>
       <p v-if="order.scheduled_period" class="lc-notice">Scheduled · {{ order.scheduled_period.title }} · {{ order.scheduled_period.delivery_start }} – {{ order.scheduled_period.delivery_end }} · Free delivery</p><div class="delivery-progress" :aria-label="`Order status: ${order.status}`"><span v-for="step in steps" :key="step" :class="{ complete: steps.indexOf(step) <= steps.indexOf(order.status) }">{{ step }}</span></div>
       <ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }} <strong>{{ money(item.amount, order.currency) }}</strong><small v-if="order.selling_lines?.[index]?.option_id" class="order-option-summary">{{ order.selling_lines[index].label }} × {{ order.selling_lines[index].packs }} · {{ order.selling_lines[index].preweighed ? `Pack weight ${order.selling_lines[index].actual_weight} kg` : order.selling_lines[index].actual_weight == null ? `Estimated stock weight ${order.selling_lines[index].estimated_weight} kg` : `Actual packed weight ${order.selling_lines[index].actual_weight} kg` }}</small></li></ul>
       <p v-if="weightedLines(order).length" class="packed-weight-notice">{{ order.estimated ? 'Packing pending. Weight prices are estimated; piece prices stay fixed. The shop will confirm packed weights before dispatch.' : 'Packing confirmed. Weight prices use actual weight; piece prices stay fixed.' }}</p>

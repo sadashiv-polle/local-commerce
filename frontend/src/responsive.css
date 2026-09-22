@@ -654,3 +654,9 @@
   #lc-app .scheduled-slot .button-row { display: flex; flex-wrap: wrap; }
   #lc-app .scheduled-slot .button-row > button { flex: 1 1 130px; min-height: 44px; }
 }
+#lc-app .order-reference { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0 16px; padding: 12px; border: 1px solid #dce6db; border-radius: 12px; color: #244b39; background: #f2f7ef; }
+#lc-app .order-reference > div { flex: 1 1 180px; min-width: 0; }
+#lc-app .order-reference span { display: block; font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+#lc-app .order-reference code { display: block; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; user-select: all; }
+#lc-app .order-reference button { flex: 0 0 auto; min-height: 40px; }
+#lc-app .order-reference small { flex-basis: 100%; }
