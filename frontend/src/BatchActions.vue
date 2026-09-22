@@ -8,7 +8,7 @@ const labels = { Preparing: 'Start preparing batch', Ready: 'Mark batch ready', 
 async function load() { error.value = ''; try { state.value = await call('scheduled.batch_actions', { slot: props.slotName }) } catch(e) { error.value = e.message } }
 async function confirm() {
   busy.value = true; error.value = ''; message.value = ''
-  try { const result = await call('scheduled.advance_batch', { slot: props.slotName, target: confirmation.value.target }, true); confirmation.value = null; message.value = `${result.changed} orders updated to ${result.target}.`; await load(); emit('changed') } catch(e) { error.value = e.message } finally { busy.value = false }
+  try { const result = await call('scheduled.advance_batch', { slot: props.slotName, target: confirmation.value.target }, true); confirmation.value = null; message.value = `${result.changed} orders updated to ${result.target}.`; await load(); emit('changed', { ...result, slot: props.slotName }) } catch(e) { error.value = e.message } finally { busy.value = false }
 }
 watch(() => props.slotName, () => { state.value = null; confirmation.value = null; load() }, { immediate: true })
 </script>

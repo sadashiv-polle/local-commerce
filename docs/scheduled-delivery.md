@@ -96,3 +96,16 @@ defaults to tomorrow in the shop timezone. Choosing a new delivery date shifts t
 and delivery dates together while preserving their times and any overnight ordering window.
 Review and save the new slot to open bookings. Old orders, batch status and dates stay intact.
 Slots without bookings can still be edited directly; booked slots offer reuse instead.
+
+## Shared batch GPS
+
+Starting batch delivery requests device location and starts one GPS watcher. A position update
+is written to every Out for Delivery order in that slot assigned to the authenticated rider.
+Updates are throttled per order (at least 10 seconds; browser timer is 12 seconds), and each
+customer receives only their own order's location event. Other batches, other riders,
+not-yet-started and completed orders are excluded.
+
+The batch route shows the rider's current location. Completing the order originally used to
+start tracking does not end tracking for remaining stops. Refresh restores the saved session,
+and explicit Stop sharing still stops it. The browser must have location permission and stay
+active; a browser app cannot guarantee continuous background GPS when the phone suspends it.

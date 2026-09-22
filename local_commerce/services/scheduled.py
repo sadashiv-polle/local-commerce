@@ -93,8 +93,8 @@ def slots(shop, admin=False, start=0):
     )
     for row in rows:
         if admin:
-            row['has_bookings'] = bool(frappe.db.exists('LC Order', {'scheduled_slot': row.name}))
-            row['past'] = get_datetime(row.delivery_end) <= now_datetime()
+            row["has_bookings"] = bool(frappe.db.exists("LC Order", {"scheduled_slot": row.name}))
+            row["past"] = get_datetime(row.delivery_end) <= now_datetime()
         row["order_count"] = frappe.db.count(
             "LC Order", {"scheduled_slot": row.name, "status": ["!=", "Cancelled"]}
         )
@@ -371,4 +371,25 @@ def advance_batch(slot_name, target):
     except Exception:
         frappe.db.rollback(save_point="lc_batch_transition")
         raise
-    return {"changed": len(names), "target": target}
+    return {"changed": len(names), "target": target, "orders": names}
+
+
+def tracking_anchor(slot_name):
+    from local_commerce.services import orders
+
+    slot = frappe.get_doc("LC Delivery Slot", slot_name)
+    if not orders.is_shop_driver(frappe.session.user, slot.shop):
+        frappe.throw("Delivery person access required", frappe.PermissionError)
+    names = frappe.get_all(
+        "LC Order",
+        filters={
+            "shop": slot.shop,
+            "scheduled_slot": slot.name,
+            "delivery_user": frappe.session.user,
+            "status": "Out for Delivery",
+            "delivery_mode": "Scheduled",
+        },
+        pluck="name",
+        limit_page_length=1,
+    )
+    return orders.detail(names[0]) if names else None

@@ -15,6 +15,7 @@ const loading = ref(false), error = ref(''), busyOrder = ref('')
 const paymentDialog = ref(null), collectingOrder = ref(null)
 const collectedAmount = ref(''), collectionNote = ref(''), collectionError = ref('')
 const deliveryOtp = ref('')
+const riderLocation = ref(null), trackingSlot = ref('')
 const trackingOrder = ref(''), locationMessage = ref(''), locationError = ref('')
 const routes = ref({}), routeErrors = ref({})
 const routeRequests = new Set()
@@ -66,6 +67,10 @@ async function loadProfile() {
   try { profile.value = await call('orders.delivery_profile') }
   catch (e) { error.value = e.message }
 }
+async function resumeBatchTracking(slot) {
+  try { const order = await call('scheduled.tracking_anchor', { slot }); if (order?.live_tracking_enabled) startTracking(order); else locationError.value = 'No active deliveries with live tracking enabled in this batch.' } catch(e) { locationError.value = e.message }
+}
+async function batchChanged(result) { await refresh(); if (result?.target === 'Out for Delivery') await resumeBatchTracking(result.slot) }
 async function refresh() { await Promise.all([load(), loadProfile()]) }
 async function switchView(target) { view.value = target; start.value = 0; await load() }
 async function advance(order, payment = {}, showCollectionError = false) {
@@ -73,7 +78,7 @@ async function advance(order, payment = {}, showCollectionError = false) {
   try {
     const target = next[order.status]
     const result = await call('orders.delivery_change', { order: order.name, target, ...payment }, true)
-    if (target === 'Delivered' && trackingOrder.value === order.name) stopTracking('Location sharing stopped after delivery.')
+    if (target === 'Delivered' && trackingOrder.value === order.name && !order.scheduled_slot) stopTracking('Location sharing stopped after delivery.')
     await refresh()
     return result
   } catch (e) {
@@ -87,7 +92,7 @@ function stopTracking(message = 'Live location sharing stopped.', clearSaved = t
   if (locationWatch != null) navigator.geolocation.clearWatch(locationWatch)
   if (locationTimer != null) window.clearInterval(locationTimer)
   locationWatch = null; locationTimer = null; latestPosition = null
-  trackingOrder.value = ''; locationMessage.value = message; sendingLocation = false
+  trackingOrder.value = ''; trackingSlot.value = ''; riderLocation.value = null; locationMessage.value = message; sendingLocation = false
   if (clearSaved) forgetTracking(window.localStorage, session.value.user)
 }
 async function sendLocation(order, position) {
@@ -98,10 +103,12 @@ async function sendLocation(order, position) {
   try {
     const result = await call('orders.update_driver_location', { order: order.name, latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy || 0 }, true)
     if (trackingOrder.value !== order.name) return
+    if (result.tracking_complete) { stopTracking('No active deliveries remain to track in this batch.'); return }
     if (result.accepted) {
       const current = assignments.value.find(row => row.name === order.name)
-      locationMessage.value = 'Location shared with the customer · updating every 12 seconds.'; locationError.value = ''
-      if (current) current.driver_location = { latitude: result.latitude, longitude: result.longitude, accuracy: result.accuracy, updated_at: result.updated_at }
+      locationMessage.value = order.scheduled_slot ? 'Location shared with all active customers in this batch · updating every 12 seconds.' : 'Location shared with the customer · updating every 12 seconds.'; locationError.value = ''
+      for (const row of assignments.value) if (result.orders?.includes(row.name)) row.driver_location = { latitude: result.latitude, longitude: result.longitude, accuracy: result.accuracy, updated_at: result.updated_at }
+      if (current && current.status === 'Out for Delivery') current.driver_location = { latitude: result.latitude, longitude: result.longitude, accuracy: result.accuracy, updated_at: result.updated_at }
     }
   } catch (e) { locationMessage.value = ''; locationError.value = e.message }
   finally { sendingLocation = false }
@@ -112,12 +119,14 @@ function startTracking(order, initialPosition = null) {
   if (!navigator.geolocation) { locationError.value = 'This device does not provide browser location.'; return }
   if (locationWatch != null || locationTimer != null) stopTracking('')
   trackingOrder.value = order.name
+  trackingSlot.value = order.scheduled_slot || ''
   rememberTracking(window.localStorage, session.value.user, order.name)
   latestPosition = initialPosition
   locationMessage.value = 'Finding your GPS position… Keep this page open.'
   if (latestPosition) sendLocation(order, latestPosition)
   locationWatch = navigator.geolocation.watchPosition(position => {
     latestPosition = position
+    riderLocation.value = { latitude: position.coords.latitude, longitude: position.coords.longitude }
     sendLocation(order, position)
   }, error => {
     if (error.code === 1) {
@@ -178,7 +187,7 @@ async function initialize() {
     try { order = await call('orders.detail', { order: savedOrder }) }
     catch (e) { locationError.value = `Live tracking could not resume: ${e.message}`; return }
   }
-  if (order.status === 'Out for Delivery' && order.live_tracking_enabled) startTracking(order)
+  if ((order.status === 'Out for Delivery' || order.scheduled_slot) && order.live_tracking_enabled) startTracking(order)
   else forgetTracking(window.localStorage, session.value.user)
 }
 onMounted(initialize)
@@ -219,13 +228,13 @@ onBeforeUnmount(() => stopTracking('', false))
         <p v-if="loading" role="status">Loading your deliveries…</p>
         <p v-else-if="!assignments.length" class="lc-empty">{{ view === 'active' ? 'No active deliveries right now.' : 'No completed deliveries yet.' }}</p>
         <div v-else class="delivery-list">
-          <ScheduledRoute v-for="slot in batchSlots" :key="slot" :slot-name="slot" manageable @open-order="openBatchOrder" @changed="refresh" /><article v-for="order in assignments" :id="`delivery-${order.name}`" :key="order.name" class="delivery-card" :class="{ finished: ['Delivered', 'Cancelled'].includes(order.status) }">
+          <ScheduledRoute v-for="slot in batchSlots" :key="slot" :slot-name="slot" :rider-location="trackingSlot === slot ? riderLocation : null" manageable @open-order="openBatchOrder" @changed="batchChanged" @resume-tracking="resumeBatchTracking" /><article v-for="order in assignments" :id="`delivery-${order.name}`" :key="order.name" class="delivery-card" :class="{ finished: ['Delivered', 'Cancelled'].includes(order.status) }">
             <header><div><span class="eyebrow" :title="order.name">{{ order.shop_name }} · {{ orderLabel(order.name) }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>
             <div class="delivery-address"><span aria-hidden="true">⌖</span><div><strong>{{ order.address.line1 }}</strong><p>{{ order.address.city }} · {{ order.address.postal_code }}</p><a :href="`tel:${order.phone}`">Call {{ order.phone }}</a></div></div>
             <div v-if="order.destination_location" class="delivery-map-panel"><MapView :config="order.map" :points="mapPoints(order)" :route="routes[order.name]?.points || []" height="235px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Customer</span><span v-if="order.driver_location"><i class="legend-rider"></i>You</span><span v-if="routes[order.name]" class="route-summary">{{ routes[order.name].distance_km }} km · about {{ routes[order.name].duration_minutes }} min</span><a :href="navigationLink(order)" target="_blank" rel="noopener">{{ order.status === 'Ready' ? 'Navigate to shop' : 'Start navigation' }} ↗</a></div><small v-if="routes[order.name]" class="route-attribution"><a :href="routes[order.name].attribution_url" target="_blank" rel="noopener">{{ routes[order.name].attribution }}</a></small><p v-if="routeErrors[order.name]" class="route-error">{{ routeErrors[order.name] }}</p></div>
             <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
             <details><summary>{{ order.items.length }} product{{ order.items.length === 1 ? '' : 's' }} · {{ money(order.total, order.currency) }}</summary><ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }}</li></ul></details>
-            <div v-if="order.status === 'Out for Delivery' && order.live_tracking_enabled" class="tracking-controls"><button v-if="trackingOrder !== order.name" type="button" @click="startTracking(order)">Resume live tracking</button><button v-else type="button" class="tracking-stop" @click="stopTracking()">Stop sharing</button><small>Your bike updates for the customer every 12 seconds and is removed after delivery.</small></div>
+            <div v-if="order.status === 'Out for Delivery' && order.live_tracking_enabled" class="tracking-controls"><button v-if="trackingOrder !== order.name && !(order.scheduled_slot && trackingSlot === order.scheduled_slot)" type="button" @click="startTracking(order)">Resume live tracking</button><button v-else type="button" class="tracking-stop" @click="stopTracking()">Stop sharing</button><small>Your bike updates for the customer every 12 seconds and is removed after delivery.</small></div>
             <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="requestAdvance(order)">{{ busyOrder === order.name ? 'Updating…' : order.status === 'Out for Delivery' ? 'Collect cash & confirm delivered' : labels[order.status] }} <span>›</span></button>
             <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered · Cash {{ order.payment_status === 'Reconciled' ? 'handed over' : 'awaiting handover' }}{{ order.delivered_at ? ` · ${deliveredAt(order.delivered_at)}` : '' }}</p>
             <p v-else-if="order.status === 'Cancelled'" class="muted">This order was cancelled.</p>

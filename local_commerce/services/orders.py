@@ -1302,41 +1302,51 @@ def update_driver_location(order, latitude, longitude, accuracy=None):
         frappe.session.user, doc.shop
     ):
         frappe.throw("This delivery is not assigned to you", frappe.PermissionError)
-    if doc.status != "Out for Delivery":
+    if doc.status != "Out for Delivery" and not doc.get("scheduled_slot"):
         reject("Live location is available only while an order is out for delivery")
     shop = frappe.get_doc("LC Shop", doc.shop)
     if not shop.live_tracking_enabled:
         reject("Live delivery tracking is disabled for this shop")
     try:
         location = point(latitude, longitude, required=True)
-    except ValueError as exc:
-        reject(str(exc))
-    try:
         location_accuracy = accuracy_metres(accuracy if accuracy is not None else 0)
     except ValueError as exc:
         reject(str(exc))
+    if doc.get("scheduled_slot"):
+        names = frappe.get_all("LC Order", filters={
+            "shop": doc.shop, "scheduled_slot": doc.scheduled_slot,
+            "delivery_user": frappe.session.user, "status": "Out for Delivery",
+            "delivery_mode": "Scheduled",
+        }, pluck="name", order_by="name asc", limit_page_length=30)
+    else:
+        names = [doc.name]
+    if not names:
+        return {"accepted": False, "tracking_complete": True}
     now = now_datetime()
-    if doc.driver_location_at and time_diff_in_seconds(now, doc.driver_location_at) < 10:
-        return {"accepted": False, "updated_at": str(doc.driver_location_at)}
+    updated = []
     token = _order_operation.set(True)
     try:
-        doc.driver_latitude = location["latitude"]
-        doc.driver_longitude = location["longitude"]
-        doc.driver_location_accuracy = float(location_accuracy)
-        doc.driver_location_at = now
-        doc.save(ignore_permissions=True)
+        for name in names:
+            target = doc if name == doc.name else frappe.get_doc("LC Order", name)
+            if target.driver_location_at and time_diff_in_seconds(
+                now, target.driver_location_at
+            ) < 10:
+                continue
+            target.driver_latitude = location["latitude"]
+            target.driver_longitude = location["longitude"]
+            target.driver_location_accuracy = float(location_accuracy)
+            target.driver_location_at = now
+            target.save(ignore_permissions=True)
+            updated.append(name)
+            frappe.publish_realtime("lc_delivery_location", {
+                "order": name, **location, "accuracy": float(location_accuracy),
+                "updated_at": str(now),
+            }, user=target.customer_user, after_commit=True)
     finally:
         _order_operation.reset(token)
-    payload = {
-        "order": doc.name,
-        **location,
-        "accuracy": float(location_accuracy),
-        "updated_at": str(now),
-    }
-    frappe.publish_realtime(
-        "lc_delivery_location", payload, user=doc.customer_user, after_commit=True
-    )
-    return {"accepted": True, **payload}
+    return {"accepted": bool(updated), "order": doc.name, "orders": updated,
+            "scheduled_slot": doc.get("scheduled_slot"), **location,
+            "accuracy": float(location_accuracy), "updated_at": str(now)}
 
 
 def serialize_collection(doc):

@@ -48,3 +48,8 @@ def batch_actions(slot):
 @frappe.whitelist(methods=['POST'])
 def advance_batch(slot, target):
     return scheduled.advance_batch(slot, target)
+
+
+@frappe.whitelist(methods=['GET'])
+def tracking_anchor(slot):
+    return scheduled.tracking_anchor(slot)
