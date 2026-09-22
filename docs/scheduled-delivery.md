@@ -109,3 +109,25 @@ The batch route shows the rider's current location. Completing the order origina
 start tracking does not end tracking for remaining stops. Refresh restores the saved session,
 and explicit Stop sharing still stops it. The browser must have location permission and stay
 active; a browser app cannot guarantee continuous background GPS when the phone suspends it.
+
+## Recurring daily slots
+
+Platform administrators can create **Daily time slots** in the shop delivery settings.
+The form defaults to **Repeat every day (times only)**: enter ordering start/close
+and delivery start/end, products, area and capacity once. The **Show to customers
+every day** checkbox enables or hides that schedule. Times use the site timezone;
+ordering and delivery are on the same day, with `00:00` supported as delivery end
+at the following midnight. Dated one-off slots remain available.
+
+`LC Delivery Schedule` stores the reusable time-only rule. Saving it generates
+separate `LC Delivery Slot` batches for today and tomorrow. The existing minute
+scheduler keeps tomorrow's batch ready automatically; enable the site scheduler
+and keep workers running. A deterministic schedule/date ID and the shop lock
+prevent duplicate daily batches. Guest GET requests never create records.
+
+Changes update unbooked daily batches only. Booked batches retain their timing,
+products, area and capacity; toggling visibility still stops new bookings without
+cancelling existing orders. Past batches and order history are retained. Legacy
+dated slots are not automatically converted: create a daily rule once, and disable
+any overlapping unbooked dated slot if necessary. Migrate the site before using
+this feature to install the new DocType and daily-schedule link.

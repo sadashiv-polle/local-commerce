@@ -1,6 +1,6 @@
 {
   "doctype": "DocType",
-  "name": "LC Delivery Slot",
+  "name": "LC Delivery Schedule",
   "module": "Local Commerce",
   "autoname": "hash",
   "title_field": "title",
@@ -16,9 +16,7 @@
     "capacity",
     "products",
     "postcodes",
-    "radius_km",
-    "compiled",
-    "daily_schedule"
+    "radius_km"
   ],
   "fields": [
     {
@@ -43,25 +41,25 @@
     {
       "fieldname": "ordering_start",
       "label": "Ordering starts",
-      "fieldtype": "Datetime",
+      "fieldtype": "Time",
       "reqd": 1
     },
     {
       "fieldname": "ordering_end",
       "label": "Ordering closes",
-      "fieldtype": "Datetime",
+      "fieldtype": "Time",
       "reqd": 1
     },
     {
       "fieldname": "delivery_start",
       "label": "Delivery starts",
-      "fieldtype": "Datetime",
+      "fieldtype": "Time",
       "reqd": 1
     },
     {
       "fieldname": "delivery_end",
       "label": "Delivery ends",
-      "fieldtype": "Datetime",
+      "fieldtype": "Time",
       "reqd": 1
     },
     {
@@ -89,19 +87,6 @@
       "fieldtype": "Float",
       "reqd": 1,
       "default": "5"
-    },
-    {
-      "fieldname": "compiled",
-      "label": "Batch compiled",
-      "fieldtype": "Check",
-      "read_only": 1
-    },
-    {
-      "fieldname": "daily_schedule",
-      "label": "Daily schedule",
-      "fieldtype": "Link",
-      "options": "LC Delivery Schedule",
-      "read_only": 1
     }
   ],
   "permissions": [
@@ -112,6 +97,6 @@
       "create": 1
     }
   ],
-  "sort_field": "delivery_start",
+  "sort_field": "creation",
   "sort_order": "DESC"
 }

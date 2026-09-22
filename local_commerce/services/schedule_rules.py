@@ -54,3 +54,16 @@ def batch_transition(rows, target):
         if status == BATCH_STAGES[source_index]:
             pending.append(row["name"])
     return pending
+
+
+def daily_window(day, times):
+    """Same-day ordering and delivery, with midnight allowed as delivery end."""
+    from datetime import time, timedelta
+
+    parsed = [time.fromisoformat(":".join(
+        part.zfill(2) for part in str(value).split(":")
+    )) for value in times]
+    values = [datetime.combine(day, value) for value in parsed]
+    if values[3].time() == time(0):
+        values[3] += timedelta(days=1)
+    return window(*values)

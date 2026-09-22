@@ -53,3 +53,10 @@ def advance_batch(slot, target):
 @frappe.whitelist(methods=['GET'])
 def tracking_anchor(slot):
     return scheduled.tracking_anchor(slot)
+
+
+@frappe.whitelist(methods=['POST'])
+def save_schedule(shop, values, name=None):
+    from local_commerce.services.recurring_delivery import save_schedule as save
+
+    return save(shop, values, name)

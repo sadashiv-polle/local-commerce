@@ -20,6 +20,7 @@ SLOT_FIELDS = [
     "radius_km",
     "enabled",
     "compiled",
+    "daily_schedule",
 ]
 
 
@@ -28,7 +29,8 @@ def lines(value):
 
 
 def validate_slot(doc):
-    require_platform()
+    if not doc.flags.get("daily_generation"):
+        require_platform()
     frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
     try:
         window(doc.ordering_start, doc.ordering_end, doc.delivery_start, doc.delivery_end)
@@ -60,10 +62,10 @@ def validate_slot(doc):
                 )
     overlap = frappe.db.sql(
         """select name from `tabLC Delivery Slot` where shop=%s
-        and name!=%s and delivery_start < %s and delivery_end > %s limit 1""",
+        and enabled=1 and name!=%s and delivery_start < %s and delivery_end > %s limit 1""",
         (doc.shop, doc.name or "", doc.delivery_end, doc.delivery_start),
     )
-    if overlap:
+    if doc.enabled and overlap:
         reject("Use one slot for each shop delivery period; delivery periods cannot overlap")
     for item in str(doc.products or "").splitlines():
         if item.strip() and not frappe.db.exists(
@@ -117,7 +119,7 @@ def save_slot(shop, values, name=None):
         {
             key: values[key]
             for key in SLOT_FIELDS
-            if key in values and key not in {"name", "compiled"}
+            if key in values and key not in {"name", "compiled", "daily_schedule"}
         }
     )
     doc.save(ignore_permissions=True)
@@ -141,6 +143,11 @@ def settings(shop, start=0):
         "scheduled": bool(doc.get("scheduled_enabled")),
         "slots": slots(shop, admin=True, start=start),
         "timezone": frappe.utils.get_system_timezone(),
+        "schedules": frappe.get_all(
+            "LC Delivery Schedule", filters={"shop": shop},
+            fields=["name", *SLOT_FIELDS[1:-2]], order_by="ordering_start asc",
+            limit_page_length=0,
+        ),
     }
 
 
@@ -183,6 +190,9 @@ def validate_booking(shop, mode, slot_name, rows, address=None):
 
 
 def compile_due():
+    from local_commerce.services.recurring_delivery import generate_daily
+
+    generate_daily()
     for row in frappe.get_all(
         "LC Delivery Slot",
         filters={"compiled": 0, "ordering_end": ["<=", now_datetime()]},
