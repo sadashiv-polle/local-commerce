@@ -14,7 +14,7 @@ const shop = ref(null), loading = ref(false), error = ref(''), saved = ref(''), 
 const expenseAccounts = ref([])
 const payment = ref(null), paymentSaved = ref(''), paymentSaving = ref(false)
 const hoursSaving = ref(false), hoursSaved = ref('')
-const tab = ref('overview')
+const tab = ref('overview'), orderRefresh = ref(0)
 const tabs = new Set(['overview', 'orders', 'cash', 'inventory', 'fish', 'settings'])
 const locationError = ref(''), locating = ref(false)
 const timeOptions = Array.from({ length: 48 }, (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`)
@@ -118,11 +118,12 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
       <template v-if="shop">
         <header class="workspace-heading"><div><span class="eyebrow">YOUR SHOP</span><h1>{{ shop.shop_name }}</h1><p class="muted">{{ shop.company }}</p></div><span class="status-pill">{{ shop.status }}</span></header>
         <Dashboard v-if="tab === 'overview' && canEdit" :shop="shop.name" @open="tab = $event" />
-        <Orders v-if="tab === 'orders'" :shop="shop.name" :editable="canEdit" />
+        <ScheduledDelivery v-if="tab === 'orders' && canEdit" :shop="shop.name" batches-only @changed="orderRefresh++" />
+        <Orders v-if="tab === 'orders'" :key="orderRefresh" :shop="shop.name" :editable="canEdit" />
         <CashReconciliation v-if="tab === 'cash'" :shop="shop.name" :editable="canEdit" />
         <Products v-show="tab === 'inventory'" :key="`${shop.name}:${shop.shop_type}`" :shop="shop.name" :editable="canEdit" :fish-shop="shop.shop_type === 'Fish'" />
         <FishInventory v-if="tab === 'fish' && shop.shop_type === 'Fish' && canEdit" :shop="shop.name" />
-        <ScheduledDelivery v-if="(session.platform_admin && tab === 'settings') || (canEdit && tab === 'orders')" :shop="shop.name" /><form v-show="tab === 'settings'" class="lc-form" @submit.prevent="save">
+        <ScheduledDelivery v-if="session.platform_admin && tab === 'settings'" :shop="shop.name" /><form v-show="tab === 'settings'" class="lc-form" @submit.prevent="save">
           <h2>Shop settings</h2><p class="muted">Keep your shop details and availability up to date.</p>
           <fieldset :disabled="!canEdit || saving" class="workspace-fields">
             <label>Name<input v-model="shop.shop_name" required></label>

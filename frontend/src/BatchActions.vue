@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { call } from './api.js'
-const props = defineProps({ slotName: { type: String, required: true } })
+const props = defineProps({ slotName: { type: String, required: true }, revision: { type: Number, default: 0 } })
 const emit = defineEmits(['changed'])
 const state = ref(null), error = ref(''), busy = ref(false), confirmation = ref(null), message = ref('')
 const labels = { Preparing: 'Start preparing batch', Ready: 'Mark batch ready', 'Picked Up': 'Confirm batch pickup', 'Out for Delivery': 'Start batch delivery' }
@@ -10,6 +10,7 @@ async function confirm() {
   busy.value = true; error.value = ''; message.value = ''
   try { const result = await call('scheduled.advance_batch', { slot: props.slotName, target: confirmation.value.target }, true); confirmation.value = null; message.value = `${result.changed} orders updated to ${result.target}.`; await load(); emit('changed', { ...result, slot: props.slotName }) } catch(e) { error.value = e.message } finally { busy.value = false }
 }
+watch(() => props.revision, load)
 watch(() => props.slotName, () => { state.value = null; confirmation.value = null; load() }, { immediate: true })
 </script>
 <template>
