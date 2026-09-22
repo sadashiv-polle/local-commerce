@@ -310,3 +310,19 @@ def mark_all_read():
         update_modified=False,
     )
     return {"read": True}
+
+
+def upi_payment_updated(order):
+    if order.payment_status == "Awaiting Verification":
+        seen = set()
+        for user in _shop_owners(order.shop):
+            _create(user, order, "Owner", "UPI payment needs your review",
+                    "A customer uploaded payment proof. Check your bank receipt before confirming.",
+                    f"/shop/{order.shop}?tab=orders", seen)
+    else:
+        approved = order.payment_status == "Paid"
+        _create(order.customer_user, order, "Customer",
+                "Payment confirmed" if approved else "Please check your UPI payment",
+                "The shop verified your payment. No cash is due at delivery." if approved
+                else "The shop could not verify payment. Open your order for the review note.",
+                "/orders", set())

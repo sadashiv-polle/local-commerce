@@ -1,4 +1,4 @@
-"""Delivery orders backed by ERPNext Sales Orders and Delivery Notes; no online payment."""
+"""Delivery orders backed by ERPNext Sales Orders, invoices and delivery notes."""
 
 import hashlib
 import hmac
@@ -190,6 +190,7 @@ SHOP_LISTING_FIELDS = [
     "delivery_enabled",
     "scheduled_enabled",
     "cod_enabled",
+    "upi_enabled",
     "accepting_orders",
     "opening_hours_json",
 ]
@@ -206,7 +207,7 @@ def serialize_public_shop(row):
     row.availability = hours
     row.accepting_orders = bool(
         (row.delivery_enabled and hours["open"] or row.get("scheduled_enabled"))
-        and row.cod_enabled and row.location
+        and (row.cod_enabled or row.get("upi_enabled")) and row.location
     )
     for internal in ("delivery_enabled", "cod_enabled", "opening_hours_json"):
         row.pop(internal, None)
@@ -454,7 +455,7 @@ def catalog(shop, start=0, search="", category="", in_stock=0):
         "map": map_config(),
         "accepting_orders": bool(
             (doc.delivery_enabled and hours["open"] or doc.get("scheduled_enabled"))
-            and doc.cod_enabled and location
+            and (doc.cod_enabled or doc.get("upi_enabled")) and location
         ),
         "availability": hours,
         "normal_enabled": bool(doc.delivery_enabled),
@@ -466,7 +467,8 @@ def catalog(shop, start=0, search="", category="", in_stock=0):
         "categories": categories,
         "delivery_fee": doc.delivery_fee or 0,
         "currency": frappe.db.get_value("Company", doc.company, "default_currency"),
-        "payment_methods": ["Cash on Delivery"] if doc.cod_enabled else [],
+        "payment_methods": (["Cash on Delivery"] if doc.cod_enabled else [])
+        + (["Manual UPI"] if doc.get("upi_enabled") else []),
         "payment_message": (
             "Pay the rider when your order arrives"
             if doc.cod_enabled
@@ -561,7 +563,7 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
     if not isinstance(request_key, str) or not 16 <= len(request_key) <= 100:
         reject("Invalid request key")
     key = hashlib.sha256(f"{user}:{shop}:{request_key}".encode()).hexdigest()
-    if payment_method != "Cash on Delivery":
+    if payment_method not in {"Cash on Delivery", "Manual UPI"}:
         reject("Select a supported payment method")
     digest = hashlib.sha256(
         json.dumps([rows, address, payment_method] + (
@@ -576,14 +578,20 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
     )
     if previous:
         if previous.request_hash != digest and not (
-            delivery_mode == "Normal" and previous.request_hash == legacy_digest
+            delivery_mode == "Normal" and payment_method == "Cash on Delivery"
+            and previous.request_hash == legacy_digest
         ):
             reject("This request key was already used for another order")
         return detail(previous.name)
     doc = public_shop(shop, scheduled_delivery=delivery_mode == "Scheduled")
     slot = scheduled.validate_booking(doc, delivery_mode, scheduled_slot, rows, address)
-    if not doc.cod_enabled:
+    if payment_method == "Cash on Delivery" and not doc.cod_enabled:
         reject("Cash on Delivery is not configured for this shop")
+    if payment_method == "Manual UPI":
+        from local_commerce.services.manual_upi import validate
+        if not doc.get("upi_enabled"):
+            reject("UPI is not configured for this shop")
+        validate(doc)
     origin = shop_location(doc)
     destination = point(address["latitude"], address["longitude"])
     delivery_distance = None
@@ -665,6 +673,9 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
                 "delivery_mode": delivery_mode,
                 "scheduled_slot": slot.name if slot else None,
                 "payment_method": payment_method,
+                **({field: doc.get(field) for field in (
+                    "upi_id", "upi_qr", "upi_bank_account", "upi_mode_of_payment"
+                )} if payment_method == "Manual UPI" else {}),
                 "payment_status": "Pending",
                 "recipient": address["recipient"],
                 "phone": address["phone"],
@@ -846,6 +857,12 @@ def serialize(doc):
         "delivered_at": str(doc.delivered_at) if doc.delivered_at else None,
         "payment_method": doc.payment_method,
         "payment_status": doc.payment_status,
+        "upi": ({"id": doc.get("upi_id"), "qr": doc.get("upi_qr"),
+                 "proof": doc.get("upi_proof"), "note": doc.get("upi_review_note"),
+                 "reference": doc.get("upi_reference"),
+                 "payable": doc.status in {"Accepted", "Preparing", "Ready"} and not estimated}
+                if doc.payment_method == "Manual UPI" and (is_customer or can_access_shop(
+                    *identity(), memberships(frappe.session.user), doc.shop, "write")) else None),
         "sales_invoice": doc.sales_invoice,
         "payment_entry": doc.payment_entry,
         "delivery_otp": (
@@ -1237,6 +1254,9 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
     token = _order_operation.set(True)
     owner_token = _owner_operation.set(True)
     try:
+        if (target in {"Picked Up", "Out for Delivery", "Delivered"}
+                and doc.payment_method == "Manual UPI" and doc.payment_status != "Paid"):
+            reject("The shop must verify the UPI payment before dispatch")
         if target == "Picked Up":
             from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 
@@ -1267,10 +1287,11 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
             ):
                 reject("The submitted delivery note is missing; contact the shop")
             verify_delivery_otp(doc, delivery_otp_value)
-            invoice, collection = create_cod_collection(doc, collected_amount, note)
-            doc.sales_invoice = invoice
-            doc.payment_status = "Collected"
-            doc.collected_at = now_datetime()
+            if doc.payment_method == "Cash on Delivery":
+                invoice, collection = create_cod_collection(doc, collected_amount, note)
+                doc.sales_invoice = invoice
+                doc.payment_status = "Collected"
+                doc.collected_at = now_datetime()
             doc.delivered_at = now_datetime()
             # Precise rider coordinates are transient and are not retained after delivery.
             doc.driver_latitude = None
@@ -1481,6 +1502,9 @@ def change(order, target, reason=""):
 
     if target in {"Accepted", "Ready"}:
         fish.validate_order(doc)
+    if (target == "Cancelled" and doc.payment_method == "Manual UPI"
+            and doc.payment_status in {"Paid", "Awaiting Verification"}):
+        reject("Review the UPI payment and resolve any refund with the administrator first")
     if target == "Cancelled" and not 3 <= len(str(reason).strip()) <= 500:
         reject("Enter a cancellation reason (3–500 characters)")
     so = frappe.get_doc("Sales Order", doc.sales_order)

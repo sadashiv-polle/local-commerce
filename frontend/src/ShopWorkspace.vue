@@ -1,4 +1,5 @@
 <script setup>
+import ManualUpiSettings from './ManualUpiSettings.vue'
 import { computed, inject, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { call } from './api.js'
@@ -152,6 +153,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
           </fieldset>
           <p v-if="saved" role="status">{{ saved }}</p>
         </form>
+        <ManualUpiSettings v-if="tab === 'settings' && canEdit" :key="shop.name" :shop="shop.name" />
         <form v-if="tab === 'settings' && canEdit && payment" class="lc-form payment-settings" @submit.prevent="savePayment">
           <span class="eyebrow">PAYMENT</span><h2>Cash on Delivery</h2><p class="muted">The rider records the amount at delivery. The Payment Entry is created after the shop confirms the cash handover.</p>
           <fieldset :disabled="paymentSaving" class="workspace-fields">

@@ -235,8 +235,8 @@ onBeforeUnmount(() => stopTracking('', false))
             <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
             <details><summary>{{ order.items.length }} product{{ order.items.length === 1 ? '' : 's' }} · {{ money(order.total, order.currency) }}</summary><ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }}</li></ul></details>
             <div v-if="order.status === 'Out for Delivery' && order.live_tracking_enabled" class="tracking-controls"><button v-if="trackingOrder !== order.name && !(order.scheduled_slot && trackingSlot === order.scheduled_slot)" type="button" @click="startTracking(order)">Resume live tracking</button><button v-else type="button" class="tracking-stop" @click="stopTracking()">Stop sharing</button><small>Your bike updates for the customer every 12 seconds and is removed after delivery.</small></div>
-            <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="requestAdvance(order)">{{ busyOrder === order.name ? 'Updating…' : order.status === 'Out for Delivery' ? 'Collect cash & confirm delivered' : labels[order.status] }} <span>›</span></button>
-            <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered · Cash {{ order.payment_status === 'Reconciled' ? 'handed over' : 'awaiting handover' }}{{ order.delivered_at ? ` · ${deliveredAt(order.delivered_at)}` : '' }}</p>
+            <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="requestAdvance(order)">{{ busyOrder === order.name ? 'Updating…' : order.status === 'Out for Delivery' ? (order.payment_method === 'Manual UPI' ? 'Verify OTP & deliver' : 'Collect cash & confirm delivered') : labels[order.status] }} <span>›</span></button>
+            <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered · {{ order.payment_method === 'Manual UPI' ? 'UPI paid' : order.payment_status === 'Reconciled' ? 'Cash handed over' : 'Cash awaiting handover' }}{{ order.delivered_at ? ` · ${deliveredAt(order.delivered_at)}` : '' }}</p>
             <p v-else-if="order.status === 'Cancelled'" class="muted">This order was cancelled.</p>
           </article>
         </div>
@@ -245,14 +245,14 @@ onBeforeUnmount(() => stopTracking('', false))
       </div>
     </div>
     <dialog ref="paymentDialog" class="payment-dialog" aria-labelledby="payment-title">
-      <div class="cash-symbol" aria-hidden="true">₹</div><span class="eyebrow">CASH ON DELIVERY</span><h2 id="payment-title">Confirm cash collection</h2>
-      <OrderReference v-if="collectingOrder" :order-id="collectingOrder.name" /><p v-if="collectingOrder">Collect <strong>{{ money(collectingOrder.total, collectingOrder.currency) }}</strong> from {{ collectingOrder.recipient }} before completing this delivery.</p>
-      <label class="cash-field">Cash received<input v-model="collectedAmount" type="number" min="0" step="0.01" inputmode="decimal" required></label>
-      <p v-if="collectingOrder && collectionVariance" class="variance-note" :class="{ shortage: collectionVariance < 0 }">{{ collectionVariance < 0 ? 'Short' : 'Extra' }} by {{ money(Math.abs(collectionVariance), collectingOrder.currency) }}</p>
-      <label v-if="collectionVariance" class="cash-field">Reason for difference<textarea v-model="collectionNote" maxlength="500" placeholder="Explain why the amount is different" required></textarea></label>
+      <div class="cash-symbol" aria-hidden="true">₹</div><span class="eyebrow">{{ collectingOrder?.payment_method }}</span><h2 id="payment-title">{{ collectingOrder?.payment_method === 'Manual UPI' ? 'Confirm delivery' : 'Confirm cash collection' }}</h2>
+      <OrderReference v-if="collectingOrder" :order-id="collectingOrder.name" /><p v-if="collectingOrder?.payment_method === 'Manual UPI'" class="success-note">UPI payment verified by the shop. Do not collect cash.</p><p v-else-if="collectingOrder">Collect <strong>{{ money(collectingOrder.total, collectingOrder.currency) }}</strong> from {{ collectingOrder.recipient }} before completing this delivery.</p>
+      <label v-if="collectingOrder?.payment_method !== 'Manual UPI'" class="cash-field">Cash received<input v-model="collectedAmount" type="number" min="0" step="0.01" inputmode="decimal" required></label>
+      <p v-if="collectingOrder?.payment_method !== 'Manual UPI' && collectionVariance" class="variance-note" :class="{ shortage: collectionVariance < 0 }">{{ collectionVariance < 0 ? 'Short' : 'Extra' }} by {{ money(Math.abs(collectionVariance), collectingOrder.currency) }}</p>
+      <label v-if="collectingOrder?.payment_method !== 'Manual UPI' && collectionVariance" class="cash-field">Reason for difference<textarea v-model="collectionNote" maxlength="500" placeholder="Explain why the amount is different" required></textarea></label>
       <label class="cash-field delivery-otp-field">Customer delivery OTP<input v-model="deliveryOtp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required @input="deliveryOtp = deliveryOtp.replace(/\D/g, '').slice(0, 6)"><small>Ask the customer for the code shown in My orders. It is not sent by email.</small></label>
       <p v-if="collectionError" class="lc-notice" role="alert">{{ collectionError }}</p>
-      <p class="muted">The shop owner will confirm your cash handover later. This step records the amount you received and submits the Sales Invoice.</p>
+      <p v-if="collectingOrder?.payment_method !== 'Manual UPI'" class="muted">The shop owner will confirm your cash handover later. This step records the amount you received and submits the Sales Invoice.</p>
       <div class="logout-actions"><button :disabled="!!busyOrder" @click="cancelCollection">Go back</button><button class="logout-confirm" :disabled="!!busyOrder" @click="confirmCollection">{{ busyOrder ? 'Verifying…' : 'Verify OTP & deliver' }}</button></div>
     </dialog>
   </section>

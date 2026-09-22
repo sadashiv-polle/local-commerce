@@ -37,7 +37,17 @@
     "reason",
     "fish_allocations_json",
     "delivery_mode",
-    "scheduled_slot"
+    "scheduled_slot",
+    "upi_id",
+    "upi_qr",
+    "upi_bank_account",
+    "upi_mode_of_payment",
+    "upi_proof",
+    "upi_reference",
+    "upi_review_note",
+    "upi_verified_by",
+    "upi_verified_at",
+    "upi_receipt_key"
   ],
   "fields": [
     {
@@ -126,14 +136,14 @@
       "fieldname": "payment_method",
       "label": "Payment Method",
       "fieldtype": "Select",
-      "options": "Cash on Delivery",
+      "options": "Cash on Delivery\nManual UPI",
       "read_only": 1
     },
     {
       "fieldname": "payment_status",
       "label": "Payment Status",
       "fieldtype": "Select",
-      "options": "Pending\nCollected\nReconciled",
+      "options": "Pending\nCollected\nReconciled\nAwaiting Verification\nPayment Rejected\nPaid",
       "read_only": 1
     },
     {
@@ -255,6 +265,81 @@
       "fieldtype": "Link",
       "options": "LC Delivery Slot",
       "read_only": 1
+    },
+    {
+      "fieldname": "upi_id",
+      "label": "Payee UPI ID",
+      "fieldtype": "Data",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "upi_qr",
+      "label": "Payee QR image",
+      "fieldtype": "Attach Image",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "upi_bank_account",
+      "label": "UPI bank account",
+      "fieldtype": "Link",
+      "options": "Account",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "upi_mode_of_payment",
+      "label": "UPI mode",
+      "fieldtype": "Link",
+      "options": "Mode of Payment",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "upi_proof",
+      "label": "Payment screenshot",
+      "fieldtype": "Attach Image",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "upi_reference",
+      "label": "Verified transaction reference",
+      "fieldtype": "Data",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "upi_review_note",
+      "label": "Payment review note",
+      "fieldtype": "Small Text",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "upi_verified_by",
+      "label": "Payment verified by",
+      "fieldtype": "Link",
+      "options": "User",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "upi_verified_at",
+      "label": "Payment verified at",
+      "fieldtype": "Datetime",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "upi_receipt_key",
+      "label": "UPI receipt key",
+      "fieldtype": "Data",
+      "unique": 1,
+      "hidden": 1,
+      "read_only": 1,
+      "no_copy": 1
     }
   ],
   "permissions": [

@@ -1,4 +1,5 @@
 <script setup>
+import ManualUpiPayment from './ManualUpiPayment.vue'
 import OrderReference from './OrderReference.vue'
 import { inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -135,8 +136,9 @@ onBeforeUnmount(() => {
         <fieldset :disabled="busy"><label v-for="line in weightedLines(order)" :key="line.index"><span>{{ order.items[line.index].name }} · {{ line.label }} × {{ line.packs }}</span><small>Estimated stock weight {{ line.estimated_weight }} kg · {{ line.billing === 'Pieces' ? `${money(line.piece_price, order.currency)} / piece (fixed price)` : `${money(line.rate_per_kg, order.currency)} / kg` }}</small><input :value="weightValue(order, line)" type="number" min="0.000001" step="0.001" required placeholder="Actual packed kg" @input="setWeight(order, line.index, $event.target.value)"></label></fieldset>
         <button class="lc-primary" :disabled="busy">{{ busy ? 'Saving…' : order.estimated ? 'Save weights & final bill' : 'Update packed weights & bill' }}</button>
       </form>
-      <p><strong>{{ order.estimated ? 'Estimated total' : 'Order total' }} {{ money(order.total, order.currency) }}</strong><br><small>Includes {{ money(order.taxes_and_charges, order.currency) }} in configured taxes and delivery charges. Payment is not collected online yet.</small></p>
-      <p class="payment-summary"><span><small>PAYMENT METHOD</small><strong>{{ order.payment_method }}</strong></span><span><small>PAYMENT STATUS</small><strong :class="{ paid: order.payment_status === 'Reconciled' }">{{ order.payment_status }}</strong></span></p>
+      <p><strong>{{ order.estimated ? 'Estimated total' : 'Order total' }} {{ money(order.total, order.currency) }}</strong><br><small>Includes {{ money(order.taxes_and_charges, order.currency) }} in configured taxes and delivery charges.</small></p>
+      <ManualUpiPayment :order="order" :editable="!!shop && editable" @updated="load" />
+      <p class="payment-summary"><span><small>PAYMENT METHOD</small><strong>{{ order.payment_method }}</strong></span><span><small>PAYMENT STATUS</small><strong :class="{ paid: ['Reconciled', 'Paid'].includes(order.payment_status) }">{{ order.payment_status }}</strong></span></p>
       <section v-if="!shop && order.delivery_otp" class="customer-delivery-otp" aria-label="Delivery confirmation code"><div><span aria-hidden="true">✓</span><div><small>DELIVERY CONFIRMATION</small><strong>{{ order.delivery_otp }}</strong></div></div><p>Share this code with the rider only after you receive your order. It is shown here instead of being sent by email.</p></section>
       <details><summary>Delivery details</summary><p>{{ order.address.line1 }}<br>{{ order.address.city }} · {{ order.address.postal_code }}<br><a :href="`tel:${order.phone}`">{{ order.phone }}</a></p></details>
       <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>

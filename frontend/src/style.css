@@ -836,3 +836,12 @@ html { scroll-behavior: smooth; }
 .scheduled-panel select, .scheduled-panel input, .scheduled-panel textarea { max-width: 100%; }
 .scheduled-panel .button-row { flex-wrap: wrap; gap: .75rem; }
 @media (max-width: 600px) { .scheduled-panel { padding: .85rem; } .scheduled-panel .form-columns { grid-template-columns: 1fr; } .scheduled-panel input[type="datetime-local"] { min-width: 0; width: 100%; } }
+
+/* Manual UPI: comfortably readable on phones and desktop. */
+.upi-payment { padding: 1.25rem; border: 1px solid #dce6db; border-radius: 20px; background: #f5faf3; margin-block: 1rem; min-width: 0; }
+.upi-qr { display: block; width: min(240px, 100%); height: auto; object-fit: contain; background: white; padding: 12px; border-radius: 16px; margin-block: 1rem; }
+.upi-id { overflow-wrap: anywhere; font-weight: 700; }
+.upi-upload { display: grid; gap: .65rem; margin-block: 1.25rem; }
+.upi-upload input { max-width: 100%; min-width: 0; }
+.upi-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.upi-payment fieldset { min-width: 0; }

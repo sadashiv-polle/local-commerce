@@ -143,3 +143,6 @@ for _fish_stock_doctype in ('Stock Entry', 'Delivery Note', 'Sales Invoice',
         _previous_cancel = [_previous_cancel]
     _stock_events['before_cancel'] = [*_previous_cancel,
                                       'local_commerce.services.fish.protect_cancel']
+
+doc_events["LC Shop"]["validate"].append("local_commerce.services.manual_upi.validate")
+has_permission["File"] = "local_commerce.services.manual_upi.file_permission"

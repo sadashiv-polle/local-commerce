@@ -13,6 +13,8 @@ const route = useRoute(), router = useRouter(), session = inject('session')
 const search = ref(''), category = ref(''), inStockOnly = ref(false)
 let searchTimer, catalogGeneration = 0, openedProduct = ''
 const catalog = ref(null), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
+const paymentMethod = ref('Cash on Delivery')
+watch(catalog, value => { if (value && !value.payment_methods.includes(paymentMethod.value)) paymentMethod.value = value.payment_methods[0] || '' })
 const deliveryMode = ref('Normal'), scheduledSlot = ref('')
 const cart = ref({}), pending = ref(null), checkout = ref(false), cartOpen = ref(false)
 const address = ref({ recipient: '', phone: '', line1: '', city: '', postal_code: '', latitude: null, longitude: null, delivery_instructions: '' })
@@ -163,7 +165,7 @@ async function place() {
   try {
     if (!pending.value) {
       const bytes = crypto.getRandomValues(new Uint8Array(20))
-      pending.value = { shop: route.params.shop, items: requestItems(), address: { ...address.value }, payment_method: 'Cash on Delivery', delivery_mode: deliveryMode.value, scheduled_slot: scheduledSlot.value, request_key: Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('') }
+      pending.value = { shop: route.params.shop, items: requestItems(), address: { ...address.value }, payment_method: paymentMethod.value, delivery_mode: deliveryMode.value, scheduled_slot: scheduledSlot.value, request_key: Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('') }
       try { sessionStorage.setItem(storageKey.value, JSON.stringify(pending.value)) }
       catch { pending.value = null; throw new Error('Enable session storage before sending an order request so retries are safe.') }
     }
@@ -263,7 +265,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-open-cart', openCartEvent
               <h3>Delivery details</h3><div v-if="savedAddresses.length" class="saved-address-picker"><label>Saved address<select v-model="selectedAddress" @change="applySavedAddress"><option v-for="savedAddress in savedAddresses" :key="savedAddress.name" :value="savedAddress.name">{{ savedAddress.address_label }} · {{ savedAddress.line1 }}</option></select></label><RouterLink to="/account">Manage addresses</RouterLink></div><div class="form-columns"><label>Recipient<input v-model="address.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="address.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div><label>Street address<input v-model="address.line1" required maxlength="140" autocomplete="address-line1"></label><div class="form-columns"><label>City<input v-model="address.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="address.postal_code" required maxlength="20" autocomplete="postal-code"></label></div>
               <section v-if="catalog.shop_location" class="checkout-location"><div class="location-heading"><div><strong>Pin your delivery location</strong><small>Inside {{ catalog.shop_location.service_radius_km }} km of the shop</small></div><button type="button" :disabled="locating" @click="useDeliveryLocation">{{ locating ? 'Finding…' : 'Use my location' }}</button></div><small class="coordinate-help">Tap the map to choose your exact delivery location.</small><MapView :config="catalog.map" :points="deliveryPoints" editable height="220px" @pick="pickDeliveryLocation" /><p v-if="outsideDeliveryRange" class="range-warning" role="alert"><strong>Outside delivery range</strong>Your address is approximately {{ deliveryDistance.toFixed(1) }} km from this shop. This shop currently delivers within {{ Number(catalog.shop_location.service_radius_km).toFixed(1) }} km. Choose a closer address or another shop.</p><p v-else-if="deliveryDistance != null" class="map-confirmation">✓ Within range · approximately {{ deliveryDistance.toFixed(1) }} km from the shop</p><p v-if="locationError" class="lc-notice" role="alert">{{ locationError }}</p></section>
               <label>Delivery instructions <small>(optional)</small><textarea v-model="address.delivery_instructions" maxlength="500" placeholder="Landmark, gate, floor, or how to find you"></textarea></label>
-              <div class="checkout-payment"><span aria-hidden="true">₹</span><div><strong>Cash on Delivery</strong><small>{{ catalog.payment_message }}</small></div><b>✓</b></div>
+              <label v-for="method in catalog.payment_methods" :key="method" class="checkout-payment"><input v-model="paymentMethod" type="radio" :value="method" name="payment-method"><div><strong>{{ method === 'Manual UPI' ? 'UPI · scan & pay' : method }}</strong><small>{{ method === 'Manual UPI' ? 'Pay after shop acceptance, then upload your screenshot from My orders.' : 'Pay the delivery person when your order arrives.' }}</small></div></label>
             </fieldset>
             <p v-if="error" class="checkout-error" role="alert">{{ error }}</p>
             <p v-if="!catalog.accepting_orders" class="muted">Your cart is saved. {{ catalog.availability.message }}.</p>

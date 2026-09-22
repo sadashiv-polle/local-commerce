@@ -44,7 +44,13 @@
     "cod_enabled",
     "cod_cash_account",
     "cod_mode_of_payment",
-    "scheduled_enabled"
+    "scheduled_enabled",
+    "upi_section",
+    "upi_enabled",
+    "upi_id",
+    "upi_qr",
+    "upi_bank_account",
+    "upi_mode_of_payment"
   ],
   "fields": [
     {
@@ -300,6 +306,38 @@
       "fieldtype": "Check",
       "default": "0",
       "permlevel": 1
+    },
+    {
+      "fieldname": "upi_section",
+      "label": "Manual UPI",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "upi_enabled",
+      "label": "Enable manual UPI",
+      "fieldtype": "Check"
+    },
+    {
+      "fieldname": "upi_id",
+      "label": "UPI ID",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "upi_qr",
+      "label": "UPI QR image",
+      "fieldtype": "Attach Image"
+    },
+    {
+      "fieldname": "upi_bank_account",
+      "label": "UPI receiving bank account",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "upi_mode_of_payment",
+      "label": "UPI mode of payment",
+      "fieldtype": "Link",
+      "options": "Mode of Payment"
     }
   ],
   "permissions": [
