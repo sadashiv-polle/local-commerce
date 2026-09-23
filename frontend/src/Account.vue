@@ -11,13 +11,16 @@ const data = ref(null), error = ref(''), saved = ref(''), loading = ref(false), 
 const editing = ref(false), editor = ref(null)
 let locationGeneration = 0
 const emptyAddress = () => ({ name: '', address_type: 'Home', address_label: 'Home', recipient: session.value?.full_name || '', phone: '', line1: '', city: '', postal_code: '', latitude: '', longitude: '', is_default: false })
-const form = ref(emptyAddress())
+const form = ref(emptyAddress()), selectedAddress = ref('')
 const addressPoints = computed(() => form.value.latitude != null && form.value.longitude != null && form.value.latitude !== '' && form.value.longitude !== '' && Number.isFinite(Number(form.value.latitude)) && Number.isFinite(Number(form.value.longitude)) ? [{ ...form.value, kind: 'customer', label: form.value.address_label || 'Saved address' }] : [])
+function syncSelection(event) { selectedAddress.value = typeof event.detail === 'string' ? event.detail : '' }
+onMounted(() => window.addEventListener('lc-address-change', syncSelection))
+onBeforeUnmount(() => window.removeEventListener('lc-address-change', syncSelection))
 function notifyAddress(name = '') { window.dispatchEvent(new CustomEvent('lc-address-change', { detail: name })) }
 
 async function load() {
   loading.value = true; error.value = ''
-  try { data.value = await call('customers.account', {}, true) }
+  try { data.value = await call('customers.account', {}, true); selectedAddress.value = sessionStorage.getItem(`lc-selected-address:${session.value.user}`) || '' }
   catch (e) { error.value = e.message }
   finally { loading.value = false }
 }
@@ -65,21 +68,21 @@ async function saveAddress() {
   busy.value = true; error.value = ''; saved.value = ''
   try {
     const result = await call('customers.save_address', form.value, true)
-    if (result.is_default) try { localStorage.setItem(`lc-address:${session.value.user}`, result.name) } catch { /* Server default remains available. */ }
-    await load(); notifyAddress(result.is_default ? result.name : ''); cancelEdit(); saved.value = 'Address saved.'
+    if (form.value.is_default) try { sessionStorage.setItem(`lc-selected-address:${session.value.user}`, result.name) } catch { /* Server default remains available. */ }
+    await load(); notifyAddress(form.value.is_default ? result.name : selectedAddress.value); cancelEdit(); saved.value = 'Address saved.'
   }
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
 async function setDefault(address) {
   busy.value = true; error.value = ''
-  try { await call('customers.save_address', { ...address, is_default: 1 }, true); try { localStorage.setItem(`lc-address:${session.value.user}`, address.name) } catch { /* Server default remains available. */ } await load(); notifyAddress(address.name); saved.value = `${address.address_label} is now your delivery address.` }
+  try { await call('customers.save_address', { ...address, is_default: 1 }, true); try { sessionStorage.setItem(`lc-selected-address:${session.value.user}`, address.name) } catch { /* Server default remains available. */ } await load(); notifyAddress(address.name); saved.value = `${address.address_label} is now your delivery address.` }
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
 async function archiveAddress(address) {
   busy.value = true; error.value = ''
-  try { await call('customers.archive_address', { name: address.name }, true); await load(); notifyAddress(data.value.addresses.find(row => row.is_default)?.name || ''); saved.value = 'Address removed.' }
+  try { await call('customers.archive_address', { name: address.name }, true); if (selectedAddress.value === address.name) sessionStorage.removeItem(`lc-selected-address:${session.value.user}`); await load(); notifyAddress(selectedAddress.value); saved.value = 'Address removed.' }
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
@@ -103,7 +106,7 @@ onBeforeUnmount(() => { locationGeneration++; window.removeEventListener('lc-add
         <section v-if="!editing" class="address-book">
           <div class="section-title"><div><span class="eyebrow">DELIVERY LOCATIONS</span><h2>Saved addresses</h2><p>Choose where nearby shops should deliver.</p></div><button class="lc-primary" :disabled="busy" @click="openNewAddress">+ Add address</button></div>
           <div v-if="data.addresses.length" class="address-grid">
-            <article v-for="address in data.addresses" :key="address.name" class="address-card" :class="{ default: address.is_default }"><header><span class="address-icon" aria-hidden="true">{{ address.address_type === 'Home' ? '⌂' : address.address_type === 'Work' ? '▦' : '⌖' }}</span><div><span class="eyebrow">{{ address.address_type }}</span><h3>{{ address.address_label }}</h3></div><span v-if="address.is_default" class="status-pill">Selected</span></header><strong>{{ address.recipient }}</strong><p>{{ address.line1 }}<br>{{ address.city }} · {{ address.postal_code }}</p><small>{{ address.phone }}</small><footer><button :disabled="busy" @click="editAddress(address)">Edit</button><button v-if="!address.is_default" :disabled="busy" @click="setDefault(address)">Use for delivery</button><button class="text-danger" :disabled="busy" @click="archiveAddress(address)">Remove</button></footer></article>
+            <article v-for="address in data.addresses" :key="address.name" class="address-card" :class="{ default: address.name === selectedAddress }"><header><span class="address-icon" aria-hidden="true">{{ address.address_type === 'Home' ? '⌂' : address.address_type === 'Work' ? '▦' : '⌖' }}</span><div><span class="eyebrow">{{ address.address_type }}</span><h3>{{ address.address_label }}</h3></div><span v-if="address.name === selectedAddress" class="status-pill">Selected</span></header><strong>{{ address.recipient }}</strong><p>{{ address.line1 }}<br>{{ address.city }} · {{ address.postal_code }}</p><small>{{ address.phone }}</small><footer><button :disabled="busy" @click="editAddress(address)">Edit</button><button v-if="address.name !== selectedAddress" :disabled="busy" @click="setDefault(address)">Use for delivery</button><button class="text-danger" :disabled="busy" @click="archiveAddress(address)">Remove</button></footer></article>
           </div>
           <p v-else class="lc-empty">Add Home, Work, or another address to discover shops that deliver nearby.</p>
         </section>

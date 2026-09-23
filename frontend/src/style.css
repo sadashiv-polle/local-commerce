@@ -853,3 +853,8 @@ html { scroll-behavior: smooth; }
 @media (max-width: 600px) { #lc-app .shop-order-tabs button { padding: 12px 10px; } #lc-app .shop-order-tabs strong { font-size: 14px; } }
 
 #lc-app .delivery-tabs button[aria-pressed="true"] { background: #176547; color: white; }
+
+#lc-app .customer-home-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; margin-bottom: 20px; border: 1px solid #dce6db; border-radius: 18px; background: #f0f6e9; }
+#lc-app .customer-home-actions small { display: block; margin-top: 4px; color: #64766a; }
+#lc-app .customer-home-actions a { white-space: nowrap; text-decoration: none; }
+@media (max-width: 480px) { #lc-app .customer-home-actions { padding: 12px; gap: 10px; } #lc-app .customer-home-actions small { font-size: 12px; } }

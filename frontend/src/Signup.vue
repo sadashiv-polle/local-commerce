@@ -1,4 +1,5 @@
 <script setup>
+import { clearDeliverySelection } from './address-selection.js'
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { call } from './api.js'
@@ -15,6 +16,7 @@ async function signup() {
       challenge.value = result.challenge_id; message.value = result.message
     } else {
       await call('customers.complete_signup', { challenge_id: challenge.value, code: code.value, password: password.value }, true)
+      clearDeliverySelection(window.sessionStorage)
       password.value = ''; confirmation.value = ''
       window.location.replace('/local-commerce#' + next); window.location.reload()
     }

@@ -70,24 +70,25 @@ async function loadAddresses() {
   if (session.value.user === 'Guest' || !session.value.roles.includes('LC Customer')) { await load(); return }
   try {
     addresses.value = await call('customers.addresses')
-    const key = `lc-address:${session.value.user}`
+    const key = `lc-selected-address:${session.value.user}`
     let remembered = ''
-    try { remembered = localStorage.getItem(key) || '' } catch { /* Use the server default. */ }
-    selectedAddress.value = addresses.value.some(address => address.name === remembered) ? remembered : addresses.value.find(address => address.is_default)?.name || addresses.value[0]?.name || ''
+    try { remembered = sessionStorage.getItem(key) || '' } catch { /* Leave the address unselected. */ }
+    selectedAddress.value = addresses.value.some(address => address.name === remembered) ? remembered : ''
   } catch { addresses.value = []; selectedAddress.value = '' }
   await load()
   await loadCustomerPicks()
 }
 async function selectAddress() {
   start.value = 0
-  try { localStorage.setItem(`lc-address:${session.value.user}`, selectedAddress.value) } catch { /* Selection still works for this page. */ }
+  try { sessionStorage.setItem(`lc-selected-address:${session.value.user}`, selectedAddress.value) } catch { /* Selection still works for this page. */ }
   window.dispatchEvent(new CustomEvent('lc-address-change', { detail: selectedAddress.value }))
   await load()
 }
 watch(activeAddress, scheduleProductSearch)
 watch(selectedAddress, loadCustomerPicks)
 watch(() => session.value.user, loadAddresses)
-onMounted(loadAddresses)
+onMounted(() => { loadAddresses(); window.addEventListener('lc-address-change', loadAddresses) })
+onBeforeUnmount(() => window.removeEventListener('lc-address-change', loadAddresses))
 function clearCategory() {
   activeCategory.value = ''; scheduleProductSearch()
   const query = { ...route.query }; delete query.category
@@ -102,6 +103,7 @@ const browse = ref(null)
 
 <template>
   <div class="store-page">
+    <section v-if="session.user !== 'Guest' && session.roles.includes('LC Customer')" class="customer-home-actions"><div><strong>Welcome back</strong><small>Check your orders and delivery updates.</small></div><RouterLink to="/orders" class="lc-primary">My orders <span aria-hidden="true">→</span></RouterLink></section>
     <section v-if="session.user === 'Guest'" class="store-hero">
       <div><span class="eyebrow">GOOD THINGS, CLOSE TO HOME</span><h1>Your neighbourhood.<br>Your everyday essentials.</h1><p>Fresh finds and familiar favourites.<br>Discover a better way to shop local.</p><button class="primary" @click="browse?.scrollIntoView()">Explore the neighbourhood <span>↗</span></button></div>
       <div class="hero-art" aria-hidden="true"><span class="art-label">FRESH · LOCAL · EVERYDAY</span><div class="produce">🥬<span>🍊</span>🥖</div><div class="market-bag">local<span>good things inside.</span></div><span class="art-sticker">A little<br>closer.</span></div>
@@ -119,7 +121,7 @@ const browse = ref(null)
     <section ref="browse" class="browse-section">
       <div class="section-title"><h2>Explore local shops</h2><RouterLink to="/orders">My orders →</RouterLink></div>
       <div>
-        <div v-if="addresses.length" class="delivery-location-bar"><span class="address-icon" aria-hidden="true">⌖</span><label><small>DELIVERING TO</small><select v-model="selectedAddress" :disabled="loading" @change="selectAddress"><option v-for="address in addresses" :key="address.name" :value="address.name">{{ address.address_label }} · {{ address.line1 }}</option></select></label><RouterLink to="/account">Manage</RouterLink></div>
+        <div v-if="addresses.length" class="delivery-location-bar"><span class="address-icon" aria-hidden="true">⌖</span><label><small>DELIVERING TO</small><select v-model="selectedAddress" :disabled="loading" @change="selectAddress"><option value="" disabled>Choose delivery address</option><option v-for="address in addresses" :key="address.name" :value="address.name">{{ address.address_label }} · {{ address.line1 }}</option></select></label><RouterLink to="/account">Manage</RouterLink></div>
         <div v-else class="delivery-location-bar"><span class="address-icon" aria-hidden="true">⌖</span><div><strong>Choose your delivery location</strong><small>Save an address to see shops that deliver nearby.</small></div><RouterLink :to="session.user === 'Guest' ? '/login?next=/account' : '/account'">{{ session.user === 'Guest' ? 'Login' : 'Add address' }} →</RouterLink></div>
         <p v-if="activeAddress" class="nearby-summary">Showing shops near <strong>{{ activeAddress.address_label }}</strong>, sorted by delivery availability and distance.</p>
         <p v-if="error" role="alert" class="lc-notice">{{ error }}</p><p v-if="loading" role="status">Loading shops…</p>

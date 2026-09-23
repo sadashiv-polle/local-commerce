@@ -1,4 +1,5 @@
 <script setup>
+import { clearDeliverySelection } from './address-selection.js'
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { authenticate, call } from './api.js'
@@ -20,6 +21,7 @@ async function submit() {
     password.value = ''
     if (result.verification) { challenge.value = result; return }
     // Reload session/CSRF and resolve the Customer before returning to checkout.
+    clearDeliverySelection(window.sessionStorage)
     const session = await call('session.context')
     window.location.replace('/local-commerce#' + loginDestination(session, candidate))
     window.location.reload()
