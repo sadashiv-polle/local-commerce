@@ -1,14 +1,14 @@
 <script setup>
 import ManualUpiPayment from './ManualUpiPayment.vue'
 import OrderReference from './OrderReference.vue'
-import { inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { writeCart } from './cart.js'
 import AuthChoices from './AuthChoices.vue'
 import { call } from './api.js'
 import MapView from './MapView.vue'
 
-const session = inject('session'), router = useRouter()
+const session = inject('session'), router = useRouter(), route = useRoute()
 const reorderDialog = ref(null), reorder = ref(null), reorderBusy = ref(false), reorderError = ref('')
 async function reviewReorder(order) {
   reorderBusy.value = true; error.value = ''; reorderError.value = ''
@@ -32,6 +32,11 @@ function confirmReorder() {
   } catch { reorderError.value = 'Your cart could not be saved. Please try again.' }
 }
 const props = defineProps({ shop: { type: String, default: '' }, editable: Boolean })
+const deliveryTab = computed(() => route.query.order_type === 'scheduled' ? 'Scheduled' : 'Normal')
+function selectDeliveryTab(mode) {
+  if (busy.value || mode === deliveryTab.value) return
+  router.replace({ query: { ...route.query, order_type: mode.toLowerCase() } })
+}
 const orders = ref([]), drivers = ref([]), selectedDrivers = ref({}), start = ref(0)
 const error = ref(''), loading = ref(false), busy = ref(false), reasons = ref({})
 const routes = ref({}), routeErrors = ref({})
@@ -80,7 +85,7 @@ async function load(delta = 0) {
   const current = ++generation
   start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
   try {
-    const requests = [call('orders.list_orders', { ...(props.shop ? { shop: props.shop } : {}), start: start.value })]
+    const requests = [call('orders.list_orders', { ...(props.shop ? { shop: props.shop, delivery_mode: deliveryTab.value } : {}), start: start.value })]
     if (props.shop && props.editable) requests.push(call('orders.drivers', { shop: props.shop }))
     const [result, availableDrivers = []] = await Promise.all(requests)
     if (current === generation) {
@@ -107,7 +112,7 @@ async function assign(order) {
   finally { busy.value = false }
 }
 function refreshOrders() { load() }
-watch(() => props.shop, () => { start.value = 0; load() }, { immediate: true })
+watch(() => [props.shop, props.shop ? deliveryTab.value : null], () => { start.value = 0; orders.value = []; load() }, { immediate: true })
 onMounted(() => {
   window.addEventListener('lc-orders-change', refreshOrders)
   refreshTimer = window.setInterval(() => { if (!props.shop && !loading.value && !busy.value && orders.value.some(order => !['Delivered', 'Cancelled'].includes(order.status))) load() }, 10000)
@@ -122,9 +127,13 @@ onBeforeUnmount(() => {
   <AuthChoices v-if="session.user === 'Guest'" />
   <section v-else class="orders-page">
     <div class="inventory-heading"><div><span class="eyebrow">DELIVERY ORDERS</span><h2>{{ shop ? 'Your orders' : 'My orders' }}</h2><p>{{ shop ? 'Prepare each order, assign a rider, and follow it through delivery.' : 'Track every step from shop confirmation to delivery.' }}</p></div><button :disabled="loading || busy" @click="load()">Refresh orders</button></div>
+    <div v-if="shop" class="shop-order-tabs" role="group" aria-label="Delivery booking type">
+      <button v-for="mode in ['Normal', 'Scheduled']" :key="mode" type="button" :class="{ active: deliveryTab === mode }" :aria-pressed="deliveryTab === mode" :disabled="busy" @click="selectDeliveryTab(mode)"><strong>{{ mode }} orders</strong><small>{{ mode === 'Normal' ? 'Individual deliveries' : 'Time slots & delivery batches' }}</small></button>
+    </div>
+    <template v-if="shop && deliveryTab === 'Scheduled'"><slot name="batches" :refresh="load" /><p class="muted">Accept each request below, then manage preparation and dispatch together using the batch controls.</p></template>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
     <p v-if="loading" role="status">Loading orders…</p>
-    <p v-else-if="!orders.length" class="lc-empty">No delivery orders yet.</p>
+    <p v-else-if="!orders.length" class="lc-empty">{{ shop ? `No ${deliveryTab.toLowerCase()} orders yet.` : 'No delivery orders yet.' }}</p>
     <article v-for="order in orders" :key="order.name" class="order-card">
       <OrderReference :order-id="order.name" />
       <div class="workspace-heading"><div><span class="eyebrow">{{ order.shop_name }}</span><h3>{{ order.recipient }}</h3><small>{{ order.created }}</small></div><span class="status-pill">{{ order.status }}</span></div>

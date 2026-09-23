@@ -944,7 +944,7 @@ def delivery_route(order):
     return road_route(origin, destination)
 
 
-def list_orders(shop=None, start=0, status=None):
+def list_orders(shop=None, start=0, status=None, delivery_mode=None):
     if shop:
         require_shop(shop)
         filters = {"shop": shop}
@@ -956,6 +956,10 @@ def list_orders(shop=None, start=0, status=None):
         if status not in valid_statuses:
             reject("Invalid order status")
         filters["status"] = status
+    if delivery_mode:
+        if delivery_mode not in {"Normal", "Scheduled"}:
+            reject("Invalid delivery booking type")
+        filters["delivery_mode"] = delivery_mode
     names = frappe.get_all(
         "LC Order",
         filters=filters,
