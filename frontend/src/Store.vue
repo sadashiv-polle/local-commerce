@@ -103,6 +103,7 @@ const browse = ref(null)
 
 <template>
   <div class="store-page">
+    <div class="store-map-link"><RouterLink to="/store/map">⌖ Map view · Explore shops</RouterLink></div>
     <section v-if="session.user !== 'Guest' && session.roles.includes('LC Customer')" class="customer-home-actions"><div><strong>Welcome back</strong><small>Check your orders and delivery updates.</small></div><RouterLink to="/orders" class="lc-primary">My orders <span aria-hidden="true">→</span></RouterLink></section>
     <section v-if="session.user === 'Guest'" class="store-hero">
       <div><span class="eyebrow">GOOD THINGS, CLOSE TO HOME</span><h1>Your neighbourhood.<br>Your everyday essentials.</h1><p>Fresh finds and familiar favourites.<br>Discover a better way to shop local.</p><button class="primary" @click="browse?.scrollIntoView()">Explore the neighbourhood <span>↗</span></button></div>

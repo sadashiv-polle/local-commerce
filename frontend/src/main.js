@@ -19,6 +19,7 @@ import './responsive.css'
 const router = createRouter({ history: createWebHashHistory(), scrollBehavior: (to, from, saved) => saved || (to.path === from.path ? false : { top: 0 }), routes: [
   { path: '/', component: Store },
   { path: '/store', component: Store },
+  { path: '/store/map', component: () => import('./ShopMap.vue') },
   { path: '/categories', component: StoreCategories },
   { path: '/store-settings', component: StoreSettings },
   { path: '/store/:shop', name: 'customer-shop', component: CustomerShop },

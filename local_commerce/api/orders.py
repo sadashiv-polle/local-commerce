@@ -121,3 +121,11 @@ def search_products(search, start=0, latitude=None, longitude=None, category="")
 @frappe.whitelist(allow_guest=True, methods=["GET"])
 def product(shop, item):
     return orders.public_product(shop, item)
+
+
+@frappe.whitelist(allow_guest=True, methods=["GET"])
+@rate_limit(limit=180, seconds=3600)
+def map_shops(south, west, north, east):
+    from local_commerce.services.shop_map_discovery import shops
+
+    return shops(south, west, north, east)
