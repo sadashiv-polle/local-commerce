@@ -22,8 +22,10 @@ class TestShopMapDiscovery(unittest.TestCase):
     def test_viewport_only_returns_active_shops_with_bounded_payload(self):
         self.ns['shops'](15, 73, 16, 74)
         args = self.frappe.get_all.call_args.kwargs
-        self.assertEqual(args['filters'], {'status': 'Active', 'latitude': ['between', [15, 16]],
-                                          'longitude': ['between', [73, 74]]})
+        self.assertEqual(args['filters'], [
+            ['status', '=', 'Active'], ['latitude', '>=', 15], ['latitude', '<=', 16],
+            ['longitude', '>=', 73], ['longitude', '<=', 74],
+        ])
         self.assertEqual(args['limit_page_length'], 501)
         self.assertEqual(args['fields'], ['name', 'shop_name'])
 

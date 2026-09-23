@@ -23,8 +23,11 @@ def viewport(south, west, north, east):
 def shops(south, west, north, east):
     south, west, north, east = viewport(south, west, north, east)
     rows = frappe.get_all(
-        "LC Shop", filters={"status": "Active", "latitude": ["between", [south, north]],
-                            "longitude": ["between", [west, east]]},
+        "LC Shop", filters=[
+            ["status", "=", "Active"],
+            ["latitude", ">=", south], ["latitude", "<=", north],
+            ["longitude", ">=", west], ["longitude", "<=", east],
+        ],
         fields=SHOP_LISTING_FIELDS, order_by="shop_name asc, name asc", limit_page_length=501,
     )
     return {"shops": [shop for row in rows[:500]
