@@ -104,10 +104,10 @@ const browse = ref(null)
 <template>
   <div class="store-page">
     <section class="home-shortcuts" aria-label="Shopping shortcuts">
-      <div class="home-shortcuts-intro"><span class="eyebrow">YOUR LOCAL, EVERY DAY</span><h2>{{ session.user !== 'Guest' && session.roles.includes('LC Customer') ? 'Welcome back' : 'Good shops. Close by.' }}</h2><p>{{ session.user !== 'Guest' && session.roles.includes('LC Customer') ? 'Your next order is just around the corner.' : 'Find something local on the map.' }}</p></div>
+      <div class="home-shortcuts-intro"><h2>{{ session.user !== 'Guest' && session.roles.includes('LC Customer') ? 'Welcome back' : 'Explore your neighbourhood' }}</h2></div>
       <nav class="home-shortcut-links" aria-label="Quick links">
-        <RouterLink v-if="session.user !== 'Guest' && session.roles.includes('LC Customer')" to="/orders" class="home-shortcut home-shortcut-orders"><span class="home-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14l1 13H4L5 7Z"/><path d="M8 8V6a4 4 0 0 1 8 0v2m-8 6 3 3 5-5"/></svg></span><span class="home-shortcut-copy"><strong>My orders</strong><small>Track your deliveries</small></span><span class="home-shortcut-arrow" aria-hidden="true">↗</span></RouterLink>
-        <RouterLink to="/store/map" class="home-shortcut home-shortcut-map"><span class="home-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5Zm6-2v16m6-14v16"/></svg></span><span class="home-shortcut-copy"><strong>Explore map</strong><small>Discover shops nearby</small></span><span class="home-shortcut-arrow" aria-hidden="true">↗</span></RouterLink>
+        <RouterLink v-if="session.user !== 'Guest' && session.roles.includes('LC Customer')" to="/orders" class="home-shortcut home-shortcut-orders"><span class="home-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14l1 13H4L5 7Z" /><path d="M8 8V6a4 4 0 0 1 8 0v2m-8 6 3 3 5-5" /></svg></span><span class="home-shortcut-copy"><strong>My orders</strong></span><span class="home-shortcut-arrow" aria-hidden="true">↗</span></RouterLink>
+        <RouterLink to="/store/map" class="home-shortcut home-shortcut-map"><span class="home-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5Zm6-2v16m6-14v16" /></svg></span><span class="home-shortcut-copy"><strong>Explore map</strong></span><span class="home-shortcut-arrow" aria-hidden="true">↗</span></RouterLink>
       </nav>
     </section>
     <section v-if="session.user === 'Guest'" class="store-hero">
