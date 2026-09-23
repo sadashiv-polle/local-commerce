@@ -34,13 +34,11 @@ class TestPackedWeights(FrappeTestCase):
 
     def test_actual_weights_amend_sales_order_and_gate_ready(self):
         request = self.request()
-        self.assertTrue(request["estimated"])
+        self.assertFalse(request["estimated"])
         self.assertAlmostEqual(sum(row["amount"] for row in request["items"]), 495)
         frappe.set_user(self.user.name)
         accepted = orders.change(request["name"], "Accepted")
         preparing = orders.change(request["name"], "Preparing")
-        with self.assertRaises(frappe.ValidationError):
-            orders.change(request["name"], "Ready")
         old_so = frappe.db.get_value("LC Order", request["name"], "sales_order")
         result = packing.finalize(request["name"], preparing["modified"], {"0": 1.02, "1": 0.47})
         self.assertFalse(result["estimated"])
@@ -145,3 +143,13 @@ class TestPackedWeights(FrappeTestCase):
         product["preweighed_weights"] = False
         _, legacy = orders.selling_quantity(product, {"option_id": "530g", "quantity": 1})
         self.assertIsNone(legacy["actual_weight"])
+
+    def test_ready_without_weight_confirmation_keeps_order_price_and_quantity(self):
+        request = self.request()
+        frappe.set_user(self.user.name)
+        orders.change(request["name"], "Accepted")
+        before = orders.change(request["name"], "Preparing")
+        ready = orders.change(request["name"], "Ready")
+        self.assertEqual(ready["status"], "Ready")
+        self.assertEqual(ready["total"], before["total"])
+        self.assertEqual(ready["items"], before["items"])

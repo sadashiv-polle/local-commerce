@@ -2,7 +2,6 @@
 
 import hashlib
 import io
-import json
 import re
 from html import escape
 
@@ -138,10 +137,7 @@ def locked_order(order):
 
 
 def payable(doc):
-    return doc.status in {"Accepted", "Preparing", "Ready"} and not any(
-        line.get("option_id") and line.get("actual_weight") is None
-        for line in json.loads(doc.get("selling_lines_json") or "[]")
-    )
+    return doc.status in {"Accepted", "Preparing", "Ready"}
 
 
 def upload_proof(order):
@@ -151,7 +147,7 @@ def upload_proof(order):
     if frappe.session.user == "Guest" or doc.customer_user != frappe.session.user:
         frappe.throw("Only the order customer can upload payment proof", frappe.PermissionError)
     if not payable(doc) or doc.payment_status not in {"Pending", "Payment Rejected"}:
-        reject("Wait for acceptance and final weights, or the shop's payment review")
+        reject("Wait for acceptance or the shop's payment review")
     token = orders._order_operation.set(True)
     try:
         doc.upi_proof = save_image("LC Order", doc.name, True)

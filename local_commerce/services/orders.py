@@ -790,8 +790,8 @@ def authorize(doc, write=False):
 def serialize(doc):
     so = frappe.get_doc("Sales Order", doc.sales_order)
     selling_lines = json.loads(doc.get("selling_lines_json") or "[]")
-    estimated = any(line.get("option_id") and line.get("actual_weight") is None
-                    for line in selling_lines)
+    # Fulfil using the quantity and price already recorded on the Sales Order.
+    estimated = False
     shop = frappe.get_doc("LC Shop", doc.shop)
     try:
         destination_location = point(doc.destination_latitude, doc.destination_longitude)
@@ -1250,11 +1250,6 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
         starts = frappe.db.get_value('LC Delivery Slot', doc.scheduled_slot, 'delivery_start')
         if now_datetime() < get_datetime(starts):
             reject('Scheduled delivery starts at ' + str(starts))
-    if target == "Ready" and any(
-        line.get("option_id") and line.get("actual_weight") is None
-        for line in json.loads(doc.get("selling_lines_json") or "[]")
-    ):
-        reject("Enter and save the actual packed weights before marking this order Ready")
     token = _order_operation.set(True)
     owner_token = _owner_operation.set(True)
     try:
@@ -1497,11 +1492,6 @@ def change(order, target, reason=""):
         reject(str(exc))
     if not changed:
         return serialize(doc)
-    if target == "Ready" and any(
-        line.get("option_id") and line.get("actual_weight") is None
-        for line in json.loads(doc.get("selling_lines_json") or "[]")
-    ):
-        reject("Enter and save the actual packed weights before marking this order Ready")
     from local_commerce.services import fish
 
     if target in {"Accepted", "Ready"}:

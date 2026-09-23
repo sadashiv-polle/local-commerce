@@ -13,7 +13,7 @@ Cash on Delivery and manual UPI can be enabled independently. Both normal and
 scheduled bookings support either enabled method.
 
 1. Customer selects UPI at checkout and places the order.
-2. Shop accepts it and finalizes any required packed weights.
+2. Shop accepts it. Payment uses the amount recorded on the order.
 3. In My orders, the customer sees the final amount, QR and UPI ID. The customer
    pays externally, then uploads a JPG, PNG or WebP screenshot (up to 5 MB).
 4. Shop opens the order, checks the **actual bank receipt**, enters its transaction
@@ -39,7 +39,7 @@ not included in this release and need administrator assistance.
 ## Verification
 
 Local unit checks cover review state, access restrictions, replay protection,
-duplicate references and waiting for final weights. A full ERPNext test is provided
+duplicate references and waiting for shop acceptance. A full ERPNext test is provided
 for a **disposable test site** (not the production shop):
 
 ```sh

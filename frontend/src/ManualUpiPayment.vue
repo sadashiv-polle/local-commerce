@@ -22,7 +22,7 @@ async function review(approve) {
     <span class="eyebrow">UPI PAYMENT</span><h3>{{ order.payment_status === 'Paid' ? 'Payment verified' : order.payment_status === 'Awaiting Verification' ? 'Payment under review' : 'Scan, pay & upload proof' }}</h3>
     <p v-if="order.payment_status === 'Paid'" class="success-note">{{ amount }} received · No cash due at delivery.</p>
     <p v-else-if="order.payment_status === 'Awaiting Verification'">{{ editable ? 'Check the actual credit in your bank account. A screenshot alone does not confirm payment.' : 'Your screenshot was sent. Please wait for the shop to verify it; do not pay again.' }}</p>
-    <p v-else-if="!order.upi.payable">Wait for the shop to accept your order and confirm the final amount before paying.</p>
+    <p v-else-if="!order.upi.payable">Wait for the shop to accept your order before paying.</p>
     <template v-else-if="!editable">
       <p>Pay <strong>{{ amount }}</strong> to <strong>{{ order.shop_name }}</strong>. Check the payee shown in your UPI app.</p>
       <img v-if="order.upi.qr" :src="order.upi.qr" alt="Scan this QR in your UPI app" class="upi-qr">

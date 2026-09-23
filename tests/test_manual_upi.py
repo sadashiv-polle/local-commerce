@@ -44,13 +44,13 @@ class ManualUpiTests(unittest.TestCase):
                        save=Mock(), reload=Mock(), add_comment=Mock())
         self.frappe.get_doc.return_value = self.doc
 
-    def test_payment_only_after_acceptance_and_final_weights(self):
+    def test_payment_after_acceptance_does_not_require_weight_check(self):
         for status in ['Requested', 'Cancelled', 'Delivered', 'Out for Delivery']:
             self.doc.status = status
             self.assertFalse(self.service.payable(self.doc))
         self.doc.status = 'Accepted'
         self.doc.selling_lines_json = json.dumps([{'option_id': 'kg', 'actual_weight': None}])
-        self.assertFalse(self.service.payable(self.doc))
+        self.assertTrue(self.service.payable(self.doc))
         self.doc.selling_lines_json = json.dumps([{'option_id': 'kg', 'actual_weight': .53}])
         self.assertTrue(self.service.payable(self.doc))
 
