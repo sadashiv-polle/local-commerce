@@ -851,3 +851,5 @@ html { scroll-behavior: smooth; }
 #lc-app .shop-order-tabs button.active { background: #fff; color: #176547; border-color: #c9ddcd; box-shadow: 0 2px 8px #173e2110; }
 #lc-app .shop-order-tabs small { font-size: 12px; font-weight: 400; }
 @media (max-width: 600px) { #lc-app .shop-order-tabs button { padding: 12px 10px; } #lc-app .shop-order-tabs strong { font-size: 14px; } }
+
+#lc-app .delivery-tabs button[aria-pressed="true"] { background: #176547; color: white; }

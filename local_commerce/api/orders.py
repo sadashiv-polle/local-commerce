@@ -76,8 +76,8 @@ def delivery_profile():
 
 
 @frappe.whitelist()
-def delivery_assignments(start=0, view="active"):
-    return orders.delivery_assignments(start, view)
+def delivery_assignments(start=0, view="active", delivery_mode=None):
+    return orders.delivery_assignments(start, view, delivery_mode)
 
 
 @frappe.whitelist(methods=["POST"])

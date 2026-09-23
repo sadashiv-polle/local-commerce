@@ -1,12 +1,18 @@
 <script setup>
 import OrderReference from './OrderReference.vue'
-import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { call } from './api.js'
 import MapView from './MapView.vue'
 import ScheduledRoute from './ScheduledRoute.vue'
 import { forgetTracking, rememberTracking, savedTracking } from './tracking.js'
 
-const session = inject('session')
+const session = inject('session'), route = useRoute(), router = useRouter()
+const deliveryTab = computed(() => route.query.delivery_type === 'scheduled' ? 'Scheduled' : 'Normal')
+function switchDeliveryTab(mode) {
+  if (busyOrder.value || deliveryTab.value === mode) return
+  router.replace({ query: { ...route.query, delivery_type: mode.toLowerCase() } })
+}
 const batchSlots = ref([])
 async function openBatchOrder(name) {
   try { const order = await call('orders.detail', { order: name }); assignments.value = [order, ...assignments.value.filter(row => row.name !== name)]; await nextTick(); document.getElementById(`delivery-${name}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) } catch(e) { error.value = e.message }
@@ -51,17 +57,25 @@ async function ensureRoute(order) {
   finally { routeRequests.delete(order.name) }
 }
 function loadRoutes(rows) { for (const order of rows) ensureRoute(order) }
+let loadGeneration = 0
 async function load(delta = 0) {
   if (!allowed.value) return false
+  const generation = ++loadGeneration
   start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
   try {
-    assignments.value = await call('orders.delivery_assignments', { start: start.value, view: view.value })
-    batchSlots.value = view.value === 'active' ? (await call('scheduled.rider_batches')).map(row => row.scheduled_slot) : []
-    loadRoutes(assignments.value)
+    const [rows, batches] = await Promise.all([
+      call('orders.delivery_assignments', { start: start.value, view: view.value, delivery_mode: deliveryTab.value }),
+      deliveryTab.value === 'Scheduled' && view.value === 'active' ? call('scheduled.rider_batches') : Promise.resolve([]),
+    ])
+    if (generation !== loadGeneration) return false
+    assignments.value = rows
+    batchSlots.value = batches.map(row => row.scheduled_slot)
+    loadRoutes(rows)
     return true
-  } catch (e) { error.value = e.message; return false }
-  finally { loading.value = false }
+  } catch (e) { if (generation === loadGeneration) error.value = e.message; return false }
+  finally { if (generation === loadGeneration) loading.value = false }
 }
+watch(deliveryTab, () => { start.value = 0; assignments.value = []; batchSlots.value = []; load() })
 async function loadProfile() {
   if (!allowed.value) return
   try { profile.value = await call('orders.delivery_profile') }
@@ -72,7 +86,7 @@ async function resumeBatchTracking(slot) {
 }
 async function batchChanged(result) { await refresh(); if (result?.target === 'Out for Delivery') await resumeBatchTracking(result.slot) }
 async function refresh() { await Promise.all([load(), loadProfile()]) }
-async function switchView(target) { view.value = target; start.value = 0; await load() }
+async function switchView(target) { if (busyOrder.value || view.value === target) return; view.value = target; start.value = 0; assignments.value = []; batchSlots.value = []; await load() }
 async function advance(order, payment = {}, showCollectionError = false) {
   busyOrder.value = order.name; error.value = ''
   try {
@@ -223,10 +237,12 @@ onBeforeUnmount(() => stopTracking('', false))
         <div v-if="profile?.cash_pending.length" class="rider-cash-summary"><div><span aria-hidden="true">₹</span><div><strong>Cash to hand over</strong><small>Give each amount to its shop owner.</small></div></div><div class="rider-cash-lines"><p v-for="cash in profile.cash_pending" :key="`${cash.shop}:${cash.currency}`"><small>{{ cash.shop_name }}</small>{{ money(cash.amount, cash.currency) }}</p></div></div>
 
         <div class="delivery-section-heading"><div><span class="eyebrow">YOUR ROUTE</span><h2>{{ view === 'active' ? 'Active deliveries' : 'Delivery history' }}</h2></div><button :disabled="loading || busyOrder" @click="refresh">Refresh</button></div>
-        <div class="delivery-tabs" role="tablist" aria-label="Delivery lists"><button role="tab" :aria-selected="view === 'active'" @click="switchView('active')">Active <span>{{ profile?.metrics.active || 0 }}</span></button><button role="tab" :aria-selected="view === 'history'" @click="switchView('history')">History <span>{{ profile?.metrics.delivered || 0 }}</span></button></div>
+        <div class="shop-order-tabs" role="group" aria-label="Delivery booking type"><button v-for="mode in ['Normal', 'Scheduled']" :key="mode" type="button" :class="{ active: deliveryTab === mode }" :aria-pressed="deliveryTab === mode" :disabled="!!busyOrder" @click="switchDeliveryTab(mode)"><strong>{{ mode }} deliveries</strong><small>{{ mode === 'Normal' ? 'Individual pickups & drop-offs' : 'Batch routes & delivery stops' }}</small></button></div>
+        <div class="delivery-tabs" role="group" aria-label="Delivery lists"><button :aria-pressed="view === 'active'" :disabled="!!busyOrder" @click="switchView('active')">Active</button><button :aria-pressed="view === 'history'" :disabled="!!busyOrder" @click="switchView('history')">History</button></div>
+        <p class="muted">{{ deliveryTab === 'Scheduled' ? 'Follow the recommended batch route, or open any stop to complete its delivery.' : 'Manage each pickup and delivery individually.' }}</p>
         <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
         <p v-if="loading" role="status">Loading your deliveries…</p>
-        <p v-else-if="!assignments.length" class="lc-empty">{{ view === 'active' ? 'No active deliveries right now.' : 'No completed deliveries yet.' }}</p>
+        <p v-else-if="!assignments.length" class="lc-empty">{{ view === 'active' ? `No active ${deliveryTab.toLowerCase()} deliveries right now.` : `No ${deliveryTab.toLowerCase()} delivery history yet.` }}</p>
         <div v-else class="delivery-list">
           <ScheduledRoute v-for="slot in batchSlots" :key="slot" :slot-name="slot" :rider-location="trackingSlot === slot ? riderLocation : null" manageable @open-order="openBatchOrder" @changed="batchChanged" @resume-tracking="resumeBatchTracking" /><article v-for="order in assignments" :id="`delivery-${order.name}`" :key="order.name" class="delivery-card" :class="{ finished: ['Delivered', 'Cancelled'].includes(order.status) }">
             <OrderReference :order-id="order.name" /><header><div><span class="eyebrow" :title="order.name">{{ order.shop_name }}</span><h2>{{ order.recipient }}</h2></div><span class="status-pill">{{ order.status }}</span></header>

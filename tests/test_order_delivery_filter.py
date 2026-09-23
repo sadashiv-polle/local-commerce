@@ -45,3 +45,33 @@ class TestOrderDeliveryFilter(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.list_orders(shop='other-shop', delivery_mode='Scheduled')
         self.frappe.get_all.assert_not_called()
+
+
+class TestRiderDeliveryFilter(unittest.TestCase):
+    def test_modes_history_and_pagination_preserve_rider_scope(self):
+        tree = ast.parse((Path(__file__).resolve().parents[1] /
+                         'local_commerce/services/orders.py').read_text())
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                  and n.name == 'delivery_assignments')
+        frappe = Mock()
+        frappe.session.user = 'rider'
+        frappe.get_all.return_value = []
+        shops = Mock(return_value=['assigned-shop'])
+        ns = dict(frappe=frappe, driver_shops=shops, offset=int, serialize=lambda doc: doc,
+                  reject=lambda msg: (_ for _ in ()).throw(ValueError(msg)))
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), '<delivery list>', 'exec'), ns)
+        for mode in ['Normal', 'Scheduled']:
+            for view in ['active', 'history']:
+                ns['delivery_assignments'](20, view, mode)
+                args = frappe.get_all.call_args.kwargs
+                self.assertEqual(args['filters']['delivery_user'], 'rider')
+                self.assertEqual(args['filters']['shop'], ['in', ['assigned-shop']])
+                self.assertEqual(args['filters']['delivery_mode'], mode)
+                self.assertEqual(args['start'], 20)
+                self.assertEqual('Delivered' in args['filters']['status'][1], view == 'history')
+        with self.assertRaises(ValueError):
+            ns['delivery_assignments'](delivery_mode='invalid')
+        shops.return_value = []
+        frappe.get_all.reset_mock()
+        self.assertEqual(ns['delivery_assignments'](delivery_mode='Normal'), [])
+        frappe.get_all.assert_not_called()

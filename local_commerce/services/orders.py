@@ -1152,7 +1152,7 @@ def delivery_profile():
     }
 
 
-def delivery_assignments(start=0, view="active"):
+def delivery_assignments(start=0, view="active", delivery_mode=None):
     user = frappe.session.user
     shops = driver_shops(user)
     if not shops:
@@ -1164,9 +1164,14 @@ def delivery_assignments(start=0, view="active"):
         if view == "active"
         else ["Delivered", "Cancelled"]
     )
+    filters = {"delivery_user": user, "shop": ["in", shops], "status": ["in", statuses]}
+    if delivery_mode:
+        if delivery_mode not in {"Normal", "Scheduled"}:
+            reject("Invalid delivery booking type")
+        filters["delivery_mode"] = delivery_mode
     names = frappe.get_all(
         "LC Order",
-        filters={"delivery_user": user, "shop": ["in", shops], "status": ["in", statuses]},
+        filters=filters,
         pluck="name",
         start=offset(start),
         limit_page_length=20,
