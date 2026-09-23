@@ -13,6 +13,7 @@
     "shop_type",
     "status",
     "description",
+    "order_acceptance",
     "order_response_minutes",
     "accepting_orders",
     "opening_hours_json",
@@ -338,6 +339,14 @@
       "label": "UPI mode of payment",
       "fieldtype": "Link",
       "options": "Mode of Payment"
+    },
+    {
+      "fieldname": "order_acceptance",
+      "label": "Order acceptance",
+      "fieldtype": "Select",
+      "options": "Manual\nAutomatic",
+      "default": "Manual",
+      "description": "Only platform administrators can change this. Applies to new normal and scheduled orders."
     }
   ],
   "permissions": [

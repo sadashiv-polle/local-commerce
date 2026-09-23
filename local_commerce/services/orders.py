@@ -768,6 +768,12 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
         fish.reserve(order, so.items)
         order.sales_order = so.name
         order.save(ignore_permissions=True)
+        if doc.get("order_acceptance") == "Automatic":
+            fish.validate_order(order)
+            _accept_sales_order(order, so)
+            order.status = "Accepted"
+            order.save(ignore_permissions=True)
+            order.add_comment("Info", "Automatically accepted using the shop's admin setting.")
         order_notifications.order_created(order)
         return detail(order.name)
     finally:
@@ -1512,22 +1518,7 @@ def change(order, target, reason=""):
     try:
         so.flags.ignore_permissions = True
         if target == "Accepted":
-            current_shop = public_shop(
-                doc.shop, scheduled_delivery=doc.get("delivery_mode") == "Scheduled"
-            )
-            if so.company != current_shop.company:
-                reject("Order Company no longer matches the shop")
-            item_totals = {}
-            for row in sorted(so.items, key=lambda r: r.item_code):
-                item = frappe.get_doc("Item", row.item_code)
-                if item.lc_shop != doc.shop or item.disabled or item.lc_sold_out:
-                    reject("An order product is no longer available")
-                company_link("Warehouse", row.warehouse, so.company, {"is_group": 0, "disabled": 0})
-                stock = balance(row.item_code, row.warehouse, lock=True, exclude_order=doc.name)
-                item_totals[row.item_code] = item_totals.get(row.item_code, 0) + row.stock_qty
-                if item_totals[row.item_code] > stock["available"]:
-                    reject("Not enough available stock to accept this order")
-            so.submit()
+            _accept_sales_order(doc, so)
         elif target == "Cancelled":
             if so.docstatus == 1:
                 so.cancel()
@@ -1649,3 +1640,22 @@ def protect_payment_document(doc, method=None, **kwargs):
         doc.get("lc_order") or (previous and previous.get("lc_order"))
     ) and not _order_operation.get():
         frappe.throw("Use the Local Commerce payment workflow", frappe.PermissionError)
+
+
+def _accept_sales_order(doc, so):
+    current_shop = public_shop(
+        doc.shop, scheduled_delivery=doc.get("delivery_mode") == "Scheduled"
+    )
+    if so.company != current_shop.company:
+        reject("Order Company no longer matches the shop")
+    item_totals = {}
+    for row in sorted(so.items, key=lambda r: r.item_code):
+        item = frappe.get_doc("Item", row.item_code)
+        if item.lc_shop != doc.shop or item.disabled or item.lc_sold_out:
+            reject("An order product is no longer available")
+        company_link("Warehouse", row.warehouse, so.company, {"is_group": 0, "disabled": 0})
+        stock = balance(row.item_code, row.warehouse, lock=True, exclude_order=doc.name)
+        item_totals[row.item_code] = item_totals.get(row.item_code, 0) + row.stock_qty
+        if item_totals[row.item_code] > stock["available"]:
+            reject("Not enough available stock to accept this order")
+    so.submit()

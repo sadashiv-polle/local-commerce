@@ -573,3 +573,32 @@ class TestDeliveryOrders(FrappeTestCase):
         frappe.set_user(other_driver.name)
         with self.assertRaises(frappe.PermissionError):
             orders.delivery_change(order["name"], "Picked Up")
+
+    def test_automatic_acceptance_submits_once_and_keeps_price(self):
+        frappe.set_user("Administrator")
+        self.shop.reload()
+        self.shop.order_acceptance = "Automatic"
+        self.shop.save()
+        frappe.set_user(self.customer.name)
+        placed = self.place(key="automatic-acceptance-order")
+        self.assertEqual(placed["status"], "Accepted")
+        doc = frappe.get_doc("LC Order", placed["name"])
+        so = frappe.get_doc("Sales Order", doc.sales_order)
+        self.assertEqual(so.docstatus, 1)
+        self.assertEqual(so.items[0].rate, 20)
+        self.assertEqual(self.place(key="automatic-acceptance-order")["name"], doc.name)
+        self.assertEqual(frappe.db.count("LC Order", {"sales_order": so.name}), 1)
+        frappe.set_user(self.user.name)
+        self.assertEqual(orders.change(doc.name, "Preparing")["status"], "Preparing")
+
+    def test_acceptance_setting_is_admin_only(self):
+        from local_commerce.services import shops
+
+        frappe.set_user(self.user.name)
+        with self.assertRaises(frappe.PermissionError):
+            shops.update_shop(self.shop.name, self.shop.shop_name, self.shop.status,
+                              order_acceptance="Automatic")
+        self.shop.reload()
+        self.shop.order_acceptance = "Automatic"
+        with self.assertRaises(frappe.PermissionError):
+            self.shop.save()

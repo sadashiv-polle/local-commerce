@@ -82,7 +82,9 @@ def order_created(order):
             order,
             "Owner",
             f"New order {label}",
-            f"{order.recipient} placed an order. Open it to accept or decline.",
+            (f"{order.recipient} placed an order. It is accepted and ready to prepare."
+             if order.status == "Accepted"
+             else f"{order.recipient} placed an order. Open it to accept or decline."),
             f"/shop/{order.shop}?tab=orders",
             seen,
         )

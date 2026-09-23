@@ -51,6 +51,7 @@ def get_shop(shop):
             "company",
             "status",
             "description",
+            "order_acceptance",
             "order_response_minutes",
             "accepting_orders",
             "delivery_fee",
@@ -98,9 +99,15 @@ def update_shop(
     delivery_fee=None,
     shop_type=None,
     fish_wastage_account=None,
+    order_acceptance=None,
 ):
     require_shop(shop, "write")
     doc = frappe.get_doc("LC Shop", shop)
+    if order_acceptance is not None:
+        require_platform()
+        if order_acceptance not in {"Manual", "Automatic"}:
+            reject("Choose Manual or Automatic order acceptance")
+        doc.order_acceptance = order_acceptance
     if shop_type is not None:
         require_platform()
         if shop_type not in {"General", "Fish"}:

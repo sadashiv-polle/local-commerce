@@ -55,6 +55,8 @@ class LCShop(Document):
         self.company = company.name
 
     def validate(self):
+        if self.get("order_acceptance") not in (None, "", "Manual", "Automatic"):
+            frappe.throw("Choose Manual or Automatic order acceptance")
         user, roles = identity()
         if not is_platform(user, roles):
             require_shop(self.name, "write")
@@ -64,6 +66,7 @@ class LCShop(Document):
                     "Only platform administrators can change Company", frappe.PermissionError
                 )
             pricing_fields = (
+                "order_acceptance",
                 "delivery_enabled",
                 "scheduled_enabled",
                 "shop_type",
