@@ -794,6 +794,9 @@ def authorize(doc, write=False):
 
 
 def serialize(doc):
+    from local_commerce.services.manual_upi import reconciled_receipt_is_valid
+
+    payment_status = "Paid" if reconciled_receipt_is_valid(doc) else doc.payment_status
     so = frappe.get_doc("Sales Order", doc.sales_order)
     selling_lines = json.loads(doc.get("selling_lines_json") or "[]")
     # Fulfil using the quantity and price already recorded on the Sales Order.
@@ -862,7 +865,7 @@ def serialize(doc):
         "picked_up_at": str(doc.picked_up_at) if doc.picked_up_at else None,
         "delivered_at": str(doc.delivered_at) if doc.delivered_at else None,
         "payment_method": doc.payment_method,
-        "payment_status": doc.payment_status,
+        "payment_status": payment_status,
         "upi": ({"id": doc.get("upi_id"), "qr": doc.get("upi_qr"),
                  "proof": doc.get("upi_proof"), "note": doc.get("upi_review_note"),
                  "reference": doc.get("upi_reference"),
@@ -1266,7 +1269,11 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
     try:
         if (target in {"Picked Up", "Out for Delivery", "Delivered"}
                 and doc.payment_method == "Manual UPI" and doc.payment_status != "Paid"):
-            reject("The shop must verify the UPI payment before dispatch")
+            from local_commerce.services.manual_upi import reconciled_receipt_is_valid
+
+            if not reconciled_receipt_is_valid(doc):
+                reject("The shop must verify the UPI payment before dispatch")
+            doc.payment_status = "Paid"
         if target == "Picked Up":
             from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 
@@ -1508,7 +1515,7 @@ def change(order, target, reason=""):
     if target in {"Accepted", "Ready"}:
         fish.validate_order(doc)
     if (target == "Cancelled" and doc.payment_method == "Manual UPI"
-            and doc.payment_status in {"Paid", "Awaiting Verification"}):
+            and doc.payment_status in {"Paid", "Reconciled", "Awaiting Verification"}):
         reject("Review the UPI payment and resolve any refund with the administrator first")
     if target == "Cancelled" and not 3 <= len(str(reason).strip()) <= 500:
         reject("Enter a cancellation reason (3–500 characters)")

@@ -114,3 +114,40 @@ class ManualUpiTests(unittest.TestCase):
         self.assertFalse(self.service.file_permission(proof))
         self.scope.identity.return_value = ('payer', ['LC Customer'])
         self.assertTrue(self.service.file_permission(proof))
+
+    def test_reconciled_upi_requires_submitted_matching_full_payment(self):
+        self.doc.payment_status = 'Reconciled'
+        self.doc.upi_verified_by = 'owner'
+        self.doc.upi_verified_at = '2026-09-23 12:49:27'
+        self.doc.sales_invoice = 'invoice'
+        self.doc.payment_entry = 'payment'
+        self.doc.sales_order = 'sales-order'
+        invoice = Doc(name='invoice', docstatus=1, lc_order='order', company='company',
+                      customer='customer', currency='INR', grand_total=350, outstanding_amount=0)
+        reference = Doc(reference_doctype='Sales Invoice', reference_name='invoice',
+                        allocated_amount=350)
+        payment = Doc(docstatus=1, lc_order='order', company='company', party='customer',
+                      party_type='Customer', payment_type='Receive', paid_to='bank',
+                      paid_to_account_currency='INR', received_amount=350, references=[reference])
+        so = Doc(company='company', customer='customer', currency='INR', grand_total=350)
+        self.frappe.get_doc.side_effect = lambda dt, name: {
+            'Sales Invoice': invoice, 'Payment Entry': payment, 'Sales Order': so,
+        }[dt]
+        self.frappe.db.exists.return_value = True
+        self.assertTrue(self.service.reconciled_receipt_is_valid(self.doc))
+        for obj, field, value in [(payment, 'docstatus', 2), (invoice, 'outstanding_amount', 20),
+                                  (payment, 'paid_to', 'another-bank'),
+                                  (reference, 'allocated_amount', 100),
+                                  (payment, 'lc_order', 'another-order')]:
+            previous = getattr(obj, field)
+            setattr(obj, field, value)
+            self.assertFalse(self.service.reconciled_receipt_is_valid(self.doc))
+            setattr(obj, field, previous)
+        self.doc.upi_verified_by = None
+        self.assertFalse(self.service.reconciled_receipt_is_valid(self.doc))
+
+    def test_screenshot_and_reconciled_label_alone_do_not_confirm_payment(self):
+        self.doc.payment_status = 'Reconciled'
+        self.doc.upi_proof = '/private/files/screenshot.jpg'
+        self.assertFalse(self.service.reconciled_receipt_is_valid(self.doc))
+        self.frappe.get_doc.assert_not_called()

@@ -18,7 +18,7 @@ def finalize(order, modified, weights):
     frappe.db.sql("select name from `tabLC Order` where name=%s for update", doc.name)
     doc.reload()
     if (doc.payment_method == "Manual UPI"
-            and doc.payment_status in {"Paid", "Awaiting Verification"}):
+            and doc.payment_status in {"Paid", "Reconciled", "Awaiting Verification"}):
         reject("Packed weights cannot change while a UPI payment is under review or paid")
     if str(doc.modified) != str(modified):
         reject("This order changed. Refresh before saving packed weights")

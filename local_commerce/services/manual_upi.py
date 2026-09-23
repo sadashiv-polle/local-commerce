@@ -169,7 +169,7 @@ def review(order, approve=0, reference="", note=""):
     doc = locked_order(order)
     require_shop(doc.shop, "write")
     approved = approve in (True, 1, "1", "true")
-    if doc.payment_status == "Paid" and approved:
+    if approved and (doc.payment_status == "Paid" or reconciled_receipt_is_valid(doc)):
         return orders.serialize(doc)
     if doc.payment_status != "Awaiting Verification" or not payable(doc):
         reject("There is no payment awaiting review on this order")
@@ -191,7 +191,7 @@ def review(order, approve=0, reference="", note=""):
                 {
                     "upi_bank_account": doc.upi_bank_account,
                     "upi_reference": reference,
-                    "payment_status": "Paid",
+                    "payment_status": ["in", ["Paid", "Reconciled"]],
                     "name": ["!=", doc.name],
                 },
             ):
@@ -295,3 +295,39 @@ def file_permission(doc, user=None, permission_type=None, **kwargs):
             or can_access_shop(user, roles, memberships(user), order.shop, "write")
         )
     )
+
+
+def reconciled_receipt_is_valid(doc):
+    """Recognize older UPI status only when submitted accounting proves full receipt."""
+    from decimal import Decimal, InvalidOperation
+
+    if (doc.payment_method != "Manual UPI" or doc.payment_status != "Reconciled"
+            or not doc.get("upi_verified_by") or not doc.get("upi_verified_at")
+            or not doc.get("sales_invoice") or not doc.get("payment_entry")
+            or not doc.get("upi_bank_account")):
+        return False
+    if not (frappe.db.exists("Sales Invoice", doc.sales_invoice)
+            and frappe.db.exists("Payment Entry", doc.payment_entry)):
+        return False
+    invoice = frappe.get_doc("Sales Invoice", doc.sales_invoice)
+    payment = frappe.get_doc("Payment Entry", doc.payment_entry)
+    so = frappe.get_doc("Sales Order", doc.sales_order)
+    if (invoice.docstatus != 1 or payment.docstatus != 1 or invoice.get("is_return")
+            or invoice.get("lc_order") != doc.name or payment.get("lc_order") != doc.name
+            or invoice.company != so.company or payment.company != so.company
+            or invoice.customer != so.customer or payment.party != so.customer
+            or payment.party_type != "Customer" or payment.payment_type != "Receive"
+            or payment.paid_to != doc.upi_bank_account or invoice.currency != "INR"
+            or so.currency != "INR" or payment.paid_to_account_currency != "INR"):
+        return False
+    try:
+        total = Decimal(str(so.grand_total))
+        allocated = sum((Decimal(str(row.allocated_amount)) for row in payment.references
+                         if row.reference_doctype == "Sales Invoice"
+                         and row.reference_name == invoice.name), Decimal(0))
+        return (total.is_finite() and total > 0
+                and Decimal(str(invoice.grand_total)) == total
+                and Decimal(str(invoice.outstanding_amount)) == 0
+                and allocated >= total and Decimal(str(payment.received_amount)) >= total)
+    except (InvalidOperation, TypeError, ValueError):
+        return False
