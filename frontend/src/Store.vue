@@ -3,6 +3,7 @@ import { displayPrice } from './product-price.js'
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
 import { useRoute, useRouter } from 'vue-router'
+import ActiveOrderShortcut from './ActiveOrderShortcut.vue'
 import FavouriteButton from './FavouriteButton.vue'
 const session = inject('session'), route = useRoute(), router = useRouter()
 const featured = ref({ sections: [] }), featuredRows = ref({}), customerPicks = ref(null)
@@ -110,6 +111,7 @@ const browse = ref(null)
         <RouterLink to="/store/map" class="home-shortcut home-shortcut-map"><span class="home-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5Zm6-2v16m6-14v16" /></svg></span><span class="home-shortcut-copy"><strong>Explore map</strong></span><span class="home-shortcut-arrow" aria-hidden="true">↗</span></RouterLink>
       </nav>
     </section>
+    <ActiveOrderShortcut />
     <section v-if="session.user === 'Guest'" class="store-hero">
       <div><span class="eyebrow">GOOD THINGS, CLOSE TO HOME</span><h1>Your neighbourhood.<br>Your everyday essentials.</h1><p>Fresh finds and familiar favourites.<br>Discover a better way to shop local.</p><button class="primary" @click="browse?.scrollIntoView()">Explore the neighbourhood <span>↗</span></button></div>
       <div class="hero-art" aria-hidden="true"><span class="art-label">FRESH · LOCAL · EVERYDAY</span><div class="produce">🥬<span>🍊</span>🥖</div><div class="market-bag">local<span>good things inside.</span></div><span class="art-sticker">A little<br>closer.</span></div>

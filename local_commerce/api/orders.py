@@ -22,6 +22,11 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
     )
 
 
+@frappe.whitelist(methods=["GET"])
+def active_orders():
+    return orders.active_orders()
+
+
 @frappe.whitelist()
 def list_orders(shop=None, start=0, status=None, delivery_mode=None):
     return orders.list_orders(shop, start, status, delivery_mode)

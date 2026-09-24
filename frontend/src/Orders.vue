@@ -71,7 +71,8 @@ async function load(delta = 0) {
   const current = ++generation
   start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
   try {
-    const requests = [call('orders.list_orders', { ...(props.shop ? { shop: props.shop, delivery_mode: deliveryTab.value } : {}), start: start.value })]
+    const focusedOrder = !props.shop && typeof route.query.order === 'string' ? route.query.order : ''
+    const requests = [focusedOrder ? call('orders.detail', { order: focusedOrder }).then(order => [order]) : call('orders.list_orders', { ...(props.shop ? { shop: props.shop, delivery_mode: deliveryTab.value } : {}), start: start.value })]
     if (props.shop && props.editable) requests.push(call('orders.drivers', { shop: props.shop }))
     const [result, availableDrivers = []] = await Promise.all(requests)
     if (current === generation) {
@@ -98,7 +99,7 @@ async function assign(order) {
   finally { busy.value = false }
 }
 function refreshOrders() { load() }
-watch(() => [props.shop, props.shop ? deliveryTab.value : null], () => { start.value = 0; orders.value = []; load() }, { immediate: true })
+watch(() => [props.shop, props.shop ? deliveryTab.value : null, route.query.order], () => { start.value = 0; orders.value = []; load() }, { immediate: true })
 onMounted(() => {
   window.addEventListener('lc-orders-change', refreshOrders)
   refreshTimer = window.setInterval(() => { if (!props.shop && !loading.value && !busy.value && orders.value.some(order => !['Delivered', 'Cancelled'].includes(order.status))) load() }, 10000)
@@ -152,6 +153,7 @@ onBeforeUnmount(() => {
     <dialog ref="reorderDialog" class="reorder-dialog" aria-labelledby="reorder-title">
       <template v-if="reorder"><span class="eyebrow">{{ reorder.shop_name }}</span><h2 id="reorder-title">Order your favourites again</h2><p>Current prices and stock are shown below. This replaces the cart for this shop. Delivery charges and taxes are calculated at checkout.</p><ul v-if="reorder.notices.length" class="reorder-notices"><li v-for="notice in reorder.notices" :key="notice">{{ notice }}</li></ul><div class="reorder-lines"><article v-for="item in reorder.items" :key="item.item"><img v-if="item.image" :src="item.image" :alt="item.item_name"><div><strong>{{ item.item_name }}</strong><small>{{ item.quantity }} {{ item.uom }}</small></div><strong>{{ money(item.rate * item.quantity, item.currency) }}</strong></article></div><p v-if="!reorder.items.length">These items are currently unavailable. Browse the shop for alternatives.</p><p v-if="reorderError" role="alert" class="lc-notice">{{ reorderError }}</p><div class="logout-actions"><button type="button" autofocus @click="reorderDialog.close()">Cancel</button><button v-if="reorder.items.length" type="button" class="lc-primary" @click="confirmReorder">Review cart →</button><RouterLink v-else :to="{ name: 'customer-shop', params: { shop: reorder.shop } }" class="primary" @click="reorderDialog.close()">Browse shop →</RouterLink></div></template>
     </dialog>
-    <div class="lc-pagination"><button :disabled="!start || loading || busy" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="orders.length < 20 || loading || busy" @click="load(20)">Next</button></div>
+    <RouterLink v-if="!shop && route.query.order" to="/orders">View all orders →</RouterLink>
+    <div v-else class="lc-pagination"><button :disabled="!start || loading || busy" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="orders.length < 20 || loading || busy" @click="load(20)">Next</button></div>
   </section>
 </template>

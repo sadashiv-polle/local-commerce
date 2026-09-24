@@ -953,6 +953,23 @@ def delivery_route(order):
     return road_route(origin, destination)
 
 
+def active_orders():
+    """Small customer-only homepage summary, filtered before pagination."""
+    customer_access()
+    rows = frappe.get_all(
+        "LC Order",
+        filters={"customer_user": frappe.session.user,
+                 "status": ["in", ["Requested", "Accepted", "Preparing", "Ready",
+                                  "Picked Up", "Out for Delivery"]]},
+        fields=["name", "shop", "status", "delivery_mode"],
+        order_by="creation desc",
+        limit_page_length=5,
+    )
+    for row in rows:
+        row["shop_name"] = frappe.db.get_value("LC Shop", row["shop"], "shop_name") or "Your shop"
+    return rows
+
+
 def list_orders(shop=None, start=0, status=None, delivery_mode=None):
     if shop:
         require_shop(shop)
