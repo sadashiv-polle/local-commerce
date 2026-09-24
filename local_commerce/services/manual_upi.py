@@ -199,6 +199,19 @@ def review(order, approve=0, reference="", note=""):
             ):
                 reject("This bank transaction has already been used for another order")
             verified_by = frappe.session.user
+            previous_status = doc.status
+            if doc.status == "Requested":
+                from local_commerce.services import fish
+
+                fish.validate_order(doc)
+                # Verification authorizes acceptance in this transaction. ERPNext
+                # requires a submitted Sales Order before mapping its invoice.
+                # Nothing is persisted as paid unless all accounting steps succeed.
+                doc.payment_status = "Paid"
+                so = frappe.get_doc("Sales Order", doc.sales_order)
+                so.flags.ignore_permissions = True
+                orders._accept_sales_order(doc, so)
+                doc.status = "Accepted"
             post_payment(doc, reference)
             doc.upi_receipt_key = hashlib.sha256(
                 f"{doc.upi_bank_account}:{reference}".encode()
@@ -214,6 +227,10 @@ def review(order, approve=0, reference="", note=""):
         from local_commerce.services.notifications import upi_payment_updated
 
         upi_payment_updated(doc)
+        if approved and previous_status != doc.status:
+            from local_commerce.services.notifications import status_changed
+
+            status_changed(doc, previous_status)
         doc.add_comment(
             "Info",
             escape(

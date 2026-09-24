@@ -45,7 +45,7 @@ class ManualUpiTests(unittest.TestCase):
         self.frappe.get_doc.return_value = self.doc
 
     def test_payment_after_acceptance_does_not_require_weight_check(self):
-        for status in ['Requested', 'Cancelled', 'Delivered', 'Out for Delivery']:
+        for status in ['Cancelled', 'Delivered', 'Out for Delivery']:
             self.doc.status = status
             self.assertFalse(self.service.payable(self.doc))
         self.doc.status = 'Accepted'
@@ -53,6 +53,23 @@ class ManualUpiTests(unittest.TestCase):
         self.assertTrue(self.service.payable(self.doc))
         self.doc.selling_lines_json = json.dumps([{'option_id': 'kg', 'actual_weight': .53}])
         self.assertTrue(self.service.payable(self.doc))
+
+    def test_requested_payment_submits_order_before_posting(self):
+        self.doc.status = 'Requested'
+        self.doc.payment_status = 'Awaiting Verification'
+        self.doc.sales_order = 'SO-1'
+        self.frappe.db.exists.return_value = False
+        so = Mock()
+        self.service.locked_order = Mock(return_value=self.doc)
+        self.frappe.get_doc.return_value = so
+        def post(doc, reference):
+            self.orders._accept_sales_order.assert_called_once_with(doc, so)
+            self.assertEqual(doc.status, 'Accepted')
+        self.service.post_payment = Mock(side_effect=post)
+        with patch.dict(sys.modules, {'local_commerce.services.fish': Mock()}):
+            self.service.review('order', approve=True, reference='ABC123456')
+        self.assertEqual(self.doc.payment_status, 'Paid')
+        self.doc.save.assert_called_once()
 
     def test_another_customer_cannot_upload(self):
         self.frappe.session.user = 'other'
