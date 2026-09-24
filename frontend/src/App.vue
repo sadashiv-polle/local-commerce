@@ -3,7 +3,7 @@ import { clearDeliverySelection } from './address-selection.js'
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
-import { activeCart, loginUrl } from './cart.js'
+import { activeCart, clearAllCarts, loginUrl } from './cart.js'
 import { authenticatedPage, defaultPage } from './navigation.js'
 import { currentSubscription, disablePush, enablePush, pushSupported } from './push.js'
 import { installOverlayScrollLock } from './overlay-scroll.js'
@@ -47,6 +47,7 @@ const canDeliver = computed(() => session.value?.roles.includes('LC Delivery Per
 const ownerShops = computed(() => [...new Set(session.value?.memberships.filter(m => m.membership_role === 'Owner').map(m => m.shop) || [])])
 let releaseOverlayLock
 let notificationTimer
+let cartTimer
 provide('session', session)
 function isInstalledApp() {
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
@@ -209,6 +210,7 @@ async function logout() {
   loggingOut.value = true; logoutError.value = ''
   try {
     await call('session.logout', {}, true)
+    clearAllCarts(window.localStorage)
     clearDeliverySelection(window.sessionStorage)
     window.location.assign('/local-commerce#/store')
     window.location.reload()
@@ -227,6 +229,7 @@ onMounted(() => {
   window.addEventListener('lc-address-change', syncHeaderAddress)
   document.addEventListener('click', closeHeaderAddressMenu)
   notificationTimer = window.setInterval(loadNotifications, 20000)
+  cartTimer = window.setInterval(syncSavedCart, 30000)
   load()
 })
 onBeforeUnmount(() => {
@@ -240,6 +243,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('lc-address-change', syncHeaderAddress)
   document.removeEventListener('click', closeHeaderAddressMenu)
   window.clearInterval(notificationTimer)
+  window.clearInterval(cartTimer)
 })
 </script>
 
@@ -261,7 +265,7 @@ onBeforeUnmount(() => {
       <div class="logout-symbol" aria-hidden="true">↗</div>
       <span class="eyebrow">YOUR ACCOUNT</span>
       <h2 id="logout-title">Log out of Local?</h2>
-      <p id="logout-description">You’ll return to the public store. Your cart will stay saved on this device.</p>
+      <p id="logout-description">You’ll return to the public store and your cart will be cleared from this device.</p>
       <p v-if="logoutError" class="lc-notice" role="alert">{{ logoutError }}</p>
       <div class="logout-actions"><button :disabled="loggingOut" autofocus @click="cancelLogout">Stay logged in</button><button class="logout-confirm" :disabled="loggingOut" @click="logout">{{ loggingOut ? 'Logging out…' : 'Yes, log out' }}</button></div>
     </dialog>
