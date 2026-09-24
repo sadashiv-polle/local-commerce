@@ -43,7 +43,7 @@ def _public_key():
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
 
 
-def status():
+def status(endpoint=""):
     user = _user()
     public_key = _public_key()
     endpoints = frappe.get_all(
@@ -52,7 +52,12 @@ def status():
         pluck="endpoint_hash",
         limit_page_length=0,
     )
-    return {"configured": bool(public_key), "public_key": public_key, "devices": len(endpoints)}
+    endpoint_hash = hashlib.sha256(str(endpoint).encode()).hexdigest() if endpoint else ""
+    subscribed = bool(endpoint_hash and frappe.db.exists(
+        "LC Push Subscription", {"user": user, "endpoint_hash": endpoint_hash, "enabled": 1}
+    ))
+    return {"configured": bool(public_key), "public_key": public_key,
+            "devices": len(endpoints), "subscribed": subscribed}
 
 
 def _payload(value):

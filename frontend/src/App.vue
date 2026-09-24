@@ -116,8 +116,10 @@ async function loadPushState() {
   if (!session.value || session.value.user === 'Guest') return
   if (!pushSupported()) { pushState.value = 'unsupported'; return }
   try {
-    const [server, subscription] = await Promise.all([call('push.status'), currentSubscription()])
+    const subscription = await currentSubscription()
+    const server = await call('push.status', { endpoint: subscription?.endpoint || '' })
     pushPublicKey.value = server.public_key || ''
+    if (subscription && server.configured && !server.subscribed) await call('push.subscribe', { subscription: subscription.toJSON() }, true)
     pushState.value = !server.configured ? 'unconfigured' : subscription ? 'enabled' : Notification.permission === 'denied' ? 'denied' : 'available'
   } catch { pushState.value = 'unavailable' }
 }
@@ -209,6 +211,8 @@ async function logout() {
   if (loggingOut.value) return
   loggingOut.value = true; logoutError.value = ''
   try {
+    const endpoint = await disablePush()
+    if (endpoint) await call('push.unsubscribe', { endpoint }, true)
     await call('session.logout', {}, true)
     clearAllCarts(window.localStorage)
     clearDeliverySelection(window.sessionStorage)
