@@ -137,7 +137,9 @@ def locked_order(order):
 
 
 def payable(doc):
-    return doc.status in {"Accepted", "Preparing", "Ready"}
+    # UPI proof can be uploaded while the request is waiting for the shop.
+    # The shop still cannot accept it until the payment is verified.
+    return doc.status in {"Requested", "Accepted", "Preparing", "Ready"}
 
 
 def upload_proof(order):

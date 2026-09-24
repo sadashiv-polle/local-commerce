@@ -768,7 +768,7 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
         fish.reserve(order, so.items)
         order.sales_order = so.name
         order.save(ignore_permissions=True)
-        if doc.get("order_acceptance") == "Automatic":
+        if doc.get("order_acceptance") == "Automatic" and payment_method != "Manual UPI":
             fish.validate_order(order)
             _accept_sales_order(order, so)
             order.status = "Accepted"
@@ -1667,6 +1667,8 @@ def protect_payment_document(doc, method=None, **kwargs):
 
 
 def _accept_sales_order(doc, so):
+    if doc.payment_method == "Manual UPI" and doc.payment_status not in {"Paid", "Reconciled"}:
+        reject("Verify the UPI payment before accepting this order")
     current_shop = public_shop(
         doc.shop, scheduled_delivery=doc.get("delivery_mode") == "Scheduled"
     )
