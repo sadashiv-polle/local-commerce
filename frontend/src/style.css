@@ -221,6 +221,9 @@ html { scroll-behavior: smooth; }
 #lc-app .inventory-metrics strong { font-size: 32px; font-weight: 650; margin: 7px 0; }
 #lc-app .inventory-metrics span { font-size: 11px; color: #788074; }
 #lc-app .inventory-metrics>div:first-child { background: #edf4e8; border-color: #d7e4d0; }
+#lc-app .dashboard-order-summary { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+#lc-app .dashboard-order-summary article { min-width: 0; }
+#lc-app .dashboard-order-summary .dashboard-attention { background: #fff5e9; border-color: #efd5b1; }
 #lc-app .setup-callout { background: #fff7df; padding: 20px 25px; border: 1px solid #f0e2b6; border-radius: 12px; margin: 20px 0; }
 #lc-app .setup-callout p { color: #807445; font-size: 13px; }
 #lc-app .inventory-form { background: white; padding: 25px; border: 1px solid var(--lc-line); border-radius: 14px; margin: 22px 0; }

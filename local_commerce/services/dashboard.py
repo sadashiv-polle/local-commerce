@@ -3,7 +3,7 @@
 from datetime import timedelta
 
 import frappe
-from frappe.utils import getdate, nowdate
+from frappe.utils import get_datetime, getdate, now_datetime, nowdate
 
 from local_commerce.permissions.scope import require_shop
 from local_commerce.services.dashboard_rules import period_start
@@ -31,6 +31,18 @@ def summary(shop, period="today"):
     pending = frappe.db.count("LC Order", {"shop": shop, "status": "Requested"})
     active = frappe.db.count(
         "LC Order", {"shop": shop, "status": ["not in", ["Delivered", "Cancelled"]]}
+    )
+    status_counts = {}
+    for status in ("Requested", "Preparing", "Ready", "Picked Up", "Out for Delivery"):
+        status_counts[status] = frappe.db.count("LC Order", {"shop": shop, "status": status})
+    response_minutes = int(doc.order_response_minutes or 10)
+    stuck_before = get_datetime(now_datetime()) - timedelta(minutes=response_minutes)
+    stuck_statuses = [
+        "Requested", "Accepted", "Preparing", "Ready", "Picked Up", "Out for Delivery"
+    ]
+    stuck = frappe.db.count(
+        "LC Order",
+        {"shop": shop, "status": ["in", stuck_statuses], "modified": ["<", stuck_before]},
     )
     cash = frappe.db.sql(
         """select currency, count(*) as collections, sum(collected_amount) as amount
@@ -71,6 +83,8 @@ def summary(shop, period="today"):
         "received_orders": received,
         "pending_orders": pending,
         "active_orders": active,
+        "status_counts": status_counts,
+        "stuck_orders": stuck,
         "cash_pending": cash,
         "low_stock_count": len(low),
         "sold_out_count": len(sold),

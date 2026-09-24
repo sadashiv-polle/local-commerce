@@ -219,6 +219,7 @@
 #lc-app .dashboard-heading h2 { margin: 5px 0; }
 #lc-app .dashboard-controls select { margin: 0; min-width: 135px; }
 #lc-app .dashboard-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+#lc-app .dashboard-order-summary { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 #lc-app .dashboard-metrics article { display: grid; align-content: start; gap: 12px; padding: 22px; border: 1px solid var(--lc-line); border-radius: 18px; background: white; box-shadow: var(--lc-shadow); }
 #lc-app .dashboard-metrics article > small { font-size: 10px; letter-spacing: 1px; color: #6b7a6e; font-weight: 700; }
 #lc-app .dashboard-metrics article > strong { font-size: clamp(25px, 2.7vw, 38px); line-height: 1.2; overflow-wrap: anywhere; }
@@ -238,6 +239,7 @@
 #lc-app .dashboard-cash strong { font-size: 27px; }
 #lc-app .dashboard-cash span { color: #827457; font-size: 12px; }
 @media (max-width: 1100px) { #lc-app .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { #lc-app .dashboard-order-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 600px) {
   #lc-app .dashboard-heading { flex-wrap: wrap; }
   #lc-app .dashboard-controls { width: 100%; }
