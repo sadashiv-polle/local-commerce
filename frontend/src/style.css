@@ -130,6 +130,9 @@ html { scroll-behavior: smooth; }
 #lc-app .incoming-order-card > footer button { min-height: 54px; border: 0; font-weight: 750; }
 #lc-app .incoming-accept { color: white; background: #198754; }
 #lc-app .incoming-reject { color: #a4362b; background: #f9e9e5; }
+#lc-app .incoming-payment-waiting { display: grid; grid-template-columns: 1fr; gap: 5px; color: #6e5a25; background: #fff8dd; }
+#lc-app .incoming-payment-waiting strong { color: #4a3a12; }
+#lc-app .incoming-payment-waiting span { font-size: 13px; font-weight: 500; }
 #lc-app .incoming-order-card > footer.incoming-reject-confirm { grid-template-columns: 1fr 1fr; }
 #lc-app .incoming-reject-confirm label { grid-column: 1 / -1; }
 #lc-app .incoming-order-minimized { position: fixed; z-index: 4900; right: 22px; bottom: 22px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px; width: min(480px, calc(100% - 32px)); padding: 14px 16px; border: 0; border-radius: 20px; color: white; background: #176547; box-shadow: 0 18px 55px #102d2266; text-align: left; }
