@@ -14,6 +14,13 @@ const names = computed(() => Object.fromEntries((data.value?.items || []).map(ro
 const units = computed(() => Object.fromEntries((data.value?.items || []).map(row => [row.name, row.stock_uom])))
 function unit(item) { return units.value[item] === 'Nos' ? 'pieces' : 'kg' }
 function perUnit(item) { return units.value[item] === 'Nos' ? 'piece' : 'kg' }
+function itemStockSummary(item) {
+  const lots = (data.value?.lots || []).filter(row => row.item === item.name)
+  return {
+    expired: lots.filter(row => row.expired).reduce((sum, row) => sum + Number(row.free || 0), 0),
+    reserved: lots.reduce((sum, row) => sum + Number(row.reserved || 0), 0),
+  }
+}
 const totals = computed(() => {
   const result = { Kg: { fresh: 0, expired: 0, reserved: 0 }, Nos: { fresh: 0, expired: 0, reserved: 0 } }
   for (const row of data.value?.lots || []) {
@@ -83,9 +90,9 @@ onMounted(() => {
     <div v-if="pending" class="setup-callout"><strong>A stock request needs confirmation</strong><p>Retry the saved request before recording another movement.</p><button :disabled="busy" @click="execute(pending)">Retry saved request</button></div>
     <nav class="panel-tabs" aria-label="Fish inventory sections"><button :aria-pressed="section === 'stock'" @click="section = 'stock'">Stock &amp; expiry</button><button :aria-pressed="section === 'prices'" @click="section = 'prices'">Market prices</button><button :aria-pressed="section === 'movements'" @click="section = 'movements'">Stock in &amp; out</button><button :aria-pressed="section === 'reports'" @click="loadReport">Reports</button></nav>
     <template v-if="data">
-      <div v-if="section === 'stock'" class="fish-stock-section">
+      <div v-if="section === 'stock'" class="fish-stock-section"><div class="inventory-meaning"><strong>How to read stock</strong><span><b>Sellable</b> can be ordered now.</span><span><b>On hand</b> is the physical total.</span><span><b>Reserved</b> is held for orders.</span><span><b>Expired</b> needs wastage review.</span></div>
         <div class="fish-unit-summaries"><article v-for="(total, uom) in totals" :key="uom" class="fish-unit-summary"><span class="eyebrow">{{ uom === 'Nos' ? 'PIECES STOCK' : 'WEIGHT STOCK' }}</span><h3>{{ kg(total.fresh) }} {{ uom === 'Nos' ? 'pieces' : 'kg' }} available</h3><p>{{ kg(total.reserved) }} reserved · <span class="fish-danger">{{ kg(total.expired) }} expired</span></p></article></div>
-        <div class="fish-product-list"><article v-for="item in data.items" :key="item.name" class="fish-product-card"><div><h3>{{ item.item_name }}</h3><p>{{ kg(item.stock.available) }} {{ unit(item.name) }} sellable · {{ kg(item.stock.actual) }} {{ unit(item.name) }} on hand</p><small>New receipt validity: {{ item.validity_hours ? `${item.validity_hours} hours` : 'Set when receiving stock' }}</small></div><div class="fish-card-actions"><button :disabled="busy || !!pending || item.disabled" @click="open(item, 'Add')">+ Receive stock</button><button :disabled="busy || !!pending || item.disabled" @click="open(item, 'Remove')">Remove stock</button><button v-if="item.stock.untracked > 0" :disabled="busy || !!pending" @click="open(item, 'Opening')">Track existing {{ kg(item.stock.untracked) }} {{ unit(item.name) }}</button></div></article></div>
+        <div class="fish-product-list"><article v-for="item in data.items" :key="item.name" class="fish-product-card"><div><h3>{{ item.item_name }}</h3><p><strong>{{ kg(item.stock.available) }} {{ unit(item.name) }} sellable</strong> · {{ kg(item.stock.actual) }} {{ unit(item.name) }} on hand</p><small>{{ kg(itemStockSummary(item).reserved) }} {{ unit(item.name) }} reserved · <span v-if="itemStockSummary(item).expired" class="fish-danger">{{ kg(itemStockSummary(item).expired) }} {{ unit(item.name) }} expired</span><span v-else>No expired stock</span></small><small>New receipt validity: {{ item.validity_hours ? `${item.validity_hours} hours` : 'Set when receiving stock' }}</small></div><div class="fish-card-actions"><button :disabled="busy || !!pending || item.disabled" @click="open(item, 'Add')">+ Receive stock</button><button :disabled="busy || !!pending || item.disabled" @click="open(item, 'Remove')">Remove stock</button><button v-if="item.stock.untracked > 0" :disabled="busy || !!pending" @click="open(item, 'Opening')">Track existing {{ kg(item.stock.untracked) }} {{ unit(item.name) }}</button></div></article></div>
         <p v-if="!data.items.length" class="lc-empty">Create a fish product by weight (Kg) or by pieces (Nos) in Products &amp; stock to begin.</p>
         <h3>Stock lots</h3><p class="muted">Fresh receipts keep separate expiry times. Expired stock cannot be used for new orders. Reserved expired stock requires cancelling or repacking its orders before wastage.</p>
         <p v-if="!data.lots.length" class="lc-empty">No remaining stock lots.</p>

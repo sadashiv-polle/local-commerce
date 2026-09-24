@@ -850,6 +850,9 @@ html { scroll-behavior: smooth; }
 #lc-app .shop-order-tabs button { display: grid; gap: 5px; text-align: left; min-width: 0; padding: 16px; border: 1px solid transparent; border-radius: 13px; background: transparent; color: #496354; }
 #lc-app .shop-order-tabs button.active { background: #fff; color: #176547; border-color: #c9ddcd; box-shadow: 0 2px 8px #173e2110; }
 #lc-app .shop-order-tabs small { font-size: 12px; font-weight: 400; }
+#lc-app .inventory-meaning { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 12px 14px; margin: 0 0 16px; border: 1px solid #dce6db; border-radius: 12px; background: #f7faf5; color: #607267; font-size: 12px; }
+#lc-app .inventory-meaning strong { color: #204e38; }
+#lc-app .inventory-meaning b { color: #315c43; }
 #lc-app .order-status-tabs { display: flex; gap: 8px; margin: 0 0 20px; padding: 4px; overflow-x: auto; border: 1px solid #dce6db; border-radius: 14px; background: #f5f8f3; scrollbar-width: thin; }
 #lc-app .order-status-tabs button { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; min-height: 40px; padding: 8px 12px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: #547060; white-space: nowrap; font-size: 12px; font-weight: 650; }
 #lc-app .order-status-tabs button b { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #e1ebdf; color: #496354; font-size: 11px; }
