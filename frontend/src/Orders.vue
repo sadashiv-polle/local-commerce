@@ -33,6 +33,17 @@ function confirmReorder() {
 }
 const props = defineProps({ shop: { type: String, default: '' }, editable: Boolean })
 const deliveryTab = computed(() => route.query.order_type === 'scheduled' ? 'Scheduled' : 'Normal')
+const statusTabs = ['All', 'Requested', 'Accepted', 'Preparing', 'Ready', 'Picked Up', 'Out for Delivery', 'Delivered']
+const activeStatus = computed(() => statusTabs.includes(route.query.status) ? route.query.status : 'All')
+const visibleOrders = computed(() => activeStatus.value === 'All' ? orders.value : orders.value.filter(order => order.status === activeStatus.value))
+function statusCount(status) { return status === 'All' ? orders.value.length : orders.value.filter(order => order.status === status).length }
+function selectStatus(status) {
+  if (busy.value || status === activeStatus.value) return
+  const query = { ...route.query }
+  if (status === 'All') delete query.status
+  else query.status = status
+  router.replace({ query })
+}
 function selectDeliveryTab(mode) {
   if (busy.value || mode === deliveryTab.value) return
   router.replace({ query: { ...route.query, order_type: mode.toLowerCase() } })
@@ -117,11 +128,14 @@ onBeforeUnmount(() => {
     <div v-if="shop" class="shop-order-tabs" role="group" aria-label="Delivery booking type">
       <button v-for="mode in ['Normal', 'Scheduled']" :key="mode" type="button" :class="{ active: deliveryTab === mode }" :aria-pressed="deliveryTab === mode" :disabled="busy" @click="selectDeliveryTab(mode)"><strong>{{ mode }} orders</strong><small>{{ mode === 'Normal' ? 'Individual deliveries' : 'Time slots & delivery batches' }}</small></button>
     </div>
+    <div v-if="shop" class="order-status-tabs" role="tablist" aria-label="Order status">
+      <button v-for="status in statusTabs" :key="status" type="button" role="tab" :class="{ active: activeStatus === status }" :aria-selected="activeStatus === status" @click="selectStatus(status)"><span>{{ status }}</span><b>{{ statusCount(status) }}</b></button>
+    </div>
     <template v-if="shop && deliveryTab === 'Scheduled'"><slot name="batches" :refresh="load" /><p class="muted">Accept each request below, then manage preparation and dispatch together using the batch controls.</p></template>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
     <p v-if="loading" role="status">Loading orders…</p>
-    <p v-else-if="!orders.length" class="lc-empty">{{ shop ? `No ${deliveryTab.toLowerCase()} orders yet.` : 'No delivery orders yet.' }}</p>
-    <article v-for="order in orders" :key="order.name" class="order-card">
+    <p v-else-if="!visibleOrders.length" class="lc-empty">{{ shop ? `No ${activeStatus === 'All' ? deliveryTab.toLowerCase() : activeStatus.toLowerCase()} orders yet.` : 'No delivery orders yet.' }}</p>
+    <article v-for="order in visibleOrders" :key="order.name" class="order-card">
       <OrderReference :order-id="order.name" />
       <div class="workspace-heading"><div><span class="eyebrow">{{ order.shop_name }}</span><h3>{{ order.recipient }}</h3><small>{{ order.created }}</small></div><span class="status-pill">{{ order.status }}</span></div>
       <p v-if="order.scheduled_period" class="lc-notice">Scheduled · {{ order.scheduled_period.title }} · {{ order.scheduled_period.delivery_start }} – {{ order.scheduled_period.delivery_end }} · Free delivery</p><div class="delivery-progress" :aria-label="`Order status: ${order.status}`"><span v-for="step in steps" :key="step" :class="{ complete: steps.indexOf(step) <= steps.indexOf(order.status) }">{{ step }}</span></div>
