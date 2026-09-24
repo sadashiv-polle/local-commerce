@@ -869,7 +869,8 @@ def serialize(doc):
         "upi": ({"id": doc.get("upi_id"), "qr": doc.get("upi_qr"),
                  "proof": doc.get("upi_proof"), "note": doc.get("upi_review_note"),
                  "reference": doc.get("upi_reference"),
-                 "payable": doc.status in {"Accepted", "Preparing", "Ready"} and not estimated}
+                 "payable": doc.status in {"Requested", "Accepted", "Preparing", "Ready"}
+                 and not estimated}
                 if doc.payment_method == "Manual UPI" and (is_customer or can_access_shop(
                     *identity(), memberships(frappe.session.user), doc.shop, "write")) else None),
         "sales_invoice": doc.sales_invoice,

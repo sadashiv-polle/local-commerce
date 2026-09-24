@@ -1,5 +1,6 @@
 <script setup>
 import OrderReference from './OrderReference.vue'
+import ManualUpiPayment from './ManualUpiPayment.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
 
@@ -70,6 +71,7 @@ async function change(target) {
   } catch (exception) { error.value = exception.message }
   finally { busy.value = false }
 }
+const upiVerified = computed(() => !current.value?.upi || ['Paid', 'Reconciled'].includes(current.value.payment_status))
 watch(() => props.shops.join(','), load, { immediate: true })
 watch(() => current.value?.name, (value, previous) => {
   rejecting.value = false
@@ -93,8 +95,8 @@ onBeforeUnmount(() => {
   <div v-else-if="current" class="incoming-order" role="alertdialog" aria-modal="true" aria-labelledby="incoming-order-title">
     <section class="incoming-order-card">
       <header :class="{ urgent }"><span class="incoming-pulse" aria-hidden="true"></span><div><span class="eyebrow">NEW ORDER</span><strong>{{ orders.length > 1 ? `${orders.length} orders waiting` : 'Needs your response' }}</strong></div><time>{{ remaining(current) }} left</time><button type="button" class="incoming-minimize" aria-label="Minimize order alert" @click="minimized = true"><span aria-hidden="true">—</span><small>Minimize</small></button></header>
-      <div class="incoming-order-body"><OrderReference :order-id="current.name" /><span class="eyebrow">{{ current.shop_name }}</span><h1 id="incoming-order-title">New order from {{ current.recipient }}</h1><p>{{ current.items.length }} {{ current.items.length === 1 ? 'item' : 'items' }} · {{ money(current.total, current.currency) }}</p><ul><li v-for="item in current.items" :key="item.item_code"><span>{{ item.quantity }} × {{ item.name }}</span><strong>{{ money(item.amount, current.currency) }}</strong></li></ul><div class="incoming-address"><span aria-hidden="true">⌖</span><div><small>DELIVER TO</small><strong>{{ current.address.line1 }}</strong><span>{{ current.address.city }} · {{ current.address.postal_code }}</span></div></div><p v-if="error" class="lc-notice" role="alert">{{ error }}</p></div>
-      <footer v-if="!rejecting"><button type="button" class="incoming-reject" :disabled="busy" @click="rejecting = true">Reject</button><button type="button" class="incoming-accept" :disabled="busy" @click="change('Accepted')">{{ busy ? 'Accepting…' : 'Accept order' }}</button></footer>
+      <div class="incoming-order-body"><OrderReference :order-id="current.name" /><span class="eyebrow">{{ current.shop_name }}</span><h1 id="incoming-order-title">New order from {{ current.recipient }}</h1><p>{{ current.items.length }} {{ current.items.length === 1 ? 'item' : 'items' }} · {{ money(current.total, current.currency) }}</p><ul><li v-for="item in current.items" :key="item.item_code"><span>{{ item.quantity }} × {{ item.name }}</span><strong>{{ money(item.amount, current.currency) }}</strong></li></ul><div class="incoming-address"><span aria-hidden="true">⌖</span><div><small>DELIVER TO</small><strong>{{ current.address.line1 }}</strong><span>{{ current.address.city }} · {{ current.address.postal_code }}</span></div></div><ManualUpiPayment v-if="current.upi" :order="current" :editable="true" @updated="load(true)" /><p v-if="current.upi && !upiVerified" class="lc-notice">Verify the UPI payment above before accepting this order.</p><p v-if="error" class="lc-notice" role="alert">{{ error }}</p></div>
+      <footer v-if="!rejecting"><button type="button" class="incoming-reject" :disabled="busy" @click="rejecting = true">Reject</button><button type="button" class="incoming-accept" :disabled="busy || !upiVerified" @click="change('Accepted')">{{ busy ? 'Accepting…' : upiVerified ? 'Accept order' : 'Waiting for UPI verification' }}</button></footer>
       <footer v-else class="incoming-reject-confirm"><label>Reason for rejection<input v-model="rejectReason" minlength="3" maxlength="500" autofocus></label><button type="button" :disabled="busy" @click="rejecting = false">Go back</button><button type="button" class="incoming-reject" :disabled="busy || rejectReason.trim().length < 3" @click="change('Cancelled')">{{ busy ? 'Rejecting…' : 'Confirm reject' }}</button></footer>
     </section>
   </div>
