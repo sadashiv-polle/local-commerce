@@ -14,6 +14,13 @@ _linking_customer = ContextVar("lc_linking_customer", default=False)
 _address_operation = ContextVar("lc_address_operation", default=False)
 
 
+def clear_gravatar_image(user, method=None):
+    """Keep email-derived Gravatar URLs from returning as profile photos."""
+    image = str(user.get("user_image") or "")
+    if image.startswith("https://secure.gravatar.com/avatar/"):
+        user.user_image = ""
+
+
 def ensure_customer():
     user = frappe.session.user
     if user == "Guest":

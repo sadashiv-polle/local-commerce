@@ -48,6 +48,9 @@ has_permission = {
 }
 
 doc_events = {
+    "User": {
+        "before_validate": "local_commerce.services.customers.clear_gravatar_image",
+    },
     "Item": {
         "before_validate": "local_commerce.services.products.scope_creation_defaults",
         "validate": "local_commerce.services.products.validate_item",
