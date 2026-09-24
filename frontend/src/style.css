@@ -346,6 +346,13 @@ html { scroll-behavior: smooth; }
 #lc-app .delivery-progress { display: grid; grid-template-columns: repeat(7, minmax(70px, 1fr)); gap: 5px; overflow-x: auto; padding: 4px 0 14px; }
 #lc-app .delivery-progress span { border-top: 3px solid #dfe6dc; padding-top: 7px; color: #8a9487; font-size: 9px; white-space: nowrap; }
 #lc-app .delivery-progress span.complete { border-color: #2b8060; color: #245b45; font-weight: 700; }
+#lc-app .customer-tracking-summary { display: flex; align-items: center; gap: 10px; margin: 4px 0 16px; padding: 12px 14px; border: 1px solid #cfe2d2; border-radius: 12px; background: #f1f8ef; color: #204e38; }
+#lc-app .customer-tracking-summary > div { display: grid; gap: 3px; min-width: 0; }
+#lc-app .customer-tracking-summary small { color: #66806e; font-size: 10px; letter-spacing: .08em; }
+#lc-app .customer-tracking-summary strong { font-size: 14px; }
+#lc-app .tracking-status-dot { width: 10px; height: 10px; border-radius: 50%; background: #188552; box-shadow: 0 0 0 4px #18855220; flex-shrink: 0; }
+#lc-app .tracking-rider { margin-left: auto; color: #527160; font-size: 12px; font-weight: 650; text-align: right; }
+@media (max-width: 600px) { #lc-app .customer-tracking-summary { align-items: flex-start; } #lc-app .tracking-rider { max-width: 34%; } }
 #lc-app .rider-summary { display: flex; align-items: center; gap: 9px; padding: 12px 15px; border-radius: 10px; background: #eef5e9; }
 #lc-app .rider-summary > span { color: #30a66f; }
 #lc-app .driver-assignment { display: grid; grid-template-columns: minmax(180px, 1fr) auto; align-items: end; gap: 12px; padding: 18px; margin-top: 18px; border-radius: 12px; background: #f5f7f1; border: 1px solid var(--lc-line); }

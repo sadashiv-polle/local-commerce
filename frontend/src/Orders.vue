@@ -60,6 +60,16 @@ let generation = 0
 let refreshTimer
 
 function money(value, currency) { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value) }
+function deliveryEstimate(order) {
+  if (order.status === 'Delivered') return 'Delivered'
+  if (order.status === 'Cancelled') return 'Cancelled'
+  if (order.status === 'Out for Delivery') return 'Arriving soon — follow the live map below'
+  if (order.status === 'Picked Up') return 'On the way to your address'
+  if (order.status === 'Ready') return order.delivery_user ? 'Ready for pickup — delivery person assigned' : 'Ready — waiting for delivery assignment'
+  if (order.status === 'Preparing') return 'The shop is preparing your order'
+  if (order.status === 'Accepted') return 'Confirmed by the shop'
+  return 'Waiting for shop confirmation'
+}
 function mapPoints(order) {
   const points = []
   if (order.shop_location) points.push({ ...order.shop_location, kind: 'shop', label: order.shop_name })
@@ -138,7 +148,7 @@ onBeforeUnmount(() => {
     <article v-for="order in visibleOrders" :key="order.name" class="order-card">
       <OrderReference :order-id="order.name" />
       <div class="workspace-heading"><div><span class="eyebrow">{{ order.shop_name }}</span><h3>{{ order.recipient }}</h3><small>{{ order.created }}</small></div><span class="status-pill">{{ order.status }}</span></div>
-      <p v-if="order.scheduled_period" class="lc-notice">Scheduled · {{ order.scheduled_period.title }} · {{ order.scheduled_period.delivery_start }} – {{ order.scheduled_period.delivery_end }} · Free delivery</p><div class="delivery-progress" :aria-label="`Order status: ${order.status}`"><span v-for="step in steps" :key="step" :class="{ complete: steps.indexOf(step) <= steps.indexOf(order.status) }">{{ step }}</span></div>
+      <p v-if="order.scheduled_period" class="lc-notice">Scheduled · {{ order.scheduled_period.title }} · {{ order.scheduled_period.delivery_start }} – {{ order.scheduled_period.delivery_end }} · Free delivery</p><div class="delivery-progress" :aria-label="`Order status: ${order.status}`"><span v-for="step in steps" :key="step" :class="{ complete: steps.indexOf(step) <= steps.indexOf(order.status) }">{{ step }}</span></div><div v-if="!shop" class="customer-tracking-summary"><span class="tracking-status-dot" aria-hidden="true"></span><div><small>DELIVERY UPDATE · ORDER {{ order.name.slice(-8).toUpperCase() }}</small><strong>{{ deliveryEstimate(order) }}</strong></div><span v-if="order.delivery_name" class="tracking-rider">{{ order.delivery_name }}</span></div>
       <ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }} <strong>{{ money(item.amount, order.currency) }}</strong><small v-if="order.selling_lines?.[index]?.option_id" class="order-option-summary">{{ order.selling_lines[index].label }} × {{ order.selling_lines[index].packs }} · {{ order.selling_lines[index].preweighed ? `Pack weight ${order.selling_lines[index].actual_weight} kg` : order.selling_lines[index].actual_weight == null ? `Estimated stock weight ${order.selling_lines[index].estimated_weight} kg` : `Actual packed weight ${order.selling_lines[index].actual_weight} kg` }}</small></li></ul>
       <p><strong>{{ order.estimated ? 'Estimated total' : 'Order total' }} {{ money(order.total, order.currency) }}</strong><br><small>Includes {{ money(order.taxes_and_charges, order.currency) }} in configured taxes and delivery charges.</small></p>
       <ManualUpiPayment :order="order" :editable="!!shop && editable" @updated="load" />
