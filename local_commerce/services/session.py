@@ -37,6 +37,7 @@ def get_context():
     return {
         "user": user,
         "full_name": frappe.db.get_value("User", user, "full_name") or user,
+        "user_image": frappe.db.get_value("User", user, "user_image") or "",
         "roles": [r for r in roles if r.startswith("LC ")],
         "platform_admin": platform,
         "memberships": member_rows,

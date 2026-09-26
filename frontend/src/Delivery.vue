@@ -1,4 +1,5 @@
 <script setup>
+import ProfileAvatar from './ProfileAvatar.vue'
 import OrderReference from './OrderReference.vue'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -211,11 +212,11 @@ onBeforeUnmount(() => stopTracking('', false))
 <template>
   <section v-if="!allowed" class="lc-empty delivery-empty"><h2>Delivery access is not configured</h2><p>Your account needs the LC Delivery Person role and an enabled Delivery Person membership for a shop.</p></section>
   <section v-else class="delivery-page">
-    <header class="delivery-hero"><div><span class="eyebrow">RIDER WORKSPACE</span><h1>Hello, {{ session.full_name.split(' ')[0] }}.</h1><p>Your profile, assigned shops, and every delivery in one place.</p></div><div class="rider-avatar" aria-hidden="true">{{ session.full_name.slice(0, 1).toUpperCase() }}</div></header>
+    <header class="delivery-hero"><div><span class="eyebrow">RIDER WORKSPACE</span><h1>Hello, {{ session.full_name.split(' ')[0] }}.</h1><p>Your profile, assigned shops, and every delivery in one place.</p></div><ProfileAvatar class="rider-avatar" :name="session.full_name" :image="session.user_image" /></header>
 
     <div class="rider-dashboard-grid">
       <aside class="rider-profile-card">
-        <div class="profile-avatar"><img v-if="profile?.profile.user_image" :src="profile.profile.user_image" :alt="`${profile.profile.full_name} profile`"><span v-else aria-hidden="true">{{ session.full_name.slice(0, 1).toUpperCase() }}</span></div>
+        <ProfileAvatar class="profile-avatar" :name="profile?.profile.full_name || session.full_name" :image="profile?.profile.user_image || session.user_image" />
         <span class="online-badge">● Ready for delivery</span>
         <h2>{{ profile?.profile.full_name || session.full_name }}</h2>
         <p class="profile-role">Delivery person</p>
