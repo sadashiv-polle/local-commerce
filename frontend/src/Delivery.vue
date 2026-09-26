@@ -3,7 +3,7 @@ import ProfileAvatar from './ProfileAvatar.vue'
 import OrderReference from './OrderReference.vue'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { call } from './api.js'
+import { call, upload } from './api.js'
 import MapView from './MapView.vue'
 import ScheduledRoute from './ScheduledRoute.vue'
 import { forgetTracking, rememberTracking, savedTracking } from './tracking.js'
@@ -102,6 +102,14 @@ async function advance(order, payment = {}, showCollectionError = false) {
     return null
   }
   finally { busyOrder.value = '' }
+}
+async function uploadDeliveryProof(order, event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  busyOrder.value = order.name; error.value = ''
+  try { await upload('orders.upload_delivery_proof', { order: order.name }, file); await refresh() }
+  catch (e) { error.value = e.message }
+  finally { busyOrder.value = ''; event.target.value = '' }
 }
 function stopTracking(message = 'Live location sharing stopped.', clearSaved = true) {
   if (locationWatch != null) navigator.geolocation.clearWatch(locationWatch)
@@ -250,6 +258,7 @@ onBeforeUnmount(() => stopTracking('', false))
             <div class="delivery-address"><span aria-hidden="true">⌖</span><div><strong>{{ order.address.line1 }}</strong><p>{{ order.address.city }} · {{ order.address.postal_code }}</p><a :href="`tel:${order.phone}`">Call {{ order.phone }}</a></div></div>
             <div v-if="order.destination_location" class="delivery-map-panel"><MapView :config="order.map" :points="mapPoints(order)" :route="routes[order.name]?.points || []" height="235px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Customer</span><span v-if="order.driver_location"><i class="legend-rider"></i>You</span><span v-if="routes[order.name]" class="route-summary">{{ routes[order.name].distance_km }} km · about {{ routes[order.name].duration_minutes }} min</span><a :href="navigationLink(order)" target="_blank" rel="noopener">{{ order.status === 'Ready' ? 'Navigate to shop' : 'Start navigation' }} ↗</a></div><small v-if="routes[order.name]" class="route-attribution"><a :href="routes[order.name].attribution_url" target="_blank" rel="noopener">{{ routes[order.name].attribution }}</a></small><p v-if="routeErrors[order.name]" class="route-error">{{ routeErrors[order.name] }}</p></div>
             <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
+            <div v-if="order.status === 'Out for Delivery'" class="delivery-proof-control"><a v-if="order.delivery_proof" :href="order.delivery_proof" target="_blank" rel="noopener">View delivery proof ↗</a><label v-else>Delivery handover photo<input type="file" accept="image/jpeg,image/png,image/webp" :disabled="!!busyOrder" @change="uploadDeliveryProof(order, $event)"><small>Optional photo proof before completing delivery.</small></label></div>
             <details><summary>{{ order.items.length }} product{{ order.items.length === 1 ? '' : 's' }} · {{ money(order.total, order.currency) }}</summary><ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }}</li></ul></details>
             <div v-if="order.status === 'Out for Delivery' && order.live_tracking_enabled" class="tracking-controls"><button v-if="trackingOrder !== order.name && !(order.scheduled_slot && trackingSlot === order.scheduled_slot)" type="button" @click="startTracking(order)">Resume live tracking</button><button v-else type="button" class="tracking-stop" @click="stopTracking()">Stop sharing</button><small>Your bike updates for the customer every 12 seconds and is removed after delivery.</small></div>
             <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="requestAdvance(order)">{{ busyOrder === order.name ? 'Updating…' : order.status === 'Out for Delivery' ? (order.payment_method === 'Manual UPI' ? 'Verify OTP & deliver' : 'Collect cash & confirm delivered') : labels[order.status] }} <span>›</span></button>

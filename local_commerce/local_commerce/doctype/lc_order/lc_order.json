@@ -18,6 +18,8 @@
     "assigned_at",
     "picked_up_at",
     "delivered_at",
+    "delivery_proof",
+    "delivery_proof_at",
     "payment_method",
     "payment_status",
     "sales_invoice",
@@ -129,6 +131,18 @@
     {
       "fieldname": "delivered_at",
       "label": "Delivered At",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    },
+    {
+      "fieldname": "delivery_proof",
+      "label": "Delivery Proof",
+      "fieldtype": "Attach",
+      "read_only": 1
+    },
+    {
+      "fieldname": "delivery_proof_at",
+      "label": "Delivery Proof Uploaded At",
       "fieldtype": "Datetime",
       "read_only": 1
     },

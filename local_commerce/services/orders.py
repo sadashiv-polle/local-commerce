@@ -879,6 +879,8 @@ def serialize(doc):
             delivery_otp(doc) if is_customer and doc.status == "Out for Delivery" else None
         ),
         "collected_at": str(doc.collected_at) if doc.collected_at else None,
+        "delivery_proof": doc.get("delivery_proof") or None,
+        "delivery_proof_at": str(doc.delivery_proof_at) if doc.get("delivery_proof_at") else None,
         "currency": so.currency,
         "total": so.grand_total,
         "taxes_and_charges": so.total_taxes_and_charges,
@@ -1255,6 +1257,32 @@ def create_cod_collection(doc, collected_amount, driver_note=""):
         }
     ).insert(ignore_permissions=True)
     return invoice.name, collection.name
+
+
+def upload_delivery_proof(order):
+    """Attach a rider's handover photo to an active delivery."""
+    doc = frappe.get_doc("LC Order", order)
+    if doc.delivery_user != frappe.session.user or not is_shop_driver(
+        frappe.session.user, doc.shop
+    ):
+        frappe.throw("This delivery is not assigned to you", frappe.PermissionError)
+    if doc.status != "Out for Delivery":
+        reject("Delivery proof can be added only while the order is out for delivery")
+    frappe.db.sql("select name from `tabLC Order` where name=%s for update", doc.name)
+    doc.reload()
+    if doc.delivery_user != frappe.session.user or doc.status != "Out for Delivery":
+        reject("This delivery is no longer available for proof upload")
+    from local_commerce.services.manual_upi import save_image
+
+    token = _order_operation.set(True)
+    try:
+        doc.delivery_proof = save_image("LC Order", doc.name, True)
+        doc.delivery_proof_at = now_datetime()
+        doc.save(ignore_permissions=True)
+        doc.add_comment("Info", "Delivery person uploaded handover proof.")
+        return serialize(doc)
+    finally:
+        _order_operation.reset(token)
 
 
 def delivery_change(order, target, collected_amount=None, note="", delivery_otp_value=""):

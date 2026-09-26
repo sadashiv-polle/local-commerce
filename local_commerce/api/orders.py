@@ -91,6 +91,12 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp=
 
 
 @frappe.whitelist(methods=["POST"])
+@rate_limit(limit=30, seconds=3600)
+def upload_delivery_proof(order):
+    return orders.upload_delivery_proof(order)
+
+
+@frappe.whitelist(methods=["POST"])
 def update_driver_location(order, latitude, longitude, accuracy=None):
     return orders.update_driver_location(order, latitude, longitude, accuracy)
 
