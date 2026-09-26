@@ -218,6 +218,10 @@ html { scroll-behavior: smooth; }
 #lc-app .inventory-heading h2 { margin: 8px 0; font-size: 29px; }
 #lc-app .inventory-heading p { margin: 0; }
 #lc-app .button-row { display: flex; gap: 10px; flex-wrap: wrap; }
+#lc-app .customer-support { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 16px 0; padding: 13px; border: 1px solid #d7e5d7; border-radius: 12px; background: #f4f8f1; }
+#lc-app .customer-support > span { flex: 1 1 180px; color: #526b5b; font-size: 12px; }
+#lc-app .customer-support a { min-height: 38px; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid #bfd7c2; border-radius: 9px; color: #176547; background: white; font-size: 12px; font-weight: 700; text-decoration: none; }
+#lc-app .customer-support a:hover { background: #e8f3e7; }
 #lc-app .inventory-metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin: 20px 0 30px; }
 #lc-app .inventory-metrics>div { padding: 22px; border: 1px solid var(--lc-line); border-radius: 12px; background: white; display: flex; flex-direction: column; }
 #lc-app .inventory-metrics small { font-size: 9px; letter-spacing: 1.3px; color: #768372; font-weight: 700; }

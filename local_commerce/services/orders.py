@@ -815,6 +815,17 @@ def serialize(doc):
     except ValueError:
         driver_location = None
     is_customer = frappe.session.user != "Guest" and doc.customer_user == frappe.session.user
+    shop_support_phone = None
+    if is_customer:
+        owner = frappe.get_all(
+            "LC Shop Member",
+            filters={"shop": doc.shop, "membership_role": "Owner", "enabled": 1},
+            fields=["user"],
+            order_by="creation asc",
+            limit_page_length=1,
+        )
+        if owner:
+            shop_support_phone = frappe.db.get_value("User", owner[0].user, "mobile_no") or None
     response_start = (frappe.db.get_value("LC Delivery Slot", doc.scheduled_slot, "ordering_end")
                       if doc.get("scheduled_slot") else doc.creation)
     response_deadline = add_to_date(response_start, minutes=int(shop.order_response_minutes or 10))
@@ -830,6 +841,7 @@ def serialize(doc):
         "selling_lines": selling_lines,
         "shop": doc.shop,
         "shop_name": frappe.db.get_value("LC Shop", doc.shop, "shop_name"),
+        "shop_support_phone": shop_support_phone,
         "status": doc.status,
         "created": str(doc.creation),
         "response_deadline": str(response_deadline),

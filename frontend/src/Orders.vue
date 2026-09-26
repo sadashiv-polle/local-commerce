@@ -77,6 +77,13 @@ function deliveryEstimate(order) {
   if (order.status === 'Accepted') return 'Confirmed by the shop'
   return 'Waiting for shop confirmation'
 }
+function supportNumber(phone) {
+  const digits = String(phone || '').replace(/\D/g, '')
+  return digits.length === 10 ? `91${digits}` : digits
+}
+function shopSupportMessage(order) {
+  return `Hello ${order.shop_name}, I need help with order ${order.name.slice(-8).toUpperCase()}.`
+}
 function mapPoints(order) {
   const points = []
   if (order.shop_location) points.push({ ...order.shop_location, kind: 'shop', label: order.shop_name })
@@ -167,6 +174,11 @@ onBeforeUnmount(() => {
       <p class="payment-summary"><span><small>PAYMENT METHOD</small><strong>{{ order.payment_method }}</strong></span><span><small>PAYMENT STATUS</small><strong :class="{ paid: ['Reconciled', 'Paid'].includes(order.payment_status) }">{{ order.payment_status }}</strong></span></p>
       <section v-if="!shop && order.delivery_otp" class="customer-delivery-otp" aria-label="Delivery confirmation code"><div><span aria-hidden="true">✓</span><div><small>DELIVERY CONFIRMATION</small><strong>{{ order.delivery_otp }}</strong></div></div><p>Share this code with the rider only after you receive your order. It is shown here instead of being sent by email.</p></section>
       <p v-if="order.delivery_proof" class="success-note">Delivery handover proof <a :href="order.delivery_proof" target="_blank" rel="noopener">View photo ↗</a>{{ order.delivery_proof_at ? ` · uploaded ${order.delivery_proof_at}` : '' }}</p>
+      <div v-if="!shop && supportNumber(order.shop_support_phone)" class="customer-support" aria-label="Shop support">
+        <span>Need help with this order?</span>
+        <a :href="`tel:${order.shop_support_phone}`">Call {{ order.shop_name }}</a>
+        <a :href="`https://wa.me/${supportNumber(order.shop_support_phone)}?text=${encodeURIComponent(shopSupportMessage(order))}`" target="_blank" rel="noopener">WhatsApp {{ order.shop_name }} ↗</a>
+      </div>
       <details><summary>Delivery details</summary><p>{{ order.address.line1 }}<br>{{ order.address.city }} · {{ order.address.postal_code }}<br><a :href="`tel:${order.phone}`">{{ order.phone }}</a></p></details>
       <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
       <section v-if="order.destination_location && (shop || order.status === 'Out for Delivery')" class="order-tracking-panel"><div class="tracking-heading"><div><span class="eyebrow">{{ order.status === 'Out for Delivery' ? 'LIVE DELIVERY' : 'DELIVERY MAP' }}</span><h4>{{ order.status === 'Out for Delivery' ? 'Track your rider' : 'Delivery route' }}</h4></div><span v-if="routes[order.name]">{{ routes[order.name].distance_km }} km · about {{ routes[order.name].duration_minutes }} min</span><span v-else-if="order.delivery_distance_km != null">{{ Number(order.delivery_distance_km).toFixed(1) }} km from shop</span></div><MapView :config="order.map" :points="mapPoints(order)" :route="routes[order.name]?.points || []" height="250px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Delivery</span><span v-if="order.driver_location"><i class="legend-rider"></i>Rider</span></div><small v-if="routes[order.name]" class="route-attribution"><a :href="routes[order.name].attribution_url" target="_blank" rel="noopener">{{ routes[order.name].attribution }}</a></small><p v-if="routeErrors[order.name]" class="route-error">{{ routeErrors[order.name] }}</p><p v-if="order.status === 'Out for Delivery' && order.driver_location" class="map-confirmation">Rider location updated {{ order.driver_location.updated_at }}</p><p v-else-if="order.status === 'Out for Delivery'" class="muted">Waiting for the rider to start live location sharing. This page refreshes automatically.</p></section>
