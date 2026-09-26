@@ -60,6 +60,8 @@
   #lc-app .workspace-heading { flex-wrap: wrap; }
 }
 @media (max-width: 600px) {
+  #lc-app .owner-workflow-summary { grid-template-columns: repeat(5, minmax(104px, 1fr)); overflow-x: auto; padding-bottom: 3px; scrollbar-width: thin; }
+  #lc-app .owner-workflow-summary button { padding: 12px; }
   #lc-app { font-size: 14px; }
   #lc-app .commerce-app.customer-view .topbar { gap: 10px; padding: 14px 16px; }
   #lc-app .commerce-app.customer-view .brand-stack { max-width: 100%; }

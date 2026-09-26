@@ -37,6 +37,13 @@ const statusTabs = ['All', 'Requested', 'Accepted', 'Preparing', 'Ready', 'Picke
 const activeStatus = computed(() => statusTabs.includes(route.query.status) ? route.query.status : 'All')
 const visibleOrders = computed(() => activeStatus.value === 'All' ? orders.value : orders.value.filter(order => order.status === activeStatus.value))
 function statusCount(status) { return status === 'All' ? orders.value.length : orders.value.filter(order => order.status === status).length }
+const workflowSummary = computed(() => [
+  { label: 'New', status: 'Requested', hint: 'Need a response' },
+  { label: 'Preparing', status: 'Preparing', hint: 'Being packed' },
+  { label: 'Ready', status: 'Ready', hint: 'Awaiting pickup' },
+  { label: 'On delivery', status: 'Out for Delivery', hint: 'With customers' },
+  { label: 'Delivered', status: 'Delivered', hint: 'Completed' },
+])
 function selectStatus(status) {
   if (busy.value || status === activeStatus.value) return
   const query = { ...route.query }
@@ -137,6 +144,11 @@ onBeforeUnmount(() => {
     <div class="inventory-heading"><div><span class="eyebrow">DELIVERY ORDERS</span><h2>{{ shop ? 'Your orders' : 'My orders' }}</h2><p>{{ shop ? 'Prepare each order, assign a rider, and follow it through delivery.' : 'Track every step from shop confirmation to delivery.' }}</p></div><button :disabled="loading || busy" @click="load()">Refresh orders</button></div>
     <div v-if="shop" class="shop-order-tabs" role="group" aria-label="Delivery booking type">
       <button v-for="mode in ['Normal', 'Scheduled']" :key="mode" type="button" :class="{ active: deliveryTab === mode }" :aria-pressed="deliveryTab === mode" :disabled="busy" @click="selectDeliveryTab(mode)"><strong>{{ mode }} orders</strong><small>{{ mode === 'Normal' ? 'Individual deliveries' : 'Time slots & delivery batches' }}</small></button>
+    </div>
+    <div v-if="shop" class="owner-workflow-summary" aria-label="Order workflow summary">
+      <button v-for="card in workflowSummary" :key="card.status" type="button" :class="{ active: activeStatus === card.status }" :disabled="busy" @click="selectStatus(card.status)">
+        <small>{{ card.label }}</small><strong>{{ statusCount(card.status) }}</strong><span>{{ card.hint }}</span>
+      </button>
     </div>
     <div v-if="shop" class="order-status-tabs" role="tablist" aria-label="Order status">
       <button v-for="status in statusTabs" :key="status" type="button" role="tab" :class="{ active: activeStatus === status }" :aria-selected="activeStatus === status" @click="selectStatus(status)"><span>{{ status }}</span><b>{{ statusCount(status) }}</b></button>
