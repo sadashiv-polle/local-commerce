@@ -815,6 +815,15 @@ def serialize(doc):
     except ValueError:
         driver_location = None
     is_customer = frappe.session.user != "Guest" and doc.customer_user == frappe.session.user
+    rating = None
+    if is_customer:
+        rating_name = frappe.db.get_value(
+            "LC Rating", {"order": doc.name, "customer": frappe.session.user}, "name"
+        )
+        if rating_name:
+            from local_commerce.services.ratings import serialize as serialize_rating
+
+            rating = serialize_rating(frappe.get_doc("LC Rating", rating_name))
     shop_support_phone = None
     if is_customer:
         owner = frappe.get_all(
@@ -893,6 +902,7 @@ def serialize(doc):
         "collected_at": str(doc.collected_at) if doc.collected_at else None,
         "delivery_proof": doc.get("delivery_proof") or None,
         "delivery_proof_at": str(doc.delivery_proof_at) if doc.get("delivery_proof_at") else None,
+        "rating": rating,
         "currency": so.currency,
         "total": so.grand_total,
         "taxes_and_charges": so.total_taxes_and_charges,
@@ -908,6 +918,12 @@ def serialize(doc):
             for i in so.items
         ],
     }
+
+
+def submit_rating(order, shop_rating, product_rating, delivery_rating, comment=""):
+    from local_commerce.services import ratings
+
+    return ratings.submit(order, shop_rating, product_rating, delivery_rating, comment)
 
 
 def detail(order):

@@ -56,6 +56,7 @@ function selectDeliveryTab(mode) {
   router.replace({ query: { ...route.query, order_type: mode.toLowerCase() } })
 }
 const orders = ref([]), drivers = ref([]), selectedDrivers = ref({}), start = ref(0)
+const ratingForms = ref({}), ratingBusy = ref({})
 const error = ref(''), loading = ref(false), busy = ref(false), reasons = ref({})
 const routes = ref({}), routeErrors = ref({})
 const routeRequests = new Set()
@@ -133,6 +134,19 @@ async function assign(order) {
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
+function ratingForm(order) {
+  if (!ratingForms.value[order.name]) ratingForms.value[order.name] = { shop: 5, products: 5, delivery: 5, comment: '' }
+  return ratingForms.value[order.name]
+}
+async function submitRating(order) {
+  const form = ratingForm(order)
+  ratingBusy.value = { ...ratingBusy.value, [order.name]: true }; error.value = ''
+  try {
+    await call('orders.submit_rating', { order: order.name, shop_rating: form.shop, product_rating: form.products, delivery_rating: form.delivery, comment: form.comment }, true)
+    await load()
+  } catch (e) { error.value = e.message }
+  finally { ratingBusy.value = { ...ratingBusy.value, [order.name]: false } }
+}
 function refreshOrders() { load() }
 watch(() => [props.shop, props.shop ? deliveryTab.value : null, route.query.order], () => { start.value = 0; orders.value = []; load() }, { immediate: true })
 onMounted(() => {
@@ -174,6 +188,10 @@ onBeforeUnmount(() => {
       <p class="payment-summary"><span><small>PAYMENT METHOD</small><strong>{{ order.payment_method }}</strong></span><span><small>PAYMENT STATUS</small><strong :class="{ paid: ['Reconciled', 'Paid'].includes(order.payment_status) }">{{ order.payment_status }}</strong></span></p>
       <section v-if="!shop && order.delivery_otp" class="customer-delivery-otp" aria-label="Delivery confirmation code"><div><span aria-hidden="true">✓</span><div><small>DELIVERY CONFIRMATION</small><strong>{{ order.delivery_otp }}</strong></div></div><p>Share this code with the rider only after you receive your order. It is shown here instead of being sent by email.</p></section>
       <p v-if="order.delivery_proof" class="success-note">Delivery handover proof <a :href="order.delivery_proof" target="_blank" rel="noopener">View photo ↗</a>{{ order.delivery_proof_at ? ` · uploaded ${order.delivery_proof_at}` : '' }}</p>
+      <section v-if="!shop && order.status === 'Delivered'" class="order-rating">
+        <template v-if="order.rating"><strong>Thanks for your rating</strong><p>Shop {{ order.rating.shop }}/5 · Products {{ order.rating.products }}/5 · Delivery {{ order.rating.delivery }}/5</p><small v-if="order.rating.comment">“{{ order.rating.comment }}”</small></template>
+        <template v-else><strong>How was this order?</strong><p>Help {{ order.shop_name }} improve.</p><div class="rating-selects"><label>Shop<select v-model.number="ratingForm(order).shop"><option v-for="score in 5" :key="score" :value="score">{{ score }} / 5</option></select></label><label>Products<select v-model.number="ratingForm(order).products"><option v-for="score in 5" :key="score" :value="score">{{ score }} / 5</option></select></label><label>Delivery<select v-model.number="ratingForm(order).delivery"><option v-for="score in 5" :key="score" :value="score">{{ score }} / 5</option></select></label></div><label>Comment <small>(optional)</small><textarea v-model="ratingForm(order).comment" maxlength="1000" rows="2" placeholder="Tell the shop what went well or what could improve" /></label><button type="button" :disabled="ratingBusy[order.name]" @click="submitRating(order)">{{ ratingBusy[order.name] ? 'Sending…' : 'Send rating' }}</button></template>
+      </section>
       <div v-if="!shop && supportNumber(order.shop_support_phone)" class="customer-support" aria-label="Shop support">
         <span>Need help with this order?</span>
         <a :href="`tel:${order.shop_support_phone}`">Call {{ order.shop_name }}</a>

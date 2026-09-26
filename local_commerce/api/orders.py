@@ -123,6 +123,12 @@ def reorder_preview(order):
     return orders.reorder_preview(order)
 
 
+@frappe.whitelist(methods=["POST"])
+@rate_limit(limit=20, seconds=3600)
+def submit_rating(order, shop_rating, product_rating, delivery_rating, comment=""):
+    return orders.submit_rating(order, shop_rating, product_rating, delivery_rating, comment)
+
+
 @frappe.whitelist(allow_guest=True, methods=["GET"])
 @rate_limit(limit=300, seconds=3600)
 def search_products(search, start=0, latitude=None, longitude=None, category=""):

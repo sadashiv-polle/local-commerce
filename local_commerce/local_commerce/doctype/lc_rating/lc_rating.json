@@ -1,0 +1,29 @@
+{
+  "doctype": "DocType",
+  "name": "LC Rating",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "field_order": [
+    "order",
+    "shop",
+    "customer",
+    "shop_rating",
+    "product_rating",
+    "delivery_rating",
+    "comment"
+  ],
+  "fields": [
+    {"fieldname": "order", "label": "Order", "fieldtype": "Link", "options": "LC Order", "reqd": 1, "read_only": 1, "in_list_view": 1},
+    {"fieldname": "shop", "label": "Shop", "fieldtype": "Link", "options": "LC Shop", "reqd": 1, "read_only": 1, "in_list_view": 1},
+    {"fieldname": "customer", "label": "Customer", "fieldtype": "Link", "options": "User", "reqd": 1, "read_only": 1, "in_list_view": 1},
+    {"fieldname": "shop_rating", "label": "Shop rating", "fieldtype": "Int", "reqd": 1, "read_only": 1},
+    {"fieldname": "product_rating", "label": "Product rating", "fieldtype": "Int", "reqd": 1, "read_only": 1},
+    {"fieldname": "delivery_rating", "label": "Delivery rating", "fieldtype": "Int", "reqd": 1, "read_only": 1},
+    {"fieldname": "comment", "label": "Comment", "fieldtype": "Small Text", "read_only": 1}
+  ],
+  "permissions": [],
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "title_field": "order"
+}

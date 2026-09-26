@@ -660,6 +660,7 @@
   #lc-app .customer-support { align-items: stretch; }
   #lc-app .customer-support > span { flex-basis: 100%; }
   #lc-app .customer-support a { flex: 1 1 145px; justify-content: center; }
+  #lc-app .rating-selects { grid-template-columns: 1fr; }
 }
 #lc-app .order-reference { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0 16px; padding: 12px; border: 1px solid #dce6db; border-radius: 12px; color: #244b39; background: #f2f7ef; }
 #lc-app .order-reference > div { flex: 1 1 180px; min-width: 0; }
