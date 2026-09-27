@@ -112,6 +112,8 @@ def verify(order):
 def vendor_status(shop):
     require_platform()
     doc = frappe.get_doc("LC Shop", shop)
+    if cashfree.settlement_mode(doc) == "Direct merchant":
+        return {"status": "Main merchant account — no vendor required"}
     result = cashfree.request(
         doc.cashfree_gateway,
         "GET",
@@ -126,10 +128,16 @@ def settlements(order):
     doc = frappe.get_doc("LC Order", order)
     if doc.payment_method != "Cashfree":
         reject("This order does not use Cashfree")
+    snap = json.loads(doc.gateway_snapshot)
+    if snap.get("settlement_mode") == "Direct merchant":
+        return {
+            "split": snap,
+            "settlement": "Main merchant account. View bank settlements in Cashfree dashboard.",
+        }
     result = cashfree.request(
         doc.gateway_profile, "GET", "/easy-split/orders/" + quote(doc.gateway_order_id, safe="")
     )
-    return {"split": json.loads(doc.gateway_snapshot), "settlement": result}
+    return {"split": snap, "settlement": result}
 
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])

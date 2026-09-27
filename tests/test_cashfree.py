@@ -5,6 +5,7 @@ import importlib.util
 import json
 import sys
 import unittest
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -129,6 +130,95 @@ class CashfreeSyncTests(unittest.TestCase):
         if path.endswith("/refunds"):
             return self.refunds
         return self.remote
+
+    def test_checkout_uses_saved_mode_and_legacy_orders_keep_splits(self):
+        self.doc.customer_user = "payer"
+        self.doc.phone = "9876543210"
+        self.doc.shop = "fish-world"
+        self.frappe.session.user = "payer"
+        self.frappe.utils.get_url.return_value = "https://example.com"
+        self.frappe.db.get_value.return_value = "sandbox"
+        self.service.available = Mock(return_value=True)
+        for mode in ("Direct merchant", "Easy Split", None):
+            snap = {
+                "amount": "350.00",
+                "currency": "INR",
+                "vendor_id": "saved-vendor",
+                "vendor_amount": "315.00",
+                "expires_at": "2099-01-01T00:00:00+00:00",
+            }
+            if mode:
+                snap["settlement_mode"] = mode
+            self.doc.gateway_snapshot = json.dumps(snap)
+            self.service.request = Mock(
+                side_effect=[
+                    None,
+                    {**self.remote, "order_status": "ACTIVE", "payment_session_id": "session-test"},
+                ]
+            )
+            result = self.service.checkout("order")
+            self.assertEqual(result["payment_session_id"], "session-test")
+            payload = self.service.request.call_args.args[3]
+            if mode == "Direct merchant":
+                self.assertNotIn("order_splits", payload)
+            else:
+                self.assertEqual(
+                    payload["order_splits"], [{"vendor_id": "saved-vendor", "amount": 315.0}]
+                )
+
+    def test_direct_snapshot_ignores_stale_vendor_and_commission(self):
+        self.service.validate_shop = Mock()
+        shop = Mock(
+            cashfree_gateway="sandbox",
+            cashfree_vendor_id="old-vendor",
+            cashfree_commission_type="Percentage",
+            cashfree_commission=20,
+            cashfree_commission_account="old-expense",
+            cashfree_clearing_account="clearing",
+            cashfree_mode_of_payment="Cashfree",
+        )
+        shop.get.side_effect = lambda field: (
+            "Direct merchant" if field == "cashfree_settlement_mode" else None
+        )
+        self.frappe.as_json.side_effect = json.dumps
+        self.frappe.utils.now_datetime.return_value = datetime(2026, 9, 27, 12)
+        self.frappe.utils.get_system_timezone.return_value = "Asia/Kolkata"
+        self.service.snapshot(
+            self.doc, shop, SimpleNamespace(grand_total=350, rounded_total=350, currency="INR")
+        )
+        snap = json.loads(self.doc.gateway_snapshot)
+        self.assertIsNone(snap["vendor_id"])
+        self.assertIsNone(snap["commission_account"])
+        self.assertEqual(snap["commission"], "0.00")
+        self.assertEqual(snap["amount"], "350.00")
+
+    def test_direct_shop_needs_no_vendor_or_commission_account(self):
+        values = dict(
+            cashfree_enabled=1,
+            cashfree_gateway="sandbox",
+            cashfree_settlement_mode="Direct merchant",
+            company="Fish World",
+            cashfree_clearing_account="clearing",
+            cashfree_mode_of_payment="Cashfree",
+        )
+        shop = SimpleNamespace(
+            **values, get=values.get, get_doc_before_save=lambda: None, is_new=lambda: False
+        )
+        account = SimpleNamespace(
+            company="Fish World",
+            root_type="Asset",
+            is_group=0,
+            disabled=0,
+            account_currency="INR",
+            account_type="Bank",
+        )
+        self.frappe.db.exists.return_value = True
+        self.frappe.db.get_value.side_effect = [account, "INR", "Bank"]
+        self.service.validate_shop(shop)
+        self.assertEqual(self.frappe.db.get_value.call_count, 3)
+        values["cashfree_settlement_mode"] = "Easy Split"
+        with self.assertRaises(ValueError):
+            self.service.validate_shop(shop)
 
     def test_duplicate_success_posts_accounting_once(self):
         self.service.sync("order", authorize=False)

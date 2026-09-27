@@ -3,7 +3,10 @@ import { onMounted, ref } from 'vue'
 import { call } from './api.js'
 const data = ref(null), busy = ref(false), error = ref(''), message = ref(''), details = ref({})
 const profile = ref({ name: '', environment: 'sandbox', enabled: false, client_id: '', client_secret: '' })
-async function load() { data.value = await call('cashfree.settings') }
+async function load() {
+  data.value = await call('cashfree.settings')
+  for (const shop of data.value.shops) shop.cashfree_settlement_mode ||= 'Easy Split'
+}
 onMounted(async () => { try { await load() } catch (e) { error.value = e.message } })
 async function run(action) {
   busy.value = true; error.value = ''; message.value = ''
@@ -53,16 +56,18 @@ function accounts(shop, type) { return data.value.accounts.filter(a => a.company
             <label class="check-label"><input v-model="shop.cashfree_enabled" type="checkbox">Offer Cashfree at checkout</label>
             <div class="form-columns">
               <label>Gateway profile<select v-model="shop.cashfree_gateway"><option value="">Select profile</option><option v-for="row in data.profiles" :key="row.name">{{ row.name }}</option></select></label>
-              <label>Easy Split vendor ID<input v-model="shop.cashfree_vendor_id" placeholder="Approved vendor ID from Cashfree"></label>
-              <label>Commission type<select v-model="shop.cashfree_commission_type"><option>Percentage</option><option>Fixed</option></select></label>
-              <label>Commission<input v-model.number="shop.cashfree_commission" type="number" min="0" step="0.01"></label>
+              <label>Receive payments into<select v-model="shop.cashfree_settlement_mode"><option value="Direct merchant">Main merchant account — my own shop</option><option value="Easy Split">Vendor account — Easy Split</option></select></label>
+              <label v-if="shop.cashfree_settlement_mode === 'Easy Split'">Easy Split vendor ID<input v-model="shop.cashfree_vendor_id" placeholder="Approved vendor ID from Cashfree"></label>
+              <label v-if="shop.cashfree_settlement_mode === 'Easy Split'">Commission type<select v-model="shop.cashfree_commission_type"><option>Percentage</option><option>Fixed</option></select></label>
+              <label v-if="shop.cashfree_settlement_mode === 'Easy Split'">Commission<input v-model.number="shop.cashfree_commission" type="number" min="0" step="0.01"></label>
               <label>Cashfree clearing account<select v-model="shop.cashfree_clearing_account"><option value="">Select asset account</option><option v-for="account in accounts(shop, 'Asset')" :key="account.name">{{ account.name }}</option></select></label>
-              <label>Commission expense account<select v-model="shop.cashfree_commission_account"><option value="">Select expense account</option><option v-for="account in accounts(shop, 'Expense')" :key="account.name">{{ account.name }}</option></select></label>
+              <label v-if="shop.cashfree_settlement_mode === 'Easy Split'">Commission expense account<select v-model="shop.cashfree_commission_account"><option value="">Select expense account</option><option v-for="account in accounts(shop, 'Expense')" :key="account.name">{{ account.name }}</option></select></label>
               <label>Mode of Payment<select v-model="shop.cashfree_mode_of_payment"><option value="">Select bank payment mode</option><option v-for="mode in data.modes" :key="mode">{{ mode }}</option></select></label>
             </div>
-            <p>Commission applies to the full order total, including delivery and taxes. The remainder goes to this vendor. Changes apply to new orders only. Complete vendor onboarding and KYC in Cashfree before enabling.</p>
+            <p v-if="shop.cashfree_settlement_mode === 'Easy Split'">Commission applies to the full order total, including delivery and taxes. The remainder goes to this vendor. Changes apply to new orders only. Complete vendor onboarding and KYC in Cashfree before enabling.</p>
+            <p v-else>Payments use the merchant account linked to the selected gateway profile. No vendor ID or marketplace commission is needed. Cashfree fees still apply in production. Changes apply to new orders only.</p>
             <button class="lc-primary">Save shop payment settings</button>
-            <button type="button" @click="run(async () => { details[shop.name] = await call('cashfree.vendor_status', { shop: shop.name }, true) })">Check vendor status</button><pre v-if="details[shop.name]">{{ details[shop.name] }}</pre>
+            <button v-if="shop.cashfree_settlement_mode === 'Easy Split'" type="button" @click="run(async () => { details[shop.name] = await call('cashfree.vendor_status', { shop: shop.name }, true) })">Check vendor status</button><pre v-if="details[shop.name] && shop.cashfree_settlement_mode === 'Easy Split'">{{ details[shop.name] }}</pre>
           </fieldset>
         </form>
       </section>

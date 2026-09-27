@@ -54,6 +54,7 @@
     "upi_mode_of_payment",
     "cashfree_enabled",
     "cashfree_gateway",
+    "cashfree_settlement_mode",
     "cashfree_vendor_id",
     "cashfree_commission_type",
     "cashfree_commission",
@@ -408,6 +409,15 @@
       "fieldtype": "Link",
       "options": "Mode of Payment",
       "permlevel": 1
+    },
+    {
+      "fieldname": "cashfree_settlement_mode",
+      "label": "Cashfree settlement mode",
+      "fieldtype": "Select",
+      "options": "Easy Split\nDirect merchant",
+      "default": "Easy Split",
+      "permlevel": 1,
+      "description": "Direct merchant: your own shop uses the selected Cashfree merchant account without vendor splitting."
     }
   ],
   "permissions": [

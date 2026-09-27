@@ -18,6 +18,7 @@ from local_commerce.services.payments.rules import money, split_amounts, success
 SHOP_FIELDS = (
     "cashfree_enabled",
     "cashfree_gateway",
+    "cashfree_settlement_mode",
     "cashfree_vendor_id",
     "cashfree_commission_type",
     "cashfree_commission",
@@ -68,6 +69,14 @@ def available(shop):
     )
 
 
+def settlement_mode(shop):
+    # Existing shops/orders retain Easy Split unless explicitly changed by an admin.
+    mode = shop.get("cashfree_settlement_mode") or "Easy Split"
+    if mode not in {"Easy Split", "Direct merchant"}:
+        reject("Choose Main merchant account or Easy Split")
+    return mode
+
+
 def validate_shop(shop, method=None):
     previous = shop.get_doc_before_save()
     if not previous and shop.is_new() and shop.get("cashfree_enabled"):
@@ -80,17 +89,19 @@ def validate_shop(shop, method=None):
         "LC Payment Gateway", shop.cashfree_gateway
     ):
         reject("Select a Cashfree gateway profile")
-    if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", shop.get("cashfree_vendor_id") or ""):
-        reject("Enter this shop's approved Cashfree Easy Split vendor ID")
-    value = money(shop.get("cashfree_commission") or 0)
-    if shop.get("cashfree_commission_type") not in {"Fixed", "Percentage"}:
-        reject("Select a commission type")
-    if shop.cashfree_commission_type == "Percentage" and value >= 100:
-        reject("Percentage commission must be below 100")
-    for field, root in (
-        ("cashfree_clearing_account", "Asset"),
-        ("cashfree_commission_account", "Expense"),
-    ):
+    split = settlement_mode(shop) == "Easy Split"
+    if split:
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", shop.get("cashfree_vendor_id") or ""):
+            reject("Enter this shop's approved Cashfree Easy Split vendor ID")
+        value = money(shop.get("cashfree_commission") or 0)
+        if shop.get("cashfree_commission_type") not in {"Fixed", "Percentage"}:
+            reject("Select a commission type")
+        if shop.cashfree_commission_type == "Percentage" and value >= 100:
+            reject("Percentage commission must be below 100")
+    accounts = [("cashfree_clearing_account", "Asset")]
+    if split:
+        accounts.append(("cashfree_commission_account", "Expense"))
+    for field, root in accounts:
         account = frappe.db.get_value(
             "Account",
             shop.get(field),
@@ -115,8 +126,12 @@ def validate_shop(shop, method=None):
 
 def snapshot(order, shop, so):
     validate_shop(shop)
-    vendor, commission = split_amounts(
-        so.grand_total, shop.cashfree_commission_type, shop.cashfree_commission or 0
+    mode = settlement_mode(shop)
+    split = mode == "Easy Split"
+    vendor, commission = (
+        split_amounts(so.grand_total, shop.cashfree_commission_type, shop.cashfree_commission or 0)
+        if split
+        else (money(0), money(0))
     )
     if money(so.grand_total) < 1 or money(so.grand_total) != money(
         so.rounded_total or so.grand_total
@@ -128,11 +143,12 @@ def snapshot(order, shop, so):
         {
             "amount": str(money(so.grand_total)),
             "currency": so.currency,
-            "vendor_id": shop.cashfree_vendor_id,
+            "settlement_mode": mode,
+            "vendor_id": shop.cashfree_vendor_id if split else None,
             "vendor_amount": str(vendor),
             "commission": str(commission),
             "clearing_account": shop.cashfree_clearing_account,
-            "commission_account": shop.cashfree_commission_account,
+            "commission_account": shop.cashfree_commission_account if split else None,
             "mode_of_payment": shop.cashfree_mode_of_payment,
             "expires_at": (
                 frappe.utils.now_datetime()
@@ -204,10 +220,11 @@ def checkout(order):
                 "return_url": origin + "/local-commerce#/orders?order=" + doc.name,
                 "notify_url": origin + "/api/method/local_commerce.api.cashfree.webhook",
             },
-            "order_splits": [
-                {"vendor_id": snap["vendor_id"], "amount": float(snap["vendor_amount"])}
-            ],
         }
+        if snap.get("settlement_mode", "Easy Split") == "Easy Split":
+            payload["order_splits"] = [
+                {"vendor_id": snap["vendor_id"], "amount": float(snap["vendor_amount"])}
+            ]
         remote = request(doc.gateway_profile, "POST", "/orders", payload, doc.gateway_order_id)
     successful_payment(remote, [], doc.gateway_order_id, snap["amount"], snap["currency"])
     if remote.get("order_status") != "ACTIVE":
@@ -318,7 +335,10 @@ def book_payment(doc):
     try:
         frappe.set_user("Administrator")
         so = frappe.get_doc("Sales Order", doc.sales_order)
-        for field, root in (("clearing_account", "Asset"), ("commission_account", "Expense")):
+        accounts = [("clearing_account", "Asset")]
+        if money(snap["commission"]):
+            accounts.append(("commission_account", "Expense"))
+        for field, root in accounts:
             account = frappe.get_doc("Account", snap[field])
             if (
                 account.company != so.company

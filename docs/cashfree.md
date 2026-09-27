@@ -25,6 +25,14 @@ Keep the scheduler and workers running for missed-webhook recovery.
 Open the Local Commerce **Platform administration → Cashfree** section as an
 LC Platform Administrator (or Administrator).
 
+For an owned shop such as Fish World, choose **Receive payments into → Main merchant
+account — my own shop**. Select your gateway profile, clearing account and Mode of Payment,
+then enable and save. No Easy Split vendor, commission or commission expense account is
+required. The gateway request omits splits and the payment uses the merchant account for
+that profile. Normal Cashfree fees still apply in production. Sandbox does not move money.
+Existing shops retain Easy Split until explicitly changed; existing orders always retain
+the mode and amounts saved at checkout. The vendor setup below only applies to Easy Split.
+
 1. Create a **Sandbox** gateway profile with the Client ID and Client Secret from Cashfree.
    Sandbox simulates gateway payments, but successful tests still create real ERP documents
    in the connected Frappe site. Use a separate test site and test Company.
