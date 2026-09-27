@@ -82,6 +82,20 @@ in Frappe Password storage; the settings API never returns them to Vue.
 
 ## Refunds and limits
 
+### Troubleshooting gateway errors
+
+Failed Cashfree HTTP calls show the operation, HTTP status, a bounded provider
+error code, and an app-generated request reference. Match this reference to the
+`x-request-id` in Cashfree API logs ([Cashfree request ID documentation](https://github.com/cashfree/cashfree-pg-sdk-php/blob/master/docs/Orders.md)).
+The backend also writes the same safe message to
+`sites/<site>/logs/local_commerce_cashfree.log` (and the Bench logs directory).
+It does not record raw response bodies, request payloads, headers, payment session
+IDs or credentials. Field hints are suggestions, not a confirmed diagnosis.
+
+For an HTTP 400, record the operation and code before changing gateway settings.
+Do not treat every 400 as an absent order or switch settlement modes on an existing
+order: its original payment snapshot and idempotency key must stay intact.
+
 Initiate refunds from Cashfree's dashboard. Successful refunds are fetched from Cashfree;
 full refunds display Refunded, while partial refunds retain Paid and flag accounting review.
 Both block further fulfilment until reviewed. ERPNext credit notes and outgoing refund

@@ -128,7 +128,60 @@ class CashfreeSyncTests(unittest.TestCase):
             )
         ]
         self.refunds = []
+        self.http_request = self.service.request
         self.service.request = Mock(side_effect=self.request)
+
+    def test_http_400_reports_operation_code_and_reference_without_private_values(self):
+        config = SimpleNamespace(
+            environment="sandbox",
+            client_id="private-client-id",
+            get_password=lambda _: "private-client-secret",
+        )
+        self.frappe.get_doc.return_value = config
+        response = Mock(status_code=400)
+        response.json.return_value = {
+            "code": "customer_phone_invalid",
+            "message": "customer_phone 9876543210 invalid private-client-secret",
+            "payment_session_id": "private-session",
+        }
+        self.service.requests.request.return_value = response
+        with self.assertRaises(ValueError) as error:
+            self.http_request("sandbox", "POST", "/orders", {"private": "payload"}, "lc_order")
+        detail = str(error.exception)
+        self.assertIn("create payment", detail)
+        self.assertIn("customer_phone_invalid", detail)
+        self.assertIn("ten-digit", detail)
+        sent = self.service.requests.request.call_args.kwargs
+        self.assertIn(sent["headers"]["x-request-id"], detail)
+        self.assertIn("x-idempotency-key", sent["headers"])
+        for private in ("9876543210", "private-client", "private-session", "payload"):
+            self.assertNotIn(private, detail)
+        self.frappe.logger.return_value.warning.assert_called_once_with(detail)
+
+    def test_non_json_error_and_secret_in_code_are_not_echoed(self):
+        for response in (
+            Mock(status_code=502, json=Mock(side_effect=ValueError("HTML response"))),
+            Mock(status_code=400, json=Mock(return_value={"code": "secret", "message": ""})),
+            Mock(status_code=400, json=Mock(return_value=["unexpected"])),
+        ):
+            with self.assertRaises(ValueError) as error:
+                self.service.request_failure(
+                    response, "GET", "/orders/lc_order", "ref", ("secret",)
+                )
+            self.assertIn("unknown_error", str(error.exception))
+            self.assertNotIn("secret", str(error.exception))
+
+    def test_missing_lookup_only_allows_404_not_arbitrary_400(self):
+        self.frappe.get_doc.return_value = SimpleNamespace(
+            environment="sandbox", client_id="client", get_password=lambda _: "secret"
+        )
+        response = Mock(status_code=404)
+        self.service.requests.request.return_value = response
+        self.assertIsNone(self.http_request("sandbox", "GET", "/orders/lc_order", missing=True))
+        response.status_code = 400
+        response.json.return_value = {"code": "order_id_invalid"}
+        with self.assertRaisesRegex(ValueError, "fetch payment order"):
+            self.http_request("sandbox", "GET", "/orders/lc_order", missing=True)
 
     def book(self, doc):
         doc.payment_entry = "PAY-1"

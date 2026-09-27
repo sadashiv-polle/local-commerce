@@ -28,17 +28,72 @@ SHOP_FIELDS = (
 )
 
 
+def request_failure(response, method, path, reference, secrets):
+    """Expose bounded error codes/field hints, never echoed customer values or secrets."""
+    try:
+        body = response.json()
+    except ValueError:
+        body = {}
+    if not isinstance(body, dict):
+        body = {}
+    code = body.get("code")
+    if (
+        not isinstance(code, str)
+        or not re.fullmatch(r"[a-z][a-z0-9_]{1,63}", code)
+        or any(secret and secret in code for secret in secrets)
+    ):
+        code = "unknown_error"
+    message = body.get("message")
+    message = message.lower() if isinstance(message, str) else ""
+    hint = "Check this request in Cashfree's API logs using the reference below."
+    for field, explanation in (
+        ("customer_phone", "Check the customer's ten-digit phone number."),
+        ("customer_id", "Cashfree rejected the customer reference."),
+        ("order_expiry_time", "Cashfree rejected the payment expiry time."),
+        ("return_url", "Check the site's payment return URL configuration."),
+        ("notify_url", "Check the site's webhook URL configuration."),
+        ("order_splits", "Check the shop's Easy Split configuration and approved vendor."),
+        ("vendor", "Check the shop's Easy Split configuration and approved vendor."),
+        ("order_amount", "Cashfree rejected the order amount."),
+        ("order_currency", "Check the order currency and gateway currency support."),
+        ("order_id", "Cashfree rejected the payment order reference."),
+    ):
+        if field in code or field in message:
+            hint = explanation
+            break
+    operation = (
+        "create payment"
+        if method == "POST" and path == "/orders"
+        else "fetch payment order"
+        if re.fullmatch(r"/orders/[^/]+", path)
+        else "fetch payments"
+        if path.endswith("/payments")
+        else "fetch refunds"
+        if path.endswith("/refunds")
+        else "gateway request"
+    )
+    detail = (
+        f"Cashfree could not {operation} (HTTP {response.status_code}; {code}). "
+        f"{hint} Reference: {reference}"
+    )
+    # A file logger survives request rollback. Do not pass response/payload/headers.
+    frappe.logger("local_commerce_cashfree", allow_site=True).warning(detail)
+    reject(detail)
+
+
 def request(profile, method, path, payload=None, key=None, missing=False):
     config = frappe.get_doc("LC Payment Gateway", profile)
     base = {
         "sandbox": "https://sandbox.cashfree.com/pg",
         "production": "https://api.cashfree.com/pg",
     }[config.environment]
+    reference = str(uuid.uuid4())
     headers = {
         "x-client-id": config.client_id,
         "x-client-secret": config.get_password("client_secret"),
         "x-api-version": "2025-01-01",
         "Content-Type": "application/json",
+        "x-request-id": reference,
     }
     if key:
         headers["x-idempotency-key"] = str(uuid.uuid5(uuid.NAMESPACE_URL, key))
@@ -56,8 +111,13 @@ def request(profile, method, path, payload=None, key=None, missing=False):
     if missing and response.status_code == 404:
         return None
     if not 200 <= response.status_code < 300:
-        # Never log response bodies, headers, session IDs or credentials.
-        reject(f"Cashfree returned HTTP {response.status_code}. Check the Cashfree dashboard logs")
+        request_failure(
+            response,
+            method,
+            path,
+            reference,
+            (headers["x-client-id"], headers["x-client-secret"]),
+        )
     return response.json()
 
 
