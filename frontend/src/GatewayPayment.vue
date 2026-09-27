@@ -1,8 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { call } from './api.js'
-const props = defineProps({ order: { type: Object, required: true }, customer: Boolean })
-const emit = defineEmits(['updated'])
+const props = defineProps({ order: { type: Object, required: true }, customer: Boolean, autoStart: Boolean })
+const emit = defineEmits(['updated', 'checkout-started'])
 const busy = ref(false), error = ref('')
 async function refresh() {
   busy.value = true; error.value = ''
@@ -11,6 +11,7 @@ async function refresh() {
   finally { busy.value = false }
 }
 async function pay() {
+  if (busy.value) return
   busy.value = true; error.value = ''
   try {
     const session = await call('cashfree.checkout', { order: props.order.name }, true)
@@ -28,13 +29,18 @@ async function pay() {
   } catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
+onMounted(() => {
+  if (!props.autoStart || !props.customer) return
+  emit('checkout-started')
+  if (props.order.status === 'Requested' && ['Pending', 'Failed'].includes(props.order.payment_status)) pay()
+})
 </script>
 <template>
   <section class="order-rating">
     <strong>Cashfree payment · {{ order.payment_status }}</strong>
     <p v-if="order.payment_status === 'Paid'">Payment received. No cash is due at delivery.</p>
     <p v-else-if="order.payment_status === 'Refunded'">Your payment has been refunded.</p>
-    <p v-else>Complete your secure online payment before the shop prepares your order.</p>
+    <p v-else>Complete payment to confirm your order. The shop accepts it automatically after payment is verified.</p>
     <p v-if="order.accounting_pending">Payment received; the shop is resolving an order processing issue.</p>
     <div class="button-row">
       <button v-if="customer && !['Paid', 'Refunded'].includes(order.payment_status) && order.status !== 'Cancelled'" :disabled="busy" class="lc-primary" @click="pay">Pay securely</button>

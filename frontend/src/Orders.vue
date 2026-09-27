@@ -149,7 +149,12 @@ async function submitRating(order) {
   finally { ratingBusy.value = { ...ratingBusy.value, [order.name]: false } }
 }
 function refreshOrders() { load() }
-watch(() => [props.shop, props.shop ? deliveryTab.value : null, route.query.order], () => { start.value = 0; orders.value = []; load() }, { immediate: true })
+function paymentStarted() {
+  const query = { ...route.query }
+  delete query.pay
+  router.replace({ query })
+}
+watch([() => props.shop, () => props.shop ? deliveryTab.value : null, () => route.query.order], () => { start.value = 0; orders.value = []; load() }, { immediate: true })
 onMounted(() => {
   window.addEventListener('lc-orders-change', refreshOrders)
   refreshTimer = window.setInterval(() => { if (!props.shop && !loading.value && !busy.value && orders.value.some(order => !['Delivered', 'Cancelled'].includes(order.status))) load() }, 10000)
@@ -185,7 +190,7 @@ onBeforeUnmount(() => {
       <p v-if="order.scheduled_period" class="lc-notice">Scheduled · {{ order.scheduled_period.title }} · {{ order.scheduled_period.delivery_start }} – {{ order.scheduled_period.delivery_end }} · Free delivery</p><div class="delivery-progress" :aria-label="`Order status: ${order.status}`"><span v-for="step in steps" :key="step" :class="{ complete: steps.indexOf(step) <= steps.indexOf(order.status) }">{{ step }}</span></div><div v-if="!shop" class="customer-tracking-summary"><span class="tracking-status-dot" aria-hidden="true"></span><div><small>DELIVERY UPDATE · ORDER {{ order.name.slice(-8).toUpperCase() }}</small><strong>{{ deliveryEstimate(order) }}</strong></div><span v-if="order.delivery_name" class="tracking-rider">{{ order.delivery_name }}</span></div>
       <ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }} <strong>{{ money(item.amount, order.currency) }}</strong><small v-if="order.selling_lines?.[index]?.option_id" class="order-option-summary">{{ order.selling_lines[index].label }} × {{ order.selling_lines[index].packs }} · {{ order.selling_lines[index].preweighed ? `Pack weight ${order.selling_lines[index].actual_weight} kg` : order.selling_lines[index].actual_weight == null ? `Estimated stock weight ${order.selling_lines[index].estimated_weight} kg` : `Actual packed weight ${order.selling_lines[index].actual_weight} kg` }}</small></li></ul>
       <p><strong>{{ order.estimated ? 'Estimated total' : 'Order total' }} {{ money(order.total, order.currency) }}</strong><br><small>Includes {{ money(order.taxes_and_charges, order.currency) }} in configured taxes and delivery charges.</small></p>
-      <GatewayPayment v-if="order.payment_method === 'Cashfree'" :order="order" :customer="!shop" @updated="load" />
+      <GatewayPayment v-if="order.payment_method === 'Cashfree'" :order="order" :customer="!shop" :auto-start="!shop && route.query.pay === '1' && route.query.order === order.name" @checkout-started="paymentStarted" @updated="load" />
       <ManualUpiPayment :order="order" :editable="!!shop && editable" @updated="load" />
       <p class="payment-summary"><span><small>PAYMENT METHOD</small><strong>{{ order.payment_method }}</strong></span><span><small>PAYMENT STATUS</small><strong :class="{ paid: ['Reconciled', 'Paid'].includes(order.payment_status) }">{{ order.payment_status }}</strong></span></p>
       <section v-if="!shop && order.delivery_otp" class="customer-delivery-otp" aria-label="Delivery confirmation code"><div><span aria-hidden="true">✓</span><div><small>DELIVERY CONFIRMATION</small><strong>{{ order.delivery_otp }}</strong></div></div><p>Share this code with the rider only after you receive your order. It is shown here instead of being sent by email.</p></section>

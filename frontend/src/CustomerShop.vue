@@ -172,7 +172,10 @@ async function place() {
     }
     const placed = await call('orders.place', pending.value, true)
     sessionStorage.removeItem(storageKey.value); pending.value = null; clearCart(localStorage, route.params.shop); cart.value = {}
-    await router.push({ path: '/orders', query: { order: placed.name } })
+    await router.push({ path: '/orders', query: {
+      order: placed.name,
+      ...(placed.payment_method === 'Cashfree' ? { pay: '1' } : {}),
+    } })
   } catch (e) {
     error.value = e.message
     if ([400, 403, 417].includes(e.status)) { sessionStorage.removeItem(storageKey.value); pending.value = null }
@@ -270,7 +273,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-address-change', loadSave
             </fieldset>
             <p v-if="error" class="checkout-error" role="alert">{{ error }}</p>
             <p v-if="!catalog.accepting_orders" class="muted">Your cart is saved. {{ catalog.availability.message }}.</p>
-            <button class="cart-checkout-button" :disabled="busy || outsideDeliveryRange || (!pending && (quoting || !!quoteError || !deliveryQuote || deliveryQuote.minimum_remaining > 0 || deliveryQuote.needs_location)) || (!catalog.accepting_orders && !pending)"><span>{{ busy ? 'Sending…' : outsideDeliveryRange ? 'Address outside delivery range' : pending ? 'Retry request' : session.user === 'Guest' ? 'Login to order' : 'Send order request' }}</span><strong>{{ money(estimatedTotal) }} ›</strong></button>
+            <button class="cart-checkout-button" :disabled="busy || outsideDeliveryRange || (!pending && (quoting || !!quoteError || !deliveryQuote || deliveryQuote.minimum_remaining > 0 || deliveryQuote.needs_location)) || (!catalog.accepting_orders && !pending)"><span>{{ busy ? 'Sending…' : outsideDeliveryRange ? 'Address outside delivery range' : pending ? 'Retry request' : session.user === 'Guest' ? 'Login to order' : paymentMethod === 'Cashfree' ? 'Continue to payment' : 'Send order request' }}</span><strong>{{ money(estimatedTotal) }} ›</strong></button>
           </form>
         </aside>
       </div>
