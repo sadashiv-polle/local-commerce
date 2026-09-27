@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import importlib.util
 import json
+import logging
 import sys
 import unittest
 from datetime import datetime
@@ -156,7 +157,22 @@ class CashfreeSyncTests(unittest.TestCase):
         self.assertIn("x-idempotency-key", sent["headers"])
         for private in ("9876543210", "private-client", "private-session", "payload"):
             self.assertNotIn(private, detail)
-        self.frappe.logger.return_value.warning.assert_called_once_with(detail)
+        self.frappe.logger.return_value.error.assert_called_once_with(detail)
+
+    def test_gateway_failure_is_logged_at_production_error_threshold(self):
+        logger = logging.Logger("cashfree-test", level=logging.ERROR)
+        records = []
+        handler = logging.Handler()
+        handler.emit = records.append
+        logger.addHandler(handler)
+        self.frappe.logger.return_value = logger
+        response = Mock(status_code=500)
+        response.json.return_value = {"code": "request_failed"}
+        with self.assertRaises(ValueError):
+            self.service.request_failure(response, "POST", "/orders", "test-reference", ())
+        self.assertEqual(len(records), 1)
+        self.assertIn("test-reference", records[0].getMessage())
+        self.assertIn("request_failed", records[0].getMessage())
 
     def test_non_json_error_and_secret_in_code_are_not_echoed(self):
         for response in (

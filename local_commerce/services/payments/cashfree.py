@@ -77,7 +77,7 @@ def request_failure(response, method, path, reference, secrets):
         f"{hint} Reference: {reference}"
     )
     # A file logger survives request rollback. Do not pass response/payload/headers.
-    frappe.logger("local_commerce_cashfree", allow_site=True).warning(detail)
+    frappe.logger("local_commerce_cashfree", allow_site=True).error(detail)
     reject(detail)
 
 
