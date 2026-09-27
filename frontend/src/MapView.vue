@@ -100,6 +100,7 @@ async function searchPlaces() {
 }
 
 function choosePlace(place) {
+  if (!props.editable) return
   searchQuery.value = place.label
   searchResults.value = []; searchError.value = ''
   map?.setView([place.latitude, place.longitude], 17)
@@ -112,13 +113,16 @@ onMounted(async () => {
   L.tileLayer(props.config?.tile_url || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map)
   routeLayer = L.layerGroup().addTo(map)
   layer = L.layerGroup().addTo(map)
-  if (props.editable) map.on('click', event => emit('pick', { latitude: Number(event.latlng.lat.toFixed(6)), longitude: Number(event.latlng.lng.toFixed(6)) }))
+  map.on('click', event => {
+    if (props.editable) emit('pick', { latitude: Number(event.latlng.lat.toFixed(6)), longitude: Number(event.latlng.lng.toFixed(6)) })
+  })
   renderPoints()
   setTimeout(() => map?.invalidateSize(), 0)
   window.addEventListener('keydown', closeExpanded)
 })
 
 watch([() => props.points, () => props.route], renderPoints, { deep: true })
+watch(() => props.editable, () => { searchResults.value = []; searchError.value = '' })
 onBeforeUnmount(() => { window.removeEventListener('keydown', closeExpanded); map?.remove(); map = null; layer = null; routeLayer = null; markers.clear() })
 </script>
 

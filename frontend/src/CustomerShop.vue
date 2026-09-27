@@ -41,6 +41,25 @@ function syncPhoto(event) {
 }
 const savedAddresses = ref([]), selectedAddress = ref('')
 const locationError = ref(''), locating = ref(false)
+const editingLocation = ref(false)
+let originalLocation = null, locationGeneration = 0
+const locationFields = ['latitude', 'longitude', 'line1', 'city', 'postal_code']
+function editLocation() {
+  if (busy.value || pending.value) return
+  originalLocation = Object.fromEntries(locationFields.map(field => [field, address.value[field]]))
+  locationGeneration++
+  editingLocation.value = true
+  locationError.value = ''
+}
+function finishLocation(cancel = false) {
+  if (cancel && originalLocation) Object.assign(address.value, originalLocation)
+  originalLocation = null
+  locationGeneration++
+  editingLocation.value = false
+  locating.value = false
+  locationError.value = ''
+}
+watch(cartOpen, open => { if (!open) finishLocation(true) })
 const deliveryQuote = ref(null), quoting = ref(false), quoteError = ref('')
 let quoteTimer, quoteGeneration = 0
 const storageKey = computed(() => `lc-delivery:${session.value.user}:${route.params.shop}`)
@@ -120,22 +139,26 @@ function closeCart() {
   if (!busy.value) cartOpen.value = false
 }
 function pickDeliveryLocation(point) {
+  if (!editingLocation.value || busy.value || pending.value) return
   address.value.latitude = point.latitude; address.value.longitude = point.longitude; locationError.value = ''; error.value = ''
   if (point.address_line1) address.value.line1 = point.address_line1
   if (point.city) address.value.city = point.city
   if (point.postal_code) address.value.postal_code = point.postal_code
 }
 function useDeliveryLocation() {
+  if (!editingLocation.value || busy.value || pending.value) return
+  const generation = ++locationGeneration
   locationError.value = ''
   if (!navigator.geolocation) { locationError.value = 'Location is not available in this browser. Tap the map to place your pin.'; return }
   locating.value = true
   navigator.geolocation.getCurrentPosition(
-    position => { pickDeliveryLocation(position.coords); locating.value = false },
-    () => { locationError.value = window.isSecureContext ? 'We could not read your location. Allow location access or tap the map.' : 'Automatic location needs HTTPS. You can still tap the map to place your delivery pin.'; locating.value = false },
+    position => { if (generation !== locationGeneration) return; pickDeliveryLocation(position.coords); locating.value = false },
+    () => { if (generation !== locationGeneration) return; locationError.value = window.isSecureContext ? 'We could not read your location. Allow location access or tap the map.' : 'Automatic location needs HTTPS. You can still tap the map to place your delivery pin.'; locating.value = false },
     { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
   )
 }
 function applySavedAddress(notify = true) {
+  finishLocation(true)
   const saved = savedAddresses.value.find(row => row.name === selectedAddress.value)
   if (!saved) return
   const instructions = address.value.delivery_instructions
@@ -156,6 +179,7 @@ async function loadSavedAddresses() {
   } catch { /* Manual checkout remains available if the address book cannot load. */ }
 }
 async function place() {
+  if (editingLocation.value) { error.value = 'Save or cancel your location changes before continuing.'; return }
   if (session.value.user === 'Guest') {
     try { writeCart(localStorage, route.params.shop, cart.value); checkout.value = true }
     catch { error.value = 'Enable local storage so your cart can be saved through login.' }
@@ -267,13 +291,13 @@ onBeforeUnmount(() => { window.removeEventListener('lc-address-change', loadSave
           <form v-else class="cart-checkout-form" @submit.prevent="place">
             <fieldset v-if="session.user !== 'Guest'" :disabled="busy || !!pending">
               <h3>Delivery details</h3><div v-if="savedAddresses.length" class="saved-address-picker"><label>Saved address<select v-model="selectedAddress" @change="applySavedAddress"><option value="" disabled>Choose delivery address</option><option v-for="savedAddress in savedAddresses" :key="savedAddress.name" :value="savedAddress.name">{{ savedAddress.address_label }} · {{ savedAddress.line1 }}</option></select></label><RouterLink to="/account">Manage addresses</RouterLink></div><div class="form-columns"><label>Recipient<input v-model="address.recipient" required maxlength="140" autocomplete="name"></label><label>Phone<input v-model="address.phone" required maxlength="30" type="tel" autocomplete="tel"></label></div><label>Street address<input v-model="address.line1" required maxlength="140" autocomplete="address-line1"></label><div class="form-columns"><label>City<input v-model="address.city" required maxlength="100" autocomplete="address-level2"></label><label>Postal code<input v-model="address.postal_code" required maxlength="20" autocomplete="postal-code"></label></div>
-              <section v-if="catalog.shop_location" class="checkout-location"><div class="location-heading"><div><strong>Pin your delivery location</strong><small>Inside {{ catalog.shop_location.service_radius_km }} km of the shop</small></div><button type="button" :disabled="locating" @click="useDeliveryLocation">{{ locating ? 'Finding…' : 'Use my location' }}</button></div><small class="coordinate-help">Tap the map to choose your exact delivery location.</small><MapView :config="catalog.map" :points="deliveryPoints" editable height="220px" @pick="pickDeliveryLocation" /><p v-if="outsideDeliveryRange" class="range-warning" role="alert"><strong>Outside delivery range</strong>Your address is approximately {{ deliveryDistance.toFixed(1) }} km from this shop. This shop currently delivers within {{ Number(catalog.shop_location.service_radius_km).toFixed(1) }} km. Choose a closer address or another shop.</p><p v-else-if="deliveryDistance != null" class="map-confirmation">✓ Within range · approximately {{ deliveryDistance.toFixed(1) }} km from the shop</p><p v-if="locationError" class="lc-notice" role="alert">{{ locationError }}</p></section>
+              <section v-if="catalog.shop_location" class="checkout-location"><div class="location-heading"><div><strong>Delivery location</strong><small>Inside {{ catalog.shop_location.service_radius_km }} km of the shop</small></div><button v-if="!editingLocation" type="button" @click="editLocation">Edit location</button><button v-else type="button" :disabled="locating" @click="useDeliveryLocation">{{ locating ? 'Finding…' : 'Use my location' }}</button></div><small class="coordinate-help">{{ editingLocation ? 'Tap the map or search to adjust your pin for this order.' : 'Location locked. Tap Edit location to change your delivery pin.' }}</small><MapView :config="catalog.map" :points="deliveryPoints" :editable="editingLocation && !busy && !pending" height="220px" @pick="pickDeliveryLocation" /><div v-if="editingLocation" class="button-row"><button type="button" :disabled="locating || address.latitude == null || address.longitude == null" @click="finishLocation()">Save location</button><button type="button" @click="finishLocation(true)">Cancel</button></div><p v-if="outsideDeliveryRange" class="range-warning" role="alert"><strong>Outside delivery range</strong>Your address is approximately {{ deliveryDistance.toFixed(1) }} km from this shop. This shop currently delivers within {{ Number(catalog.shop_location.service_radius_km).toFixed(1) }} km. Choose a closer address or another shop.</p><p v-else-if="deliveryDistance != null" class="map-confirmation">✓ Within range · approximately {{ deliveryDistance.toFixed(1) }} km from the shop</p><p v-if="locationError" class="lc-notice" role="alert">{{ locationError }}</p></section>
               <label>Delivery instructions <small>(optional)</small><textarea v-model="address.delivery_instructions" maxlength="500" placeholder="Landmark, gate, floor, or how to find you"></textarea></label>
               <label v-for="method in catalog.payment_methods" :key="method" class="checkout-payment"><input v-model="paymentMethod" type="radio" :value="method" name="payment-method"><div><strong>{{ method === 'Manual UPI' ? 'UPI · scan & pay' : method }}</strong><small>{{ method === 'Manual UPI' ? 'Scan, pay and upload your screenshot from My orders.' : method === 'Cashfree' ? 'Pay securely online through Cashfree.' : 'Pay the delivery person when your order arrives.' }}</small></div></label>
             </fieldset>
             <p v-if="error" class="checkout-error" role="alert">{{ error }}</p>
             <p v-if="!catalog.accepting_orders" class="muted">Your cart is saved. {{ catalog.availability.message }}.</p>
-            <button class="cart-checkout-button" :disabled="busy || outsideDeliveryRange || (!pending && (quoting || !!quoteError || !deliveryQuote || deliveryQuote.minimum_remaining > 0 || deliveryQuote.needs_location)) || (!catalog.accepting_orders && !pending)"><span>{{ busy ? 'Sending…' : outsideDeliveryRange ? 'Address outside delivery range' : pending ? 'Retry request' : session.user === 'Guest' ? 'Login to order' : paymentMethod === 'Cashfree' ? 'Continue to payment' : 'Send order request' }}</span><strong>{{ money(estimatedTotal) }} ›</strong></button>
+            <button class="cart-checkout-button" :disabled="busy || editingLocation || outsideDeliveryRange || (!pending && (quoting || !!quoteError || !deliveryQuote || deliveryQuote.minimum_remaining > 0 || deliveryQuote.needs_location)) || (!catalog.accepting_orders && !pending)"><span>{{ busy ? 'Sending…' : outsideDeliveryRange ? 'Address outside delivery range' : pending ? 'Retry request' : session.user === 'Guest' ? 'Login to order' : paymentMethod === 'Cashfree' ? 'Continue to payment' : 'Send order request' }}</span><strong>{{ money(estimatedTotal) }} ›</strong></button>
           </form>
         </aside>
       </div>
