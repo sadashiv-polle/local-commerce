@@ -72,7 +72,11 @@ class CashfreeSyncTests(unittest.TestCase):
         self.frappe = Mock()
         self.orders = Mock()
         owner = Mock()
-        owner.reject.side_effect = ValueError
+
+        def reject(message):
+            raise ValueError(message)
+
+        owner.reject.side_effect = reject
         self.modules = patch.dict(
             sys.modules,
             {
@@ -93,6 +97,8 @@ class CashfreeSyncTests(unittest.TestCase):
         spec.loader.exec_module(self.service)
         self.doc = SimpleNamespace(
             name="order",
+            payment_method="Cashfree",
+            gateway_refunded_amount=0,
             gateway_profile="sandbox",
             gateway_order_id="lc_order",
             gateway_payment_id=None,
@@ -103,6 +109,10 @@ class CashfreeSyncTests(unittest.TestCase):
             reload=Mock(),
             gateway_snapshot=json.dumps({"amount": "350.00", "currency": "INR"}),
         )
+        self.frappe.get_doc.return_value = self.doc
+        self.frappe.db.transaction_writes = 0
+        self.frappe.db.sql.return_value = [(1,)]
+        self.frappe.local.site = "test-site"
         self.service.locked = Mock(return_value=self.doc)
         self.service.save = Mock()
         self.service.book_payment = Mock(side_effect=self.book)
@@ -249,9 +259,130 @@ class CashfreeSyncTests(unittest.TestCase):
     def test_active_payment_session_cannot_be_cancelled(self):
         self.remote["order_status"] = "ACTIVE"
         with self.assertRaises(ValueError):
-            self.service.ensure_cancellable(self.doc)
+            self.service.prepare_cancellation(self.doc)
         self.remote["order_status"] = "EXPIRED"
-        self.service.ensure_cancellable(self.doc)
+        evidence = self.service.prepare_cancellation(self.doc)
+        self.service.request.reset_mock()
+        self.service.ensure_cancellable(self.doc, evidence)
+        self.service.request.assert_not_called()
+
+    def test_verification_fetches_every_remote_response_before_inventory_locks(self):
+        events = []
+        self.service.request.side_effect = lambda *a, **kw: (
+            events.append("http"),
+            self.request(*a, **kw),
+        )[1]
+        self.service.locked.side_effect = lambda _: (events.append("lock"), self.doc)[1]
+        self.service.sync("order", authorize=False)
+        self.assertEqual(events, ["http", "http", "http", "lock"])
+
+    def test_provider_failure_takes_no_inventory_locks(self):
+        self.service.request.side_effect = TimeoutError()
+        with self.assertRaises(TimeoutError):
+            self.service.sync("order", authorize=False)
+        self.service.locked.assert_not_called()
+        self.service.save.assert_not_called()
+
+    def test_checkout_takes_no_inventory_locks(self):
+        self.doc.customer_user = "payer"
+        self.doc.shop = "fish-world"
+        self.frappe.session.user = "payer"
+        self.service.available = Mock(return_value=True)
+        self.remote.update(order_status="ACTIVE", payment_session_id="test-session")
+        self.service.checkout("order")
+        self.service.locked.assert_not_called()
+
+    def test_busy_order_never_calls_provider_or_takes_inventory_lock(self):
+        self.frappe.db.sql.return_value = [(0,)]
+        with self.assertRaisesRegex(ValueError, "being updated"):
+            self.service.sync("order", authorize=False)
+        self.service.request.assert_not_called()
+        self.service.locked.assert_not_called()
+
+    def test_payment_guard_does_not_commit_pending_writes(self):
+        self.frappe.db.transaction_writes = 1
+        with self.assertRaisesRegex(ValueError, "current transaction"):
+            self.service.begin_operation("order")
+        self.frappe.db.commit.assert_not_called()
+        self.frappe.db.sql.assert_not_called()
+
+    def test_guard_release_is_registered_for_commit_and_full_rollback(self):
+        self.service.begin_operation("order")
+        self.frappe.db.sql.assert_called_once()
+        key = self.frappe.db.sql.call_args.args[1]
+        commit_release = self.frappe.db.after_commit.add.call_args.args[0]
+        rollback_release = self.frappe.db.after_rollback.add.call_args.args[0]
+        self.assertIs(commit_release, rollback_release)
+        commit_release()
+        self.frappe.db.sql.assert_called_with("select release_lock(%s)", key)
+
+    def test_different_orders_proceed_but_same_order_waits_for_transaction_end(self):
+        # Model two DB connections and transaction callbacks; no timing/sleeps.
+        held = {}
+
+        def connection():
+            db = Mock(transaction_writes=0)
+            callbacks = {"commit": [], "rollback": []}
+
+            def finish(kind):
+                pending = list(callbacks[kind])
+                callbacks["commit"].clear()
+                callbacks["rollback"].clear()
+                for callback in pending:
+                    callback()
+
+            def sql(query, params):
+                key = params[0]
+                if "get_lock" in query:
+                    if key in held:
+                        return [(0,)]
+                    held[key] = db
+                    return [(1,)]
+                self.assertIs(held.pop(key), db)
+                return [(1,)]
+
+            db.sql.side_effect = sql
+            db.commit.side_effect = lambda: finish("commit")
+            db.rollback.side_effect = lambda: finish("rollback")
+            db.after_commit.add.side_effect = callbacks["commit"].append
+            db.after_rollback.add.side_effect = callbacks["rollback"].append
+            return db
+
+        first, second = connection(), connection()
+        self.frappe.db = first
+        self.service.begin_operation("order-a")
+        self.frappe.db = second
+        self.service.begin_operation("order-b")
+        self.assertEqual(len(held), 2)
+        second.commit()
+        with self.assertRaisesRegex(ValueError, "being updated"):
+            self.service.begin_operation("order-a")
+        self.frappe.db = first
+        first.rollback()
+        self.assertFalse(held)
+        self.frappe.db = second
+        self.service.begin_operation("order-a")
+        second.commit()
+        self.assertFalse(held)
+
+    def test_cancellation_rechecks_payment_after_preflight(self):
+        self.remote["order_status"] = "EXPIRED"
+        evidence = self.service.prepare_cancellation(self.doc)
+        self.doc.payment_status = "Paid"
+        with self.assertRaisesRegex(ValueError, "refund"):
+            self.service.ensure_cancellable(self.doc, evidence)
+        self.doc.payment_status = "Pending"
+        self.doc.gateway_order_id = "changed"
+        with self.assertRaisesRegex(ValueError, "details changed"):
+            self.service.ensure_cancellable(self.doc, evidence)
+
+    def test_recorded_refund_cannot_disappear_on_later_provider_read(self):
+        self.doc.gateway_refunded_amount = 350
+        self.doc.payment_status = "Refunded"
+        self.service.sync("order", authorize=False)
+        self.assertEqual(self.doc.gateway_refunded_amount, 350)
+        self.assertEqual(self.doc.payment_status, "Refunded")
+        self.service.book_payment.assert_not_called()
 
     def test_checkout_is_restricted_to_the_order_customer(self):
         self.doc.customer_user = "payer"

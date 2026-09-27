@@ -1592,6 +1592,9 @@ def change(order, target, reason=""):
     )
     if not is_customer:
         authorize(doc, True)
+    cancellation = None
+    if doc.payment_method == "Cashfree" and target == "Cancelled":
+        cancellation = cashfree.prepare_cancellation(doc)
     # Match creation and inventory lock order, then refresh state after the lock.
     frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
     frappe.db.sql("select name from `tabLC Order` where name=%s for update", doc.name)
@@ -1606,7 +1609,7 @@ def change(order, target, reason=""):
 
     if doc.payment_method == "Cashfree":
         if target == "Cancelled":
-            cashfree.ensure_cancellable(doc)
+            cashfree.ensure_cancellable(doc, cancellation)
         elif doc.payment_status != "Paid" or not doc.payment_entry or doc.gateway_accounting_error:
             reject("Wait for Cashfree payment and accounting verification")
     if target in {"Accepted", "Ready"}:

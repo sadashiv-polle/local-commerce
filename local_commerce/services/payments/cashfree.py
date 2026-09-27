@@ -160,11 +160,40 @@ def snapshot(order, shop, so):
     )
 
 
+def begin_operation(order):
+    """Start a standalone payment operation, without holding inventory row locks.
+
+    Call only from a read-only request/job preflight. End that read transaction
+    so MariaDB REPEATABLE READ cannot reuse a snapshot from before the mutex.
+    Never commit a caller's pending writes. Keep the per-order advisory lock
+    until the *final* commit/rollback (including accounting), not just HTTP I/O.
+    """
+    if frappe.db.transaction_writes:
+        reject("Finish the current transaction before verifying Cashfree payment")
+    frappe.db.commit()
+    key = "lc_cf_" + hashlib.sha256(f"{frappe.local.site}:{order}".encode()).hexdigest()[:50]
+    result = frappe.db.sql("select get_lock(%s, 0)", (key,))
+    if not result or result[0][0] != 1:
+        reject("Payment is being updated. Please retry in a moment")
+
+    def release():
+        frappe.db.sql("select release_lock(%s)", (key,))
+
+    frappe.db.after_commit.add(release)
+    frappe.db.after_rollback.add(release)
+
+
+def payment_order(order):
+    doc = frappe.get_doc("LC Order", order)
+    if doc.payment_method != "Cashfree":
+        reject("This order does not use Cashfree")
+    return doc
+
+
 def locked(order):
     doc = frappe.get_doc("LC Order", order)
     frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
-    frappe.db.sql("select name from `tabLC Order` where name=%s for update", doc.name)
-    doc.reload()
+    doc = frappe.get_doc("LC Order", order, for_update=True)
     if doc.payment_method != "Cashfree":
         reject("This order does not use Cashfree")
     return doc
@@ -181,8 +210,12 @@ def save(doc):
 
 
 def checkout(order):
-    doc = locked(order)
+    doc = payment_order(order)
     if frappe.session.user == "Guest" or doc.customer_user != frappe.session.user:
+        frappe.throw("Only the order customer can pay", frappe.PermissionError)
+    begin_operation(order)
+    doc = payment_order(order)
+    if doc.customer_user != frappe.session.user:
         frappe.throw("Only the order customer can pay", frappe.PermissionError)
     if doc.status == "Cancelled" or doc.payment_status in {"Paid", "Refunded"}:
         reject("This order is not payable")
@@ -240,12 +273,25 @@ def checkout(order):
 def sync(order, authorize=True):
     from local_commerce.services import orders
 
-    doc = locked(order)
+    doc = payment_order(order)
+    if authorize:
+        orders.authorize(doc)
+    begin_operation(order)
+    doc = payment_order(order)
     if authorize:
         orders.authorize(doc)
     snap = json.loads(doc.gateway_snapshot)
     path = "/orders/" + quote(doc.gateway_order_id, safe="")
     remote = request(doc.gateway_profile, "GET", path, missing=True)
+    payments = request(doc.gateway_profile, "GET", path + "/payments") if remote else []
+    payment_id = (
+        successful_payment(remote, payments, doc.gateway_order_id, snap["amount"], snap["currency"])
+        if remote
+        else None
+    )
+    refunds = request(doc.gateway_profile, "GET", path + "/refunds") if payment_id else []
+    # Only local stock/accounting work below this point holds the shop lock.
+    doc = locked(order)
     if remote is None:
         if doc.payment_status not in {"Paid", "Refunded"}:
             doc.payment_status = (
@@ -255,15 +301,10 @@ def sync(order, authorize=True):
             )
             save(doc)
         return {"payment_status": doc.payment_status, "accounting_pending": False}
-    payments = request(doc.gateway_profile, "GET", path + "/payments")
-    payment_id = successful_payment(
-        remote, payments, doc.gateway_order_id, snap["amount"], snap["currency"]
-    )
     if payment_id:
         if doc.gateway_payment_id and doc.gateway_payment_id != payment_id:
             reject("Payment reference changed; administrator review required")
         doc.gateway_payment_id = payment_id
-        refunds = request(doc.gateway_profile, "GET", path + "/refunds")
         refunded = sum(
             {
                 str(row["cf_refund_id"]): money(row["refund_amount"])
@@ -274,6 +315,7 @@ def sync(order, authorize=True):
             }.values(),
             money(0),
         )
+        refunded = max(refunded, money(doc.gateway_refunded_amount or 0))
         doc.gateway_refunded_amount = float(refunded)
         if refunded:
             doc.payment_status = "Refunded" if refunded >= money(snap["amount"]) else "Paid"
@@ -404,12 +446,32 @@ def book_payment(doc):
         _owner_operation.reset(owner_token)
 
 
-def ensure_cancellable(doc):
-    if doc.payment_status in {"Paid", "Refunded"} or doc.payment_entry:
-        reject("Paid orders need a refund and accounting review before cancellation")
+def prepare_cancellation(doc):
+    """Called after authorization, before orders.change takes inventory locks."""
+    begin_operation(doc.name)
+    doc = payment_order(doc.name)
+    from local_commerce.services import orders
+
+    orders.authorize(doc)
+    ensure_unpaid(doc)
     remote = request(doc.gateway_profile, "GET", "/orders/" + doc.gateway_order_id, missing=True)
+    snap = json.loads(doc.gateway_snapshot)
+    if remote:
+        successful_payment(remote, [], doc.gateway_order_id, snap["amount"], snap["currency"])
     if remote and remote.get("order_status") not in {"EXPIRED", "TERMINATED"}:
         reject("The payment window is still open. Refresh payment status or wait for it to expire")
+    return (doc.name, doc.gateway_profile, doc.gateway_order_id, doc.gateway_snapshot)
+
+
+def ensure_unpaid(doc):
+    if doc.payment_status in {"Paid", "Refunded"} or doc.payment_entry:
+        reject("Paid orders need a refund and accounting review before cancellation")
+
+
+def ensure_cancellable(doc, evidence):
+    ensure_unpaid(doc)
+    if evidence != (doc.name, doc.gateway_profile, doc.gateway_order_id, doc.gateway_snapshot):
+        reject("Payment details changed. Refresh and try again")
 
 
 def reconcile_pending():
@@ -424,6 +486,8 @@ def reconcile_pending():
     for name in names:
         try:
             sync(name, authorize=False)
+            # Finish accounting and release its locks before another provider request.
+            frappe.db.commit()
             doc = frappe.get_doc("LC Order", name)
             if doc.payment_status == "Failed":
                 from local_commerce.services.orders import change
