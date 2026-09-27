@@ -9,6 +9,7 @@ const props = defineProps({
   points: { type: Array, default: () => [] },
   route: { type: Array, default: () => [] },
   editable: Boolean,
+  preserveView: Boolean,
   height: { type: String, default: '260px' },
 })
 const emit = defineEmits(['pick'])
@@ -18,6 +19,7 @@ const searchQuery = ref(''), searchResults = ref([]), searchError = ref(''), sea
 let map
 let layer
 let routeLayer
+let fitted = false
 const markers = new Map()
 
 const markerStyles = {
@@ -67,9 +69,12 @@ function renderPoints() {
   for (const [key, marker] of markers) {
     if (!activeMarkers.has(key)) { layer.removeLayer(marker); markers.delete(key) }
   }
-  if (bounds.length === 1) map.setView(bounds[0], 15)
-  else if (bounds.length > 1) map.fitBounds(bounds, { padding: [38, 38], maxZoom: 16 })
-  else map.setView([15.49, 73.83], 11)
+  if (!props.preserveView || !fitted) {
+    if (bounds.length === 1) map.setView(bounds[0], 15)
+    else if (bounds.length > 1) map.fitBounds(bounds, { padding: [38, 38], maxZoom: 16 })
+    else map.setView([15.49, 73.83], 11)
+    fitted = bounds.length > 0
+  }
 }
 
 async function toggleExpanded() {
