@@ -51,7 +51,7 @@ async function load(force = false) {
   try {
     const feeds = await Promise.all(props.shops.map(shop => call('orders.list_orders', { shop, start: 0, status: 'Requested' })))
     const unique = new Map()
-    for (const order of feeds.flat()) if (order.status === 'Requested') unique.set(order.name, { ...order, responseDeadlineMs: Date.now() + Number(order.response_seconds_remaining || 0) * 1000 })
+    for (const order of feeds.flat()) if (order.status === 'Requested' && order.payment_method !== 'Cashfree') unique.set(order.name, { ...order, responseDeadlineMs: Date.now() + Number(order.response_seconds_remaining || 0) * 1000 })
     orders.value = [...unique.values()].sort((a, b) => String(a.created).localeCompare(String(b.created)))
     error.value = ''
   } catch (exception) { error.value = exception.message }

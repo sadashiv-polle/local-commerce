@@ -29,6 +29,7 @@ from local_commerce.services.owner import (
     get_price,
     reject,
 )
+from local_commerce.services.payments import cashfree
 from local_commerce.services.product_images import gallery_urls
 from local_commerce.services.reorder_rules import reorder_line
 from local_commerce.services.selling_rules import selected as selected_offer
@@ -191,6 +192,8 @@ SHOP_LISTING_FIELDS = [
     "scheduled_enabled",
     "cod_enabled",
     "upi_enabled",
+    "cashfree_enabled",
+    "cashfree_gateway",
     "accepting_orders",
     "opening_hours_json",
 ]
@@ -207,9 +210,11 @@ def serialize_public_shop(row):
     row.availability = hours
     row.accepting_orders = bool(
         (row.delivery_enabled and hours["open"] or row.get("scheduled_enabled"))
-        and (row.cod_enabled or row.get("upi_enabled")) and row.location
+        and (row.cod_enabled or row.get("upi_enabled") or cashfree.available(row)) and row.location
     )
-    for internal in ("delivery_enabled", "cod_enabled", "opening_hours_json"):
+    for internal in (
+        "delivery_enabled", "cod_enabled", "opening_hours_json", "cashfree_gateway"
+    ):
         row.pop(internal, None)
     return row
 
@@ -455,7 +460,7 @@ def catalog(shop, start=0, search="", category="", in_stock=0):
         "map": map_config(),
         "accepting_orders": bool(
             (doc.delivery_enabled and hours["open"] or doc.get("scheduled_enabled"))
-            and (doc.cod_enabled or doc.get("upi_enabled")) and location
+            and (doc.cod_enabled or doc.get("upi_enabled") or cashfree.available(doc)) and location
         ),
         "availability": hours,
         "normal_enabled": bool(doc.delivery_enabled),
@@ -468,7 +473,8 @@ def catalog(shop, start=0, search="", category="", in_stock=0):
         "delivery_fee": doc.delivery_fee or 0,
         "currency": frappe.db.get_value("Company", doc.company, "default_currency"),
         "payment_methods": (["Cash on Delivery"] if doc.cod_enabled else [])
-        + (["Manual UPI"] if doc.get("upi_enabled") else []),
+        + (["Manual UPI"] if doc.get("upi_enabled") else [])
+        + (["Cashfree"] if cashfree.available(doc) else []),
         "payment_message": (
             "Pay the rider when your order arrives"
             if doc.cod_enabled
@@ -563,7 +569,7 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
     if not isinstance(request_key, str) or not 16 <= len(request_key) <= 100:
         reject("Invalid request key")
     key = hashlib.sha256(f"{user}:{shop}:{request_key}".encode()).hexdigest()
-    if payment_method not in {"Cash on Delivery", "Manual UPI"}:
+    if payment_method not in {"Cash on Delivery", "Manual UPI", "Cashfree"}:
         reject("Select a supported payment method")
     digest = hashlib.sha256(
         json.dumps([rows, address, payment_method] + (
@@ -592,6 +598,10 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
         if not doc.get("upi_enabled"):
             reject("UPI is not configured for this shop")
         validate(doc)
+    if payment_method == "Cashfree":
+        cashfree.validate_shop(doc)
+        if not cashfree.available(doc):
+            reject("Cashfree is not configured for this shop")
     origin = shop_location(doc)
     destination = point(address["latitude"], address["longitude"])
     delivery_distance = None
@@ -767,8 +777,10 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
 
         fish.reserve(order, so.items)
         order.sales_order = so.name
+        if payment_method == "Cashfree":
+            cashfree.snapshot(order, doc, so)
         order.save(ignore_permissions=True)
-        if doc.get("order_acceptance") == "Automatic" and payment_method != "Manual UPI":
+        if doc.get("order_acceptance") == "Automatic" and payment_method == "Cash on Delivery":
             fish.validate_order(order)
             _accept_sales_order(order, so)
             order.status = "Accepted"
@@ -887,6 +899,7 @@ def serialize(doc):
         "delivered_at": str(doc.delivered_at) if doc.delivered_at else None,
         "payment_method": doc.payment_method,
         "payment_status": payment_status,
+        "accounting_pending": bool(doc.get("gateway_accounting_error")),
         "upi": ({"id": doc.get("upi_id"), "qr": doc.get("upi_qr"),
                  "proof": doc.get("upi_proof"), "note": doc.get("upi_review_note"),
                  "reference": doc.get("upi_reference"),
@@ -1341,6 +1354,10 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
     token = _order_operation.set(True)
     owner_token = _owner_operation.set(True)
     try:
+        if doc.payment_method == "Cashfree" and (
+            doc.payment_status != "Paid" or not doc.payment_entry or doc.gateway_accounting_error
+        ):
+            reject("Cashfree payment and accounting must be verified before dispatch")
         if (target in {"Picked Up", "Out for Delivery", "Delivered"}
                 and doc.payment_method == "Manual UPI" and doc.payment_status != "Paid"):
             from local_commerce.services.manual_upi import reconciled_receipt_is_valid
@@ -1586,6 +1603,11 @@ def change(order, target, reason=""):
         return serialize(doc)
     from local_commerce.services import fish
 
+    if doc.payment_method == "Cashfree":
+        if target == "Cancelled":
+            cashfree.ensure_cancellable(doc)
+        elif doc.payment_status != "Paid" or not doc.payment_entry or doc.gateway_accounting_error:
+            reject("Wait for Cashfree payment and accounting verification")
     if target in {"Accepted", "Ready"}:
         fish.validate_order(doc)
     if (target == "Cancelled" and doc.payment_method == "Manual UPI"
@@ -1628,7 +1650,7 @@ def expire_requested_orders():
         from `tabLC Order` o
         inner join `tabLC Shop` s on s.name=o.shop
         left join `tabLC Delivery Slot` ds on ds.name=o.scheduled_slot
-        where o.status='Requested'
+        where o.status='Requested' and o.payment_method!='Cashfree'
           and timestampadd(
             minute,
             coalesce(nullif(s.order_response_minutes, 0), 10),
@@ -1724,6 +1746,8 @@ def protect_payment_document(doc, method=None, **kwargs):
 
 
 def _accept_sales_order(doc, so):
+    if doc.payment_method == "Cashfree" and doc.payment_status != "Paid":
+        reject("Wait for Cashfree payment verification")
     if doc.payment_method == "Manual UPI" and doc.payment_status not in {"Paid", "Reconciled"}:
         reject("Verify the UPI payment before accepting this order")
     current_shop = public_shop(

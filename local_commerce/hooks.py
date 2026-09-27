@@ -8,6 +8,7 @@ required_apps = ["erpnext"]
 
 scheduler_events = {
     "cron": {
+        "*/5 * * * *": ["local_commerce.services.payments.cashfree.reconcile_pending"],
         "* * * * *": ["local_commerce.services.orders.expire_requested_orders",
                          "local_commerce.services.scheduled.compile_due"],
     }
@@ -149,3 +150,5 @@ for _fish_stock_doctype in ('Stock Entry', 'Delivery Note', 'Sales Invoice',
 
 doc_events["LC Shop"]["validate"].append("local_commerce.services.manual_upi.validate")
 has_permission["File"] = "local_commerce.services.manual_upi.file_permission"
+
+doc_events["LC Shop"]["validate"].append("local_commerce.services.payments.cashfree.validate_shop")

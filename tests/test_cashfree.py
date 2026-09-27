@@ -1,0 +1,191 @@
+import base64
+import hashlib
+import hmac
+import importlib.util
+import json
+import sys
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
+from local_commerce.services.payments.rules import (
+    money,
+    split_amounts,
+    successful_payment,
+    valid_signature,
+)
+
+
+class CashfreeRulesTests(unittest.TestCase):
+    def test_split_preserves_total_to_paise(self):
+        vendor, commission = split_amounts("115.55", "Percentage", "2.5")
+        self.assertEqual(str(commission), "2.89")
+        self.assertEqual(vendor + commission, money("115.55"))
+        self.assertEqual(split_amounts(100, "Fixed", 7), (money(93), money(7)))
+        for value in ["NaN", "Infinity", "-1"]:
+            with self.assertRaises(ValueError):
+                money(value)
+        with self.assertRaises(ValueError):
+            split_amounts(100, "Fixed", 100)
+
+    def test_signature_requires_exact_bytes_and_correct_secret(self):
+        body = b'{"amount":350.00}'
+        signature = base64.b64encode(
+            hmac.new(b"secret", b"123" + body, hashlib.sha256).digest()
+        ).decode()
+        self.assertTrue(valid_signature("secret", "123", body, signature))
+        self.assertFalse(valid_signature("other", "123", body, signature))
+        self.assertFalse(valid_signature("secret", "123", b'{"amount":350}', signature))
+        self.assertFalse(valid_signature("secret", "", body, signature))
+
+    def test_only_matching_success_can_mark_paid(self):
+        remote = dict(
+            order_id="lc_order", order_currency="INR", order_amount=350, order_status="PAID"
+        )
+        success = dict(
+            payment_status="SUCCESS", payment_currency="INR", payment_amount=350, cf_payment_id=42
+        )
+        self.assertEqual(
+            successful_payment(
+                remote, [dict(payment_status="FAILED"), success], "lc_order", 350, "INR"
+            ),
+            "42",
+        )
+        self.assertIsNone(
+            successful_payment(remote, [dict(payment_status="PENDING")], "lc_order", 350, "INR")
+        )
+        for field, value in [
+            ("payment_amount", 349),
+            ("payment_currency", "USD"),
+            ("cf_payment_id", None),
+        ]:
+            with self.assertRaises(ValueError):
+                successful_payment(remote, [{**success, field: value}], "lc_order", 350, "INR")
+        with self.assertRaises(ValueError):
+            successful_payment({**remote, "order_id": "other"}, [success], "lc_order", 350, "INR")
+
+
+class CashfreeSyncTests(unittest.TestCase):
+    def setUp(self):
+        self.frappe = Mock()
+        self.orders = Mock()
+        owner = Mock()
+        owner.reject.side_effect = ValueError
+        self.modules = patch.dict(
+            sys.modules,
+            {
+                "frappe": self.frappe,
+                "requests": Mock(),
+                "local_commerce.services.orders": self.orders,
+                "local_commerce.services.owner": owner,
+                "local_commerce.permissions.scope": Mock(),
+            },
+        )
+        self.modules.start()
+        self.addCleanup(self.modules.stop)
+        spec = importlib.util.spec_from_file_location(
+            "cashfree_under_test",
+            Path(__file__).resolve().parents[1] / "local_commerce/services/payments/cashfree.py",
+        )
+        self.service = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.service)
+        self.doc = SimpleNamespace(
+            name="order",
+            gateway_profile="sandbox",
+            gateway_order_id="lc_order",
+            gateway_payment_id=None,
+            gateway_accounting_error="",
+            payment_entry=None,
+            payment_status="Pending",
+            status="Requested",
+            reload=Mock(),
+            gateway_snapshot=json.dumps({"amount": "350.00", "currency": "INR"}),
+        )
+        self.service.locked = Mock(return_value=self.doc)
+        self.service.save = Mock()
+        self.service.book_payment = Mock(side_effect=self.book)
+        self.remote = dict(
+            order_id="lc_order", order_amount=350, order_currency="INR", order_status="PAID"
+        )
+        self.payments = [
+            dict(
+                payment_status="SUCCESS",
+                payment_amount=350,
+                payment_currency="INR",
+                cf_payment_id=42,
+            )
+        ]
+        self.refunds = []
+        self.service.request = Mock(side_effect=self.request)
+
+    def book(self, doc):
+        doc.payment_entry = "PAY-1"
+        doc.status = "Accepted"
+
+    def request(self, profile, method, path, **kwargs):
+        if path.endswith("/payments"):
+            return self.payments
+        if path.endswith("/refunds"):
+            return self.refunds
+        return self.remote
+
+    def test_duplicate_success_posts_accounting_once(self):
+        self.service.sync("order", authorize=False)
+        self.service.sync("order", authorize=False)
+        self.service.book_payment.assert_called_once()
+        self.assertEqual(self.doc.payment_status, "Paid")
+        self.assertEqual(self.doc.gateway_payment_id, "42")
+
+    def test_bookkeeping_failure_keeps_verified_payment_and_retries(self):
+        self.service.book_payment.side_effect = RuntimeError("stock unavailable")
+        result = self.service.sync("order", authorize=False)
+        self.assertEqual(result["payment_status"], "Paid")
+        self.assertTrue(result["accounting_pending"])
+        self.frappe.db.rollback.assert_called_once_with(save_point="cashfree_accounting")
+        self.service.book_payment.side_effect = self.book
+        self.service.sync("order", authorize=False)
+        self.assertEqual(self.doc.payment_entry, "PAY-1")
+        self.assertEqual(self.doc.gateway_accounting_error, "")
+
+    def test_late_failed_event_does_not_downgrade_paid(self):
+        self.doc.payment_status = "Paid"
+        self.payments = [dict(payment_status="FAILED")]
+        self.remote["order_status"] = "EXPIRED"
+        self.service.sync("order", authorize=False)
+        self.assertEqual(self.doc.payment_status, "Paid")
+        self.service.book_payment.assert_not_called()
+
+    def test_active_payment_session_cannot_be_cancelled(self):
+        self.remote["order_status"] = "ACTIVE"
+        with self.assertRaises(ValueError):
+            self.service.ensure_cancellable(self.doc)
+        self.remote["order_status"] = "EXPIRED"
+        self.service.ensure_cancellable(self.doc)
+
+    def test_checkout_is_restricted_to_the_order_customer(self):
+        self.doc.customer_user = "payer"
+        self.frappe.session.user = "someone_else"
+        self.frappe.PermissionError = PermissionError
+        self.frappe.throw.side_effect = lambda message, kind: (_ for _ in ()).throw(kind(message))
+        with self.assertRaises(PermissionError):
+            self.service.checkout("order")
+        self.service.request.assert_not_called()
+
+    def test_refund_duplicate_is_not_counted_twice(self):
+        refund = dict(
+            cf_refund_id="refund1",
+            order_id="lc_order",
+            refund_currency="INR",
+            refund_amount=350,
+            refund_status="SUCCESS",
+        )
+        self.refunds = [refund, refund]
+        self.service.sync("order", authorize=False)
+        self.assertEqual(self.doc.gateway_refunded_amount, 350)
+        self.assertEqual(self.doc.payment_status, "Refunded")
+        self.service.book_payment.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()

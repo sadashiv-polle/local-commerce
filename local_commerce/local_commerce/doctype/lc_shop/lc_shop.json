@@ -51,7 +51,15 @@
     "upi_id",
     "upi_qr",
     "upi_bank_account",
-    "upi_mode_of_payment"
+    "upi_mode_of_payment",
+    "cashfree_enabled",
+    "cashfree_gateway",
+    "cashfree_vendor_id",
+    "cashfree_commission_type",
+    "cashfree_commission",
+    "cashfree_clearing_account",
+    "cashfree_commission_account",
+    "cashfree_mode_of_payment"
   ],
   "fields": [
     {
@@ -347,6 +355,59 @@
       "options": "Manual\nAutomatic",
       "default": "Manual",
       "description": "Only platform administrators can change this. Applies to new normal and scheduled orders."
+    },
+    {
+      "fieldname": "cashfree_enabled",
+      "label": "Cashfree Enabled",
+      "fieldtype": "Check",
+      "permlevel": 1
+    },
+    {
+      "fieldname": "cashfree_gateway",
+      "label": "Cashfree Gateway",
+      "fieldtype": "Link",
+      "options": "LC Payment Gateway",
+      "permlevel": 1
+    },
+    {
+      "fieldname": "cashfree_vendor_id",
+      "label": "Cashfree Vendor Id",
+      "fieldtype": "Data",
+      "permlevel": 1
+    },
+    {
+      "fieldname": "cashfree_commission_type",
+      "label": "Cashfree Commission Type",
+      "fieldtype": "Select",
+      "options": "Percentage\nFixed",
+      "permlevel": 1
+    },
+    {
+      "fieldname": "cashfree_commission",
+      "label": "Cashfree Commission",
+      "fieldtype": "Currency",
+      "permlevel": 1
+    },
+    {
+      "fieldname": "cashfree_clearing_account",
+      "label": "Cashfree Clearing Account",
+      "fieldtype": "Link",
+      "options": "Account",
+      "permlevel": 1
+    },
+    {
+      "fieldname": "cashfree_commission_account",
+      "label": "Cashfree Commission Account",
+      "fieldtype": "Link",
+      "options": "Account",
+      "permlevel": 1
+    },
+    {
+      "fieldname": "cashfree_mode_of_payment",
+      "label": "Cashfree Mode Of Payment",
+      "fieldtype": "Link",
+      "options": "Mode of Payment",
+      "permlevel": 1
     }
   ],
   "permissions": [

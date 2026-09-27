@@ -49,7 +49,13 @@
     "upi_review_note",
     "upi_verified_by",
     "upi_verified_at",
-    "upi_receipt_key"
+    "upi_receipt_key",
+    "gateway_profile",
+    "gateway_order_id",
+    "gateway_payment_id",
+    "gateway_snapshot",
+    "gateway_accounting_error",
+    "gateway_refunded_amount"
   ],
   "fields": [
     {
@@ -150,14 +156,14 @@
       "fieldname": "payment_method",
       "label": "Payment Method",
       "fieldtype": "Select",
-      "options": "Cash on Delivery\nManual UPI",
+      "options": "Cash on Delivery\nManual UPI\nCashfree",
       "read_only": 1
     },
     {
       "fieldname": "payment_status",
       "label": "Payment Status",
       "fieldtype": "Select",
-      "options": "Pending\nCollected\nReconciled\nAwaiting Verification\nPayment Rejected\nPaid",
+      "options": "Pending\nCollected\nReconciled\nAwaiting Verification\nPayment Rejected\nPaid\nFailed\nRefunded",
       "read_only": 1
     },
     {
@@ -354,6 +360,51 @@
       "hidden": 1,
       "read_only": 1,
       "no_copy": 1
+    },
+    {
+      "fieldname": "gateway_profile",
+      "label": "Gateway Profile",
+      "fieldtype": "Link",
+      "options": "LC Payment Gateway",
+      "read_only": 1,
+      "hidden": 0
+    },
+    {
+      "fieldname": "gateway_order_id",
+      "label": "Gateway Order Id",
+      "fieldtype": "Data",
+      "read_only": 1,
+      "hidden": 0,
+      "unique": 1
+    },
+    {
+      "fieldname": "gateway_payment_id",
+      "label": "Gateway Payment Id",
+      "fieldtype": "Data",
+      "read_only": 1,
+      "hidden": 0,
+      "unique": 1
+    },
+    {
+      "fieldname": "gateway_snapshot",
+      "label": "Gateway Snapshot",
+      "fieldtype": "Long Text",
+      "read_only": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "gateway_accounting_error",
+      "label": "Gateway Accounting Error",
+      "fieldtype": "Small Text",
+      "read_only": 1,
+      "hidden": 0
+    },
+    {
+      "fieldname": "gateway_refunded_amount",
+      "label": "Gateway Refunded Amount",
+      "fieldtype": "Currency",
+      "read_only": 1,
+      "hidden": 0
     }
   ],
   "permissions": [

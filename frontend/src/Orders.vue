@@ -1,4 +1,5 @@
 <script setup>
+import GatewayPayment from './GatewayPayment.vue'
 import ManualUpiPayment from './ManualUpiPayment.vue'
 import OrderReference from './OrderReference.vue'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -184,6 +185,7 @@ onBeforeUnmount(() => {
       <p v-if="order.scheduled_period" class="lc-notice">Scheduled · {{ order.scheduled_period.title }} · {{ order.scheduled_period.delivery_start }} – {{ order.scheduled_period.delivery_end }} · Free delivery</p><div class="delivery-progress" :aria-label="`Order status: ${order.status}`"><span v-for="step in steps" :key="step" :class="{ complete: steps.indexOf(step) <= steps.indexOf(order.status) }">{{ step }}</span></div><div v-if="!shop" class="customer-tracking-summary"><span class="tracking-status-dot" aria-hidden="true"></span><div><small>DELIVERY UPDATE · ORDER {{ order.name.slice(-8).toUpperCase() }}</small><strong>{{ deliveryEstimate(order) }}</strong></div><span v-if="order.delivery_name" class="tracking-rider">{{ order.delivery_name }}</span></div>
       <ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }} <strong>{{ money(item.amount, order.currency) }}</strong><small v-if="order.selling_lines?.[index]?.option_id" class="order-option-summary">{{ order.selling_lines[index].label }} × {{ order.selling_lines[index].packs }} · {{ order.selling_lines[index].preweighed ? `Pack weight ${order.selling_lines[index].actual_weight} kg` : order.selling_lines[index].actual_weight == null ? `Estimated stock weight ${order.selling_lines[index].estimated_weight} kg` : `Actual packed weight ${order.selling_lines[index].actual_weight} kg` }}</small></li></ul>
       <p><strong>{{ order.estimated ? 'Estimated total' : 'Order total' }} {{ money(order.total, order.currency) }}</strong><br><small>Includes {{ money(order.taxes_and_charges, order.currency) }} in configured taxes and delivery charges.</small></p>
+      <GatewayPayment v-if="order.payment_method === 'Cashfree'" :order="order" :customer="!shop" @updated="load" />
       <ManualUpiPayment :order="order" :editable="!!shop && editable" @updated="load" />
       <p class="payment-summary"><span><small>PAYMENT METHOD</small><strong>{{ order.payment_method }}</strong></span><span><small>PAYMENT STATUS</small><strong :class="{ paid: ['Reconciled', 'Paid'].includes(order.payment_status) }">{{ order.payment_status }}</strong></span></p>
       <section v-if="!shop && order.delivery_otp" class="customer-delivery-otp" aria-label="Delivery confirmation code"><div><span aria-hidden="true">✓</span><div><small>DELIVERY CONFIRMATION</small><strong>{{ order.delivery_otp }}</strong></div></div><p>Share this code with the rider only after you receive your order. It is shown here instead of being sent by email.</p></section>
@@ -213,7 +215,7 @@ onBeforeUnmount(() => {
         <small v-if="!drivers.length">No delivery people are assigned to this shop. A platform administrator can add a Delivery Person membership in Desk.</small>
       </div>
       <div v-if="(shop && editable) || (!shop && order.status === 'Requested')" class="order-actions">
-        <button v-if="shop && next[order.status]" class="lc-primary" :disabled="busy" @click="change(order, next[order.status])">{{ nextLabel[order.status] }}</button>
+        <button v-if="shop && next[order.status] && !(order.payment_method === 'Cashfree' && (order.payment_status !== 'Paid' || order.accounting_pending))" class="lc-primary" :disabled="busy" @click="change(order, next[order.status])">{{ nextLabel[order.status] }}</button>
         <details v-if="cancellable.has(order.status)"><summary>Cancel order</summary><label>Reason<input v-model="reasons[order.name]" minlength="3" maxlength="500"></label><button :disabled="busy || (reasons[order.name] || '').trim().length < 3" @click="change(order, 'Cancelled')">Confirm cancellation</button></details>
       </div>
     </article>

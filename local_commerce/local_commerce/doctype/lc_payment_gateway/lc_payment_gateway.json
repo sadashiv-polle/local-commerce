@@ -1,0 +1,45 @@
+{
+  "doctype": "DocType",
+  "name": "LC Payment Gateway",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "prompt",
+  "fields": [
+    {
+      "fieldname": "enabled",
+      "label": "Enabled",
+      "fieldtype": "Check"
+    },
+    {
+      "fieldname": "environment",
+      "label": "Environment",
+      "fieldtype": "Select",
+      "options": "sandbox\nproduction"
+    },
+    {
+      "fieldname": "client_id",
+      "label": "Client Id",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "client_secret",
+      "label": "Client Secret",
+      "fieldtype": "Password"
+    }
+  ],
+  "field_order": [
+    "enabled",
+    "environment",
+    "client_id",
+    "client_secret"
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    }
+  ],
+  "track_changes": 0
+}
