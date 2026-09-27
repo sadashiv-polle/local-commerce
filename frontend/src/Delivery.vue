@@ -111,6 +111,15 @@ async function uploadDeliveryProof(order, event) {
   catch (e) { error.value = e.message }
   finally { busyOrder.value = ''; event.target.value = '' }
 }
+async function notifyArrival(order) {
+  if (busyOrder.value || order.arrived_at) return
+  busyOrder.value = order.name; error.value = ''
+  try {
+    const result = await call('orders.delivery_arrived', { order: order.name }, true)
+    order.arrived_at = result.arrived_at
+  } catch (e) { error.value = e.message }
+  finally { busyOrder.value = '' }
+}
 function stopTracking(message = 'Live location sharing stopped.', clearSaved = true) {
   if (locationWatch != null) navigator.geolocation.clearWatch(locationWatch)
   if (locationTimer != null) window.clearInterval(locationTimer)
@@ -261,6 +270,7 @@ onBeforeUnmount(() => stopTracking('', false))
             <div v-if="order.status === 'Out for Delivery'" class="delivery-proof-control"><a v-if="order.delivery_proof" :href="order.delivery_proof" target="_blank" rel="noopener">View delivery proof ↗</a><label v-else>Delivery handover photo<input type="file" accept="image/jpeg,image/png,image/webp" :disabled="!!busyOrder" @change="uploadDeliveryProof(order, $event)"><small>Optional photo proof before completing delivery.</small></label></div>
             <details><summary>{{ order.items.length }} product{{ order.items.length === 1 ? '' : 's' }} · {{ money(order.total, order.currency) }}</summary><ul><li v-for="(item, index) in order.items" :key="index">{{ item.quantity }} {{ item.uom }} · {{ item.name }}</li></ul></details>
             <div v-if="order.status === 'Out for Delivery' && order.live_tracking_enabled" class="tracking-controls"><button v-if="trackingOrder !== order.name && !(order.scheduled_slot && trackingSlot === order.scheduled_slot)" type="button" @click="startTracking(order)">Resume live tracking</button><button v-else type="button" class="tracking-stop" @click="stopTracking()">Stop sharing</button><small>Your bike updates for the customer every 12 seconds and is removed after delivery.</small></div>
+            <div v-if="order.status === 'Out for Delivery'" class="delivery-arrival"><p v-if="order.arrived_at" class="success-note" role="status">Arrival notification sent to the customer.</p><button v-else type="button" class="delivery-action" :disabled="!!busyOrder" @click="notifyArrival(order)">I've arrived · Notify customer</button></div>
             <button v-if="next[order.status]" class="delivery-action" :disabled="!!busyOrder" @click="requestAdvance(order)">{{ busyOrder === order.name ? 'Updating…' : order.status === 'Out for Delivery' ? (order.payment_method !== 'Cash on Delivery' ? 'Verify OTP & deliver' : 'Collect cash & confirm delivered') : labels[order.status] }} <span>›</span></button>
             <p v-else-if="order.status === 'Delivered'" class="delivery-complete">✓ Delivered · {{ order.payment_method !== 'Cash on Delivery' ? 'Payment received' : order.payment_status === 'Reconciled' ? 'Cash handed over' : 'Cash awaiting handover' }}{{ order.delivered_at ? ` · ${deliveredAt(order.delivered_at)}` : '' }}</p>
             <p v-else-if="order.status === 'Cancelled'" class="muted">This order was cancelled.</p>

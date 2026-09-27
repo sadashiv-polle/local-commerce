@@ -896,6 +896,7 @@ def serialize(doc):
         ),
         "assigned_at": str(doc.assigned_at) if doc.assigned_at else None,
         "picked_up_at": str(doc.picked_up_at) if doc.picked_up_at else None,
+        "arrived_at": str(doc.get("arrived_at")) if doc.get("arrived_at") else None,
         "delivered_at": str(doc.delivered_at) if doc.delivered_at else None,
         "payment_method": doc.payment_method,
         "payment_status": payment_status,

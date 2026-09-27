@@ -74,6 +74,7 @@ function money(value, currency) { return new Intl.NumberFormat(undefined, { styl
 function deliveryEstimate(order) {
   if (order.status === 'Delivered') return 'Delivered'
   if (order.status === 'Cancelled') return 'Cancelled'
+  if (order.status === 'Out for Delivery' && order.arrived_at) return 'Your delivery person has arrived — please meet them'
   if (order.status === 'Out for Delivery') return 'Arriving soon — follow the live map below'
   if (order.status === 'Picked Up') return 'On the way to your address'
   if (order.status === 'Ready') return order.delivery_user ? 'Ready for pickup — delivery person assigned' : 'Ready — waiting for delivery assignment'

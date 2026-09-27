@@ -55,7 +55,9 @@
     "gateway_payment_id",
     "gateway_snapshot",
     "gateway_accounting_error",
-    "gateway_refunded_amount"
+    "gateway_refunded_amount",
+    "arrived_at",
+    "arrived_by"
   ],
   "fields": [
     {
@@ -405,6 +407,19 @@
       "fieldtype": "Currency",
       "read_only": 1,
       "hidden": 0
+    },
+    {
+      "fieldname": "arrived_at",
+      "label": "Arrived at",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    },
+    {
+      "fieldname": "arrived_by",
+      "label": "Arrival confirmed by",
+      "fieldtype": "Link",
+      "read_only": 1,
+      "options": "User"
     }
   ],
   "permissions": [

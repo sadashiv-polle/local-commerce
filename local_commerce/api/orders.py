@@ -86,6 +86,14 @@ def delivery_assignments(start=0, view="active", delivery_mode=None):
 
 
 @frappe.whitelist(methods=["POST"])
+@rate_limit(limit=60, seconds=3600)
+def delivery_arrived(order):
+    from local_commerce.services.delivery_arrival import mark_arrived
+
+    return mark_arrived(order)
+
+
+@frappe.whitelist(methods=["POST"])
 def delivery_change(order, target, collected_amount=None, note="", delivery_otp=""):
     return orders.delivery_change(order, target, collected_amount, note, delivery_otp)
 

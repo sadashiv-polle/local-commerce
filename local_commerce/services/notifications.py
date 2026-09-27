@@ -61,6 +61,20 @@ def _create(user, order, audience, title, message, target, seen):
         _notification_operation.reset(token)
 
 
+def delivery_arrived(order):
+    shop_name = frappe.db.get_value("LC Shop", order.shop, "shop_name") or "the shop"
+    _create(
+        order.customer_user,
+        order,
+        "Customer",
+        f"Your delivery person has arrived · {_order_label(order.name)}",
+        f"Your order from {shop_name} is at your location. Please meet your delivery person. "
+        "Share your delivery OTP only after receiving your order.",
+        f"/orders?order={order.name}",
+        set(),
+    )
+
+
 def packed_weight_updated(order):
     _create(
         order.customer_user,
@@ -114,7 +128,7 @@ def status_changed(order, previous):
             "Your delivery person is heading to you. Open your order for updates.",
         ),
         "Delivered": (
-            "Your order has arrived",
+            "Your order was delivered",
             "Your delivery is complete. Thank you for shopping!",
         ),
         "Cancelled": (
