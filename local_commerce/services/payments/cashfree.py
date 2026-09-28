@@ -5,6 +5,7 @@ import json
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
+from html import escape
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
@@ -28,7 +29,35 @@ SHOP_FIELDS = (
 )
 
 
-def request_failure(response, method, path, reference, secrets):
+class CreationUncertain(Exception):
+    """A create call may have succeeded remotely; reconcile before retrying."""
+
+
+def safe_provider_message(value, secrets, payload=None):
+    if not isinstance(value, str):
+        return "No provider explanation supplied"
+    private = list(secrets)
+
+    def collect(node):
+        if isinstance(node, dict):
+            for child in node.values():
+                collect(child)
+        elif isinstance(node, list):
+            for child in node:
+                collect(child)
+        elif isinstance(node, str) and len(node) >= 3:
+            private.append(node)
+
+    collect(payload)
+    for secret in sorted(filter(None, private), key=len, reverse=True):
+        value = value.replace(secret, "[redacted]")
+        value = value.replace(json.dumps(secret)[1:-1], "[redacted]")
+    value = re.sub(r"https?://\S+|[\w.+-]+@[\w.-]+", "[redacted]", value)
+    value = re.sub(r"\b\d[\d ()+-]{6,}\d\b|\b[A-Za-z0-9_-]{24,}\b", "[redacted]", value)
+    return escape(" ".join(value.split())[:500])
+
+
+def request_failure(response, method, path, reference, secrets, payload=None, recover=False):
     """Expose bounded error codes/field hints, never echoed customer values or secrets."""
     try:
         body = response.json()
@@ -45,7 +74,7 @@ def request_failure(response, method, path, reference, secrets):
         code = "unknown_error"
     message = body.get("message")
     message = message.lower() if isinstance(message, str) else ""
-    hint = "Check this request in Cashfree's API logs using the reference below."
+    hint = "Use the reference below when contacting the shop administrator."
     for field, explanation in (
         ("customer_phone", "Check the customer's ten-digit phone number."),
         ("customer_id", "Cashfree rejected the customer reference."),
@@ -74,14 +103,18 @@ def request_failure(response, method, path, reference, secrets):
     )
     detail = (
         f"Cashfree could not {operation} (HTTP {response.status_code}; {code}). "
-        f"{hint} Reference: {reference}"
+        f"{hint} Provider: {safe_provider_message(body.get('message'), secrets, payload)}. "
+        f"Reference: {reference}"
     )
     # A file logger survives request rollback. Do not pass response/payload/headers.
     frappe.logger("local_commerce_cashfree", allow_site=True).error(detail)
+    if recover and response.status_code in {409, 500, 502, 503, 504}:
+        raise CreationUncertain(detail)
     reject(detail)
 
 
-def request(profile, method, path, payload=None, key=None, missing=False):
+def request(profile, method, path, payload=None, key=None, missing=False, recover=False):
+    recover = recover and method == "POST" and path == "/orders" and bool(key)
     config = frappe.get_doc("LC Payment Gateway", profile)
     base = {
         "sandbox": "https://sandbox.cashfree.com/pg",
@@ -107,6 +140,11 @@ def request(profile, method, path, payload=None, key=None, missing=False):
             allow_redirects=False,
         )
     except requests.RequestException:
+        if recover:
+            raise CreationUncertain(
+                "Cashfree did not confirm payment creation. Retry using this same order. "
+                f"Reference: {reference}"
+            ) from None
         reject("Cashfree could not be reached. Retry; the same payment reference will be reused")
     if missing and response.status_code == 404:
         return None
@@ -117,8 +155,32 @@ def request(profile, method, path, payload=None, key=None, missing=False):
             path,
             reference,
             (headers["x-client-id"], headers["x-client-secret"]),
+            payload,
+            recover,
         )
     return response.json()
+
+
+def create_payment(profile, payload, key):
+    """At most two identical POSTs; never change identity, totals or settlement."""
+    path = "/orders/" + quote(payload["order_id"], safe="")
+    for attempt in range(2):
+        try:
+            return request(profile, "POST", "/orders", payload, key, recover=True)
+        except CreationUncertain as exc:
+            # A 500/timeout/duplicate response does not prove creation failed.
+            remote = request(profile, "GET", path, missing=True)
+            if remote is not None:
+                successful_payment(
+                    remote,
+                    [],
+                    payload["order_id"],
+                    payload["order_amount"],
+                    payload["order_currency"],
+                )
+                return remote
+            if attempt:
+                reject(str(exc))
 
 
 def available(shop):
@@ -318,7 +380,7 @@ def checkout(order):
             payload["order_splits"] = [
                 {"vendor_id": snap["vendor_id"], "amount": float(snap["vendor_amount"])}
             ]
-        remote = request(doc.gateway_profile, "POST", "/orders", payload, doc.gateway_order_id)
+        remote = create_payment(doc.gateway_profile, payload, doc.gateway_order_id)
     successful_payment(remote, [], doc.gateway_order_id, snap["amount"], snap["currency"])
     if remote.get("order_status") != "ACTIVE":
         reject("This payment session is no longer active. Refresh payment status")

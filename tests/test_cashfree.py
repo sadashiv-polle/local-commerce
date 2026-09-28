@@ -203,6 +203,99 @@ class CashfreeSyncTests(unittest.TestCase):
         doc.payment_entry = "PAY-1"
         doc.status = "Accepted"
 
+    def test_creation_500_recovers_existing_session_without_another_post(self):
+        payload = {"order_id": "lc_order", "order_amount": 350, "order_currency": "INR"}
+        remote = {**self.remote, "order_status": "ACTIVE", "payment_session_id": "session"}
+        self.service.request.side_effect = [self.service.CreationUncertain("500"), remote]
+        self.assertEqual(self.service.create_payment("sandbox", payload, "lc_order"), remote)
+        self.assertEqual([c.args[1] for c in self.service.request.call_args_list], ["POST", "GET"])
+        self.service.book_payment.assert_not_called()
+
+    def test_creation_retry_keeps_identical_payload_and_idempotency_key(self):
+        payload = {"order_id": "lc_order", "order_amount": 350, "order_currency": "INR"}
+        self.service.request.side_effect = [
+            self.service.CreationUncertain("timeout"),
+            None,
+            self.remote,
+        ]
+        self.service.create_payment("sandbox", payload, "lc_order")
+        calls = self.service.request.call_args_list
+        self.assertEqual(calls[0], calls[2])
+        self.assertEqual(calls[1].args[1], "GET")
+
+    def test_persistent_creation_failure_stops_after_one_retry(self):
+        payload = {"order_id": "lc_order", "order_amount": 350, "order_currency": "INR"}
+        self.service.request.side_effect = [
+            self.service.CreationUncertain("500"),
+            None,
+            self.service.CreationUncertain("still failed"),
+            None,
+        ]
+        with self.assertRaisesRegex(ValueError, "still failed"):
+            self.service.create_payment("sandbox", payload, "lc_order")
+        self.assertEqual(self.service.request.call_count, 4)
+
+    def test_recovered_session_must_match_original_amount(self):
+        payload = {"order_id": "lc_order", "order_amount": 350, "order_currency": "INR"}
+        self.service.request.side_effect = [
+            self.service.CreationUncertain("500"),
+            {**self.remote, "order_amount": 1},
+        ]
+        with self.assertRaises(ValueError):
+            self.service.create_payment("sandbox", payload, "lc_order")
+        self.service.book_payment.assert_not_called()
+
+    def test_validation_errors_do_not_retry_creation(self):
+        self.service.request.side_effect = ValueError("invalid phone")
+        with self.assertRaisesRegex(ValueError, "invalid phone"):
+            self.service.create_payment("sandbox", {"order_id": "lc_order"}, "lc_order")
+        self.assertEqual(self.service.request.call_count, 1)
+
+    def test_recovery_lookup_failure_does_not_create_another_order(self):
+        self.service.request.side_effect = [
+            self.service.CreationUncertain("500"),
+            ValueError("lookup unavailable"),
+        ]
+        with self.assertRaisesRegex(ValueError, "lookup unavailable"):
+            self.service.create_payment("sandbox", {"order_id": "lc_order"}, "lc_order")
+        self.assertEqual(self.service.request.call_count, 2)
+
+    def test_provider_explanation_redacts_payload_and_escapes_markup(self):
+        message = self.service.safe_provider_message(
+            "invalid customer Jane Doe jane@example.com 9876543210 token-secret <b>bad URL</b>",
+            ("token-secret",),
+            {"customer_details": {"customer_name": "Jane Doe"}},
+        )
+        for value in ("Jane Doe", "jane@example.com", "9876543210", "token-secret", "<b>"):
+            self.assertNotIn(value, message)
+        self.assertIn("bad URL", message)
+
+    def test_http_failure_enters_recovery_only_for_idempotent_creation(self):
+        self.frappe.get_doc.return_value = SimpleNamespace(
+            environment="sandbox",
+            client_id="client",
+            get_password=lambda _: "secret",
+        )
+        response = Mock(status_code=500)
+        response.json.return_value = {"code": "request_failed", "message": "internal failure"}
+        self.service.requests.request.return_value = response
+        with self.assertRaises(self.service.CreationUncertain):
+            self.http_request("sandbox", "POST", "/orders", {}, "key", recover=True)
+        with self.assertRaises(ValueError):
+            self.http_request("sandbox", "GET", "/orders/lc_order", recover=True)
+
+    def test_transport_timeout_is_recoverable_without_exposing_exception(self):
+        self.frappe.get_doc.return_value = SimpleNamespace(
+            environment="sandbox",
+            client_id="client",
+            get_password=lambda _: "secret",
+        )
+        self.service.requests.RequestException = TimeoutError
+        self.service.requests.request.side_effect = TimeoutError("sensitive transport details")
+        with self.assertRaises(self.service.CreationUncertain) as error:
+            self.http_request("sandbox", "POST", "/orders", {}, "key", recover=True)
+        self.assertNotIn("sensitive", str(error.exception))
+
     def request(self, profile, method, path, **kwargs):
         if path.endswith("/payments"):
             return self.payments

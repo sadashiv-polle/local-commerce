@@ -90,7 +90,18 @@ error code, and an app-generated request reference. Match this reference to the
 The backend also writes the same safe message to
 `sites/<site>/logs/local_commerce_cashfree.log` (and the Bench logs directory).
 It does not record raw response bodies, request payloads, headers, payment session
-IDs or credentials. Field hints are suggestions, not a confirmed diagnosis.
+IDs or credentials. The provider's message is included after redacting credentials,
+request string values, emails, phone-like numbers, URLs and long tokens; markup is
+escaped. Field hints are suggestions, not a confirmed diagnosis. Sandbox API logs
+are unavailable, so use this server error instead of switching to Production.
+
+After an ambiguous create-order result (timeout, HTTP 500/502/503/504 or 409),
+checkout fetches the existing gateway order. If found, its identity, amount and
+currency must match before it is reused. If absent, creation is retried once using
+the identical payload and idempotency key. If the lookup itself fails, checkout
+stops rather than blindly sending another create request. Validation/authentication
+errors are not retried. A recovered session never marks an order Paid by itself;
+the existing server-side payment verification still applies.
 
 For an HTTP 400, record the operation and code before changing gateway settings.
 Do not treat every 400 as an absent order or switch settlement modes on an existing
