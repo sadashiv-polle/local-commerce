@@ -30,6 +30,14 @@ def find_orders(user, view, start, status=None, search=""):
         reject("Search must be at most 100 characters")
     where = "o.customer_user = %s"
     values = [user]
+    counts = {"pending": 0, "delivered": 0, "attention": 0, "cancelled": 0}
+    for row in frappe.db.sql(
+        f"select {GROUP} as bucket, count(*) as total "
+        f"from `tabLC Order` o where {where} group by bucket",
+        tuple(values),
+        as_dict=True,
+    ):
+        counts[row.bucket] = row.total
     if status:
         where += " and o.status = %s"
         values.append(status)
@@ -44,18 +52,16 @@ def find_orders(user, view, start, status=None, search=""):
             or exists (select 1 from `tabSales Order Item` i where i.parent=o.sales_order
                        and i.item_name like %s escape '!'))"""
         values.extend([pattern] * 3)
-    counts = {"pending": 0, "delivered": 0, "attention": 0, "cancelled": 0}
-    for row in frappe.db.sql(
-        f"select {GROUP} as bucket, count(*) as total "
-        f"from `tabLC Order` o where {where} group by bucket",
-        tuple(values),
-        as_dict=True,
-    ):
-        counts[row.bucket] = row.total
+    total = counts[view]
+    if status or search.strip():
+        total = frappe.db.sql(
+            f"select count(*) from `tabLC Order` o where {where} and ({GROUP}) = %s",
+            tuple([*values, view]),
+        )[0][0]
     names = frappe.db.sql(
         f"""select o.name from `tabLC Order` o where {where} and ({GROUP}) = %s
             order by o.creation desc, o.name desc limit 20 offset %s""",
         tuple([*values, view, start]),
         pluck=True,
     )
-    return names, counts
+    return names, counts, total

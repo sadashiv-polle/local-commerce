@@ -224,11 +224,7 @@ def after_migrate():
                 'Picked Up', 'Out for Delivery')
             and coalesce(payment_method, '')=''"""
         )
-        frappe.db.sql(
-            """update `tabLC Order`
-            set payment_status='Reconciled'
-            where payment_status='Paid' and coalesce(payment_entry, '')!=''"""
-        )
+        repair_payment_statuses()
     if frappe.db.has_column("LC Shop Member", "shop_name"):
         frappe.db.sql(
             """update `tabLC Shop Member` m
@@ -237,6 +233,26 @@ def after_migrate():
             where coalesce(m.shop_name, '')!=coalesce(s.shop_name, '')"""
         )
     frappe.db.add_unique("LC Shop Member", ["shop", "user"], "lc_shop_member_unique")
+
+
+def repair_payment_statuses():
+    # Reconciled describes COD cash handover, not gateway payment verification.
+    frappe.db.sql("""update `tabLC Order` set payment_status='Reconciled'
+        where payment_method='Cash on Delivery' and payment_status='Paid'
+        and coalesce(payment_entry, '')!=''""")
+    # Earlier migrations overwrote Cashfree Paid statuses. Restore only receipts
+    # supported by the provider reference and submitted, order-linked accounting.
+    frappe.db.sql("""update `tabLC Order` set payment_status='Paid'
+        where payment_method='Cashfree' and payment_status='Reconciled'
+        and coalesce(gateway_payment_id, '')!=''
+        and coalesce(gateway_accounting_error, '')=''
+        and coalesce(gateway_refunded_amount, 0)=0
+        and exists (select 1 from `tabPayment Entry` p
+            where p.name=`tabLC Order`.payment_entry and p.docstatus=1
+            and p.lc_order=`tabLC Order`.name and p.payment_type='Receive')
+        and exists (select 1 from `tabSales Invoice` i
+            where i.name=`tabLC Order`.sales_invoice and i.docstatus=1
+            and i.lc_order=`tabLC Order`.name and i.is_return=0)""")
 
 
 def before_migrate():

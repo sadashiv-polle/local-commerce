@@ -85,6 +85,8 @@ class CustomerOrderTabsTests(unittest.TestCase):
             rows = cursor.fetchall()
             if pluck:
                 return [row[0] for row in rows]
+            if not as_dict:
+                return rows
             return [
                 SimpleNamespace(**dict(zip([c[0] for c in cursor.description], row)))
                 for row in rows
@@ -134,6 +136,20 @@ class CustomerOrderTabsTests(unittest.TestCase):
         result = self.list_orders(customer_view="pending", search="Kingfish", status="Preparing")
         self.assertEqual([row["name"] for row in result["orders"]], ["pending"])
         self.assertEqual(result["counts"]["pending"], 1)
+        self.assertEqual(result["total"], 1)
+
+    def test_tab_totals_stay_constant_when_filter_has_no_matches(self):
+        unfiltered = self.list_orders(customer_view="pending")
+        filtered = self.list_orders(customer_view="pending", status="Ready", search="Kingfish")
+        self.assertEqual(filtered["counts"], unfiltered["counts"])
+        self.assertEqual(filtered["orders"], [])
+        self.assertEqual(filtered["total"], 0)
+
+    def test_filtered_pagination_uses_matching_total_not_tab_total(self):
+        result = self.list_orders(customer_view="delivered", search="24")
+        self.assertEqual(result["counts"]["delivered"], 25)
+        self.assertEqual(result["total"], 1)
+        self.assertEqual([row["name"] for row in result["orders"]], ["24"])
 
     def test_cancelled_payment_issue_stays_in_cancelled_history(self):
         self.db.execute(
@@ -142,7 +158,8 @@ class CustomerOrderTabsTests(unittest.TestCase):
         )
         result = self.list_orders(customer_view="cancelled", search="cancelled")
         self.assertEqual([row["name"] for row in result["orders"]], ["cancelled"])
-        self.assertEqual(result["counts"]["attention"], 0)
+        self.assertEqual(result["counts"]["attention"], 3)
+        self.assertEqual(result["total"], 1)
 
     def test_search_by_shop_or_partial_order_id(self):
         self.assertEqual(

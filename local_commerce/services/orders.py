@@ -1027,11 +1027,11 @@ def list_orders(shop=None, start=0, status=None, delivery_mode=None, customer_vi
             reject("Invalid customer order view")
         from local_commerce.services.customer_orders import find_orders
 
-        names, counts = find_orders(
+        names, counts, total = find_orders(
             frappe.session.user, customer_view, offset(start), status, search
         )
         return {"orders": [serialize(frappe.get_doc("LC Order", name)) for name in names],
-                "counts": counts}
+                "counts": counts, "total": total}
     if status:
         valid_statuses = set(order_rules.TRANSITIONS) | set(order_rules.DELIVERY_TRANSITIONS)
         if status not in valid_statuses:

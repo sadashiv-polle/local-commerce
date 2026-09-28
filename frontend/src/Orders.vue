@@ -38,8 +38,10 @@ const deliveryTab = computed(() => route.query.order_type === 'scheduled' ? 'Sch
 const statusTabs = ['All', 'Requested', 'Accepted', 'Preparing', 'Ready', 'Picked Up', 'Out for Delivery', 'Delivered']
 const activeStatus = computed(() => statusTabs.includes(route.query.status) ? route.query.status : 'All')
 const customerTab = computed(() => ['delivered', 'attention', 'cancelled'].includes(route.query.view) ? route.query.view : 'pending')
+const customerTotal = ref(0)
 const customerCounts = ref({ pending: 0, delivered: 0, attention: 0, cancelled: 0 })
-const customerStatus = computed(() => [...statusTabs, 'Cancelled'].includes(route.query.filter) ? route.query.filter : 'All')
+const customerStatuses = computed(() => customerTab.value === 'delivered' ? ['All', 'Delivered'] : customerTab.value === 'cancelled' ? ['All', 'Cancelled'] : statusTabs.filter(status => status !== 'Delivered'))
+const customerStatus = computed(() => customerStatuses.value.includes(route.query.filter) ? route.query.filter : 'All')
 const searchText = ref(typeof route.query.search === 'string' ? route.query.search : '')
 const customerSearch = computed(() => typeof route.query.search === 'string' ? route.query.search : '')
 function applyCustomerFilters(status = customerStatus.value, search = searchText.value) {
@@ -143,7 +145,7 @@ async function load(delta = 0, { background = false } = {}) {
     const [response, availableDrivers = []] = await Promise.all(requests)
     const result = !props.shop && !focusedOrder ? response.orders : response
     if (current === generation) {
-      if (!props.shop && !focusedOrder) customerCounts.value = response.counts
+      if (!props.shop && !focusedOrder) { customerCounts.value = response.counts; customerTotal.value = response.total }
       orders.value = reconcileOrders(orders.value, result)
       loadRoutes(result)
       drivers.value = availableDrivers
@@ -216,9 +218,10 @@ onBeforeUnmount(() => {
     </div>
     <form v-if="!shop && !route.query.order" class="customer-order-filters" @submit.prevent="applyCustomerFilters()">
       <label>Search orders<input v-model="searchText" type="search" maxlength="100" placeholder="Order ID, shop or product"></label>
-      <label>Order status<select :value="customerStatus" :disabled="busy" @change="applyCustomerFilters($event.target.value, customerSearch)"><option v-for="status in [...statusTabs, 'Cancelled']" :key="status" :value="status">{{ status === 'All' ? 'All statuses' : status === 'Requested' ? 'Ordered / awaiting confirmation' : status }}</option></select></label>
+      <label>Order status<select :value="customerStatus" :disabled="busy" @change="applyCustomerFilters($event.target.value, customerSearch)"><option v-for="status in customerStatuses" :key="status" :value="status">{{ status === 'All' ? 'All statuses' : status === 'Requested' ? 'Ordered / awaiting confirmation' : status }}</option></select></label>
       <button type="submit" :disabled="busy || loading">Search</button><button v-if="customerSearch || customerStatus !== 'All'" type="button" :disabled="busy" @click="searchText = ''; applyCustomerFilters('All', '')">Clear filters</button>
     </form>
+    <p v-if="!shop && !route.query.order && (customerSearch || customerStatus !== 'All')" class="muted" role="status">{{ customerTotal }} matching orders · tab totals include all your orders</p>
     <div v-if="shop" class="owner-workflow-summary" aria-label="Order workflow summary">
       <button v-for="card in workflowSummary" :key="card.status" type="button" :class="{ active: activeStatus === card.status }" :disabled="busy" @click="selectStatus(card.status)">
         <small>{{ card.label }}</small><strong>{{ statusCount(card.status) }}</strong><span>{{ card.hint }}</span>
@@ -276,7 +279,7 @@ onBeforeUnmount(() => {
       <template v-if="reorder"><span class="eyebrow">{{ reorder.shop_name }}</span><h2 id="reorder-title">Order your favourites again</h2><p>Current prices and stock are shown below. This replaces the cart for this shop. Delivery charges and taxes are calculated at checkout.</p><ul v-if="reorder.notices.length" class="reorder-notices"><li v-for="notice in reorder.notices" :key="notice">{{ notice }}</li></ul><div class="reorder-lines"><article v-for="item in reorder.items" :key="item.item"><img v-if="item.image" :src="item.image" :alt="item.item_name"><div><strong>{{ item.item_name }}</strong><small>{{ item.quantity }} {{ item.uom }}</small></div><strong>{{ money(item.rate * item.quantity, item.currency) }}</strong></article></div><p v-if="!reorder.items.length">These items are currently unavailable. Browse the shop for alternatives.</p><p v-if="reorderError" role="alert" class="lc-notice">{{ reorderError }}</p><div class="logout-actions"><button type="button" autofocus @click="reorderDialog.close()">Cancel</button><button v-if="reorder.items.length" type="button" class="lc-primary" @click="confirmReorder">Review cart →</button><RouterLink v-else :to="{ name: 'customer-shop', params: { shop: reorder.shop } }" class="primary" @click="reorderDialog.close()">Browse shop →</RouterLink></div></template>
     </dialog>
     <RouterLink v-if="!shop && route.query.order" to="/orders">View all orders →</RouterLink>
-    <div v-else class="lc-pagination"><button :disabled="!start || loading || busy" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="(shop ? orders.length < 20 : start + orders.length >= customerCounts[customerTab]) || loading || busy" @click="load(20)">Next</button></div>
+    <div v-else class="lc-pagination"><button :disabled="!start || loading || busy" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="(shop ? orders.length < 20 : start + orders.length >= customerTotal) || loading || busy" @click="load(20)">Next</button></div>
   </section>
 </template>
 

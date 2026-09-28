@@ -39,11 +39,12 @@ onMounted(() => {
   <section class="order-rating">
     <strong>Cashfree payment · {{ order.payment_status }}</strong>
     <p v-if="order.payment_status === 'Paid'">Payment received. No cash is due at delivery.</p>
+    <p v-else-if="order.payment_status === 'Reconciled'">A payment receipt is recorded. Refresh payment status to verify it before delivery. Do not pay again.</p>
     <p v-else-if="order.payment_status === 'Refunded'">Your payment has been refunded.</p>
     <p v-else>Complete payment to confirm your order. The shop accepts it automatically after payment is verified.</p>
     <p v-if="order.accounting_pending">Payment received; the shop is resolving an order processing issue.</p>
     <div class="button-row">
-      <button v-if="customer && !['Paid', 'Refunded'].includes(order.payment_status) && order.status !== 'Cancelled'" :disabled="busy" class="lc-primary" @click="pay">Pay securely</button>
+      <button v-if="customer && ['Pending', 'Failed'].includes(order.payment_status) && order.status !== 'Cancelled'" :disabled="busy" class="lc-primary" @click="pay">Pay securely</button>
       <button :disabled="busy" @click="refresh">{{ busy ? 'Checking…' : 'Refresh payment status' }}</button>
     </div>
     <p v-if="error" role="alert" class="lc-notice">{{ error }}</p>
