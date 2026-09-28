@@ -177,6 +177,16 @@ class TestScheduledBooking(unittest.TestCase):
         self.assertIn('delivery_end', kwargs['filters'])
         self.assertEqual(kwargs['start'], 0)
 
+    def test_today_batches_are_scoped_to_shop_day_without_history_offset(self):
+        self.frappe.get_all.return_value = []
+        self.service.slots('shop', admin=True, delivery_day='2026-09-28')
+        kwargs = self.frappe.get_all.call_args.kwargs
+        self.assertEqual(kwargs['filters']['shop'], 'shop')
+        self.assertEqual(kwargs['filters']['delivery_start'], [
+            'between', [datetime(2026, 9, 28), datetime(2026, 9, 28, 23, 59, 59, 999999)]
+        ])
+        self.assertEqual(kwargs['start'], 0)
+
     def test_archive_preserves_orders_and_stops_new_bookings(self):
         self.service.archive_slot("slot")
         self.scope.require_schedule.assert_called_once_with("shop")

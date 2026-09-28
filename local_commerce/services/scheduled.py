@@ -1,5 +1,7 @@
 """Scheduled bookings: one shop and delivery period per bounded batch."""
 
+from datetime import timedelta
+
 import frappe
 from frappe.utils import get_datetime, now_datetime
 
@@ -75,7 +77,7 @@ def validate_slot(doc):
             reject("Select products belonging to this shop")
 
 
-def slots(shop, admin=False, start=0):
+def slots(shop, admin=False, start=0, delivery_day=None):
     if admin:
         require_shop(shop)
     else:
@@ -84,6 +86,11 @@ def slots(shop, admin=False, start=0):
             return []
     start = max(0, int(start)) if admin else 0
     filters = {"shop": shop}
+    if admin and delivery_day:
+        day_start = get_datetime(delivery_day)
+        filters["delivery_start"] = [
+            "between", [day_start, day_start + timedelta(days=1, microseconds=-1)]
+        ]
     if not admin:
         filters.update(enabled=1, delivery_end=[">", now_datetime()])
     rows = frappe.get_all(
@@ -139,10 +146,13 @@ def configure(shop, normal, scheduled):
 def settings(shop, start=0):
     require_shop(shop)
     doc = frappe.get_doc("LC Shop", shop)
+    today = str(now_datetime().date())
     return {
         "normal": bool(doc.delivery_enabled),
         "scheduled": bool(doc.get("scheduled_enabled")),
         "slots": slots(shop, admin=True, start=start),
+        "today": today,
+        "today_slots": slots(shop, admin=True, delivery_day=today),
         "timezone": frappe.utils.get_system_timezone(),
         "schedules": frappe.get_all(
             "LC Delivery Schedule", filters={"shop": shop},
