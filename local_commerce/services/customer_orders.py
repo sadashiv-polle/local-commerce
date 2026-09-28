@@ -15,14 +15,16 @@ STATUSES = {
     "Cancelled",
 }
 GROUP = """case when o.status = 'Delivered' then 'delivered'
-    when o.status = 'Cancelled'
-      or o.payment_status in ('Failed', 'Payment Rejected', 'Refunded')
+    when o.status = 'Cancelled' then 'cancelled'
+    when o.payment_status in ('Failed', 'Payment Rejected', 'Refunded')
       or coalesce(o.gateway_accounting_error, '') != '' then 'attention'
     else 'pending' end"""
 
 
 def find_orders(user, view, start, status=None, search=""):
-    if view not in {"pending", "delivered", "attention"} or (status and status not in STATUSES):
+    if view not in {"pending", "delivered", "attention", "cancelled"} or (
+        status and status not in STATUSES
+    ):
         reject("Invalid customer order filter")
     if not isinstance(search, str) or len(search) > 100:
         reject("Search must be at most 100 characters")
@@ -42,7 +44,7 @@ def find_orders(user, view, start, status=None, search=""):
             or exists (select 1 from `tabSales Order Item` i where i.parent=o.sales_order
                        and i.item_name like %s escape '!'))"""
         values.extend([pattern] * 3)
-    counts = {"pending": 0, "delivered": 0, "attention": 0}
+    counts = {"pending": 0, "delivered": 0, "attention": 0, "cancelled": 0}
     for row in frappe.db.sql(
         f"select {GROUP} as bucket, count(*) as total "
         f"from `tabLC Order` o where {where} group by bucket",

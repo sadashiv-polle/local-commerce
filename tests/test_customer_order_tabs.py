@@ -122,18 +122,27 @@ class CustomerOrderTabsTests(unittest.TestCase):
     def test_filter_precedes_pagination_and_excludes_failed_and_cancelled_orders(self):
         result = self.list_orders(customer_view="pending")
         self.assertEqual([row["name"] for row in result["orders"]], ["pending"])
-        self.assertEqual(result["counts"], {"pending": 1, "delivered": 25, "attention": 4})
-
-    def test_attention_preserves_payment_disputes_and_cancelled_history(self):
-        result = self.list_orders(customer_view="attention")
         self.assertEqual(
-            {row["name"] for row in result["orders"]}, {"failed", "review", "refund", "cancelled"}
+            result["counts"], {"pending": 1, "delivered": 25, "attention": 3, "cancelled": 1}
         )
+
+    def test_attention_preserves_payment_disputes_but_excludes_cancellations(self):
+        result = self.list_orders(customer_view="attention")
+        self.assertEqual({row["name"] for row in result["orders"]}, {"failed", "review", "refund"})
 
     def test_product_search_does_not_duplicate_orders(self):
         result = self.list_orders(customer_view="pending", search="Kingfish", status="Preparing")
         self.assertEqual([row["name"] for row in result["orders"]], ["pending"])
         self.assertEqual(result["counts"]["pending"], 1)
+
+    def test_cancelled_payment_issue_stays_in_cancelled_history(self):
+        self.db.execute(
+            "update `tabLC Order` set payment_status='Failed', "
+            "gateway_accounting_error='Needs review' where name='cancelled'"
+        )
+        result = self.list_orders(customer_view="cancelled", search="cancelled")
+        self.assertEqual([row["name"] for row in result["orders"]], ["cancelled"])
+        self.assertEqual(result["counts"]["attention"], 0)
 
     def test_search_by_shop_or_partial_order_id(self):
         self.assertEqual(
@@ -153,7 +162,7 @@ class CustomerOrderTabsTests(unittest.TestCase):
         )
         result = self.list_orders(customer_view="pending")
         self.assertIn("failed", [row["name"] for row in result["orders"]])
-        self.assertEqual(result["counts"]["attention"], 3)
+        self.assertEqual(result["counts"]["attention"], 2)
 
     def test_invalid_status_and_search_are_rejected_before_query(self):
         for kwargs in ({"status": "invented"}, {"search": "x" * 101}):

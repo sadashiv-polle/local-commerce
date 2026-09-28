@@ -37,8 +37,8 @@ const props = defineProps({ shop: { type: String, default: '' }, editable: Boole
 const deliveryTab = computed(() => route.query.order_type === 'scheduled' ? 'Scheduled' : 'Normal')
 const statusTabs = ['All', 'Requested', 'Accepted', 'Preparing', 'Ready', 'Picked Up', 'Out for Delivery', 'Delivered']
 const activeStatus = computed(() => statusTabs.includes(route.query.status) ? route.query.status : 'All')
-const customerTab = computed(() => ['delivered', 'attention'].includes(route.query.view) ? route.query.view : 'pending')
-const customerCounts = ref({ pending: 0, delivered: 0, attention: 0 })
+const customerTab = computed(() => ['delivered', 'attention', 'cancelled'].includes(route.query.view) ? route.query.view : 'pending')
+const customerCounts = ref({ pending: 0, delivered: 0, attention: 0, cancelled: 0 })
 const customerStatus = computed(() => [...statusTabs, 'Cancelled'].includes(route.query.filter) ? route.query.filter : 'All')
 const searchText = ref(typeof route.query.search === 'string' ? route.query.search : '')
 const customerSearch = computed(() => typeof route.query.search === 'string' ? route.query.search : '')
@@ -211,7 +211,8 @@ onBeforeUnmount(() => {
     <div v-if="!shop && !route.query.order" class="shop-order-tabs customer-order-tabs" role="group" aria-label="My order delivery status">
       <button type="button" :class="{ active: customerTab === 'pending' }" :aria-pressed="customerTab === 'pending'" :disabled="busy" @click="selectCustomerTab('pending')"><strong>Not delivered <span>{{ customerCounts.pending }}</span></strong><small>New & ongoing orders</small></button>
       <button type="button" :class="{ active: customerTab === 'delivered' }" :aria-pressed="customerTab === 'delivered'" :disabled="busy" @click="selectCustomerTab('delivered')"><strong>Delivered <span>{{ customerCounts.delivered }}</span></strong><small>Completed orders · buy again & rate</small></button>
-      <button type="button" :class="{ active: customerTab === 'attention' }" :aria-pressed="customerTab === 'attention'" :disabled="busy" @click="selectCustomerTab('attention')"><strong>Needs attention <span>{{ customerCounts.attention }}</span></strong><small>Payment issues & cancelled orders</small></button>
+      <button type="button" :class="{ active: customerTab === 'attention' }" :aria-pressed="customerTab === 'attention'" :disabled="busy" @click="selectCustomerTab('attention')"><strong>Needs attention <span>{{ customerCounts.attention }}</span></strong><small>Payment issues to check</small></button>
+      <button type="button" class="cancelled-tab" :class="{ active: customerTab === 'cancelled' }" :aria-pressed="customerTab === 'cancelled'" :disabled="busy" @click="selectCustomerTab('cancelled')"><strong>Cancelled <span>{{ customerCounts.cancelled }}</span></strong><small>Cancelled order history</small></button>
     </div>
     <form v-if="!shop && !route.query.order" class="customer-order-filters" @submit.prevent="applyCustomerFilters()">
       <label>Search orders<input v-model="searchText" type="search" maxlength="100" placeholder="Order ID, shop or product"></label>
@@ -229,8 +230,8 @@ onBeforeUnmount(() => {
     <template v-if="shop && deliveryTab === 'Scheduled'"><slot name="batches" :refresh="load" /><p class="muted">Accept each request below, then manage preparation and dispatch together using the batch controls.</p></template>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
     <p v-if="loading && !orders.length" role="status">Loading orders…</p>
-    <p v-else-if="!visibleOrders.length" class="lc-empty">{{ shop ? `No ${activeStatus === 'All' ? deliveryTab.toLowerCase() : activeStatus.toLowerCase()} orders yet.` : route.query.order ? 'Order unavailable.' : customerSearch || customerStatus !== 'All' ? 'No matching orders in this tab. Try another tab or clear the filters.' : customerTab === 'attention' ? 'No orders need attention.' : customerTab === 'delivered' ? 'Your delivered orders will appear here.' : 'No undelivered orders. Browse your local shops to place an order.' }}</p>
-    <article v-for="order in visibleOrders" :key="order.name" class="order-card">
+    <p v-else-if="!visibleOrders.length" class="lc-empty">{{ shop ? `No ${activeStatus === 'All' ? deliveryTab.toLowerCase() : activeStatus.toLowerCase()} orders yet.` : route.query.order ? 'Order unavailable.' : customerSearch || customerStatus !== 'All' ? 'No matching orders in this tab. Try another tab or clear the filters.' : customerTab === 'cancelled' ? 'No cancelled orders.' : customerTab === 'attention' ? 'No orders need attention.' : customerTab === 'delivered' ? 'Your delivered orders will appear here.' : 'No undelivered orders. Browse your local shops to place an order.' }}</p>
+    <article v-for="order in visibleOrders" :key="order.name" class="order-card" :class="{ 'customer-order-cancelled': !shop && order.status === 'Cancelled' }">
       <OrderReference :order-id="order.name" />
       <section v-if="!shop && needsPaymentReview(order)" class="payment-review-help" aria-label="Payment help"><strong>Payment needs review</strong><p v-if="order.payment_method === 'Cashfree' && order.payment_status !== 'Refunded'">Use “Refresh payment status” below to check for an update.</p><p>If your bank shows a debit and the order still shows failed, cancelled or unconfirmed, contact the shop with this order ID and your transaction reference before paying again.</p><p v-if="order.payment_status === 'Refunded'">This order is marked refunded. Check your bank statement and contact the shop if the credit has not arrived.</p><a v-if="supportNumber(order.shop_support_phone)" :href="`tel:${order.shop_support_phone}`">Call shop to check payment</a><p v-else>Share the order ID above with the shop owner to check the payment.</p></section>
       <div class="workspace-heading"><div><span class="eyebrow">{{ order.shop_name }}</span><h3>{{ order.recipient }}</h3><small>{{ order.created }}</small></div><span class="status-pill">{{ order.status }}</span></div>
@@ -280,14 +281,20 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-#lc-app .customer-order-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#lc-app .customer-order-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .customer-order-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
 .customer-order-filters label { flex: 1 1 220px; min-width: 0; }
 .payment-review-help { padding: 16px; margin: 12px 0; border: 1px solid #e7cc88; border-radius: 14px; background: #fff8e5; }
 .payment-review-help p { font-size: 14px; line-height: 1.5; }
-@media (max-width: 600px) { #lc-app .customer-order-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } #lc-app .customer-order-tabs button:last-child { grid-column: 1 / -1; } }
+@media (max-width: 600px) { #lc-app .customer-order-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .customer-order-tabs strong { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .customer-order-tabs strong span { min-width: 24px; padding: 3px 7px; border-radius: 20px; background: #dfeade; font-size: 12px; text-align: center; }
 .customer-order-tabs button.active strong span { color: white; background: #176547; }
 .customer-order-tabs button:focus-visible { outline: 3px solid #267c6e; outline-offset: 2px; }
+#lc-app .customer-order-cancelled { background: #fff7f6; border-color: #edc3bd; }
+#lc-app .customer-order-cancelled .status-pill { color: #9b3028; background: #fbe3df; }
+#lc-app .customer-order-cancelled .customer-tracking-summary { background: #fff0ed; border-color: #edc3bd; color: #9b3028; }
+#lc-app .customer-order-cancelled .tracking-status-dot { background: #b84035; box-shadow: 0 0 0 6px #fbe3df; }
+#lc-app .customer-order-tabs .cancelled-tab.active { background: #fff0ed; border-color: #edc3bd; color: #9b3028; }
+#lc-app .customer-order-tabs .cancelled-tab.active strong span { background: #9b3028; }
 </style>
