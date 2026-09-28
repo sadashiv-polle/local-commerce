@@ -37,7 +37,13 @@ const props = defineProps({ shop: { type: String, default: '' }, editable: Boole
 const deliveryTab = computed(() => route.query.order_type === 'scheduled' ? 'Scheduled' : 'Normal')
 const statusTabs = ['All', 'Requested', 'Accepted', 'Preparing', 'Ready', 'Picked Up', 'Out for Delivery', 'Delivered']
 const activeStatus = computed(() => statusTabs.includes(route.query.status) ? route.query.status : 'All')
-const visibleOrders = computed(() => activeStatus.value === 'All' ? orders.value : orders.value.filter(order => order.status === activeStatus.value))
+const customerTab = computed(() => route.query.view === 'delivered' ? 'delivered' : 'pending')
+const customerCounts = ref({ pending: 0, delivered: 0 })
+const visibleOrders = computed(() => !props.shop || activeStatus.value === 'All' ? orders.value : orders.value.filter(order => order.status === activeStatus.value))
+function selectCustomerTab(view) {
+  if (busy.value || view === customerTab.value) return
+  router.replace({ query: { ...route.query, view } })
+}
 function statusCount(status) { return status === 'All' ? orders.value.length : orders.value.filter(order => order.status === status).length }
 const workflowSummary = computed(() => [
   { label: 'New', status: 'Requested', hint: 'Need a response' },
@@ -116,10 +122,12 @@ async function load(delta = 0, { background = false } = {}) {
   }
   try {
     const focusedOrder = !props.shop && typeof route.query.order === 'string' ? route.query.order : ''
-    const requests = [focusedOrder ? call('orders.detail', { order: focusedOrder }).then(order => [order]) : call('orders.list_orders', { ...(props.shop ? { shop: props.shop, delivery_mode: deliveryTab.value } : {}), start: start.value })]
+    const requests = [focusedOrder ? call('orders.detail', { order: focusedOrder }).then(order => [order]) : call('orders.list_orders', { ...(props.shop ? { shop: props.shop, delivery_mode: deliveryTab.value } : { customer_view: customerTab.value }), start: start.value })]
     if (props.shop && props.editable) requests.push(call('orders.drivers', { shop: props.shop }))
-    const [result, availableDrivers = []] = await Promise.all(requests)
+    const [response, availableDrivers = []] = await Promise.all(requests)
+    const result = !props.shop && !focusedOrder ? response.orders : response
     if (current === generation) {
+      if (!props.shop && !focusedOrder) customerCounts.value = response.counts
       orders.value = reconcileOrders(orders.value, result)
       loadRoutes(result)
       drivers.value = availableDrivers
@@ -164,7 +172,7 @@ function paymentStarted() {
   delete query.pay
   router.replace({ query })
 }
-watch([() => props.shop, () => props.shop ? deliveryTab.value : null, () => route.query.order], () => { start.value = 0; orders.value = []; load() }, { immediate: true })
+watch([() => props.shop, () => props.shop ? deliveryTab.value : customerTab.value, () => route.query.order], () => { start.value = 0; orders.value = []; load() }, { immediate: true })
 onMounted(() => {
   window.addEventListener('lc-orders-change', refreshOrders)
   refreshTimer = window.setInterval(() => { if (!props.shop && !document.hidden && orders.value.some(order => !['Delivered', 'Cancelled'].includes(order.status))) refreshOrders() }, 10000)
@@ -183,6 +191,10 @@ onBeforeUnmount(() => {
     <div v-if="shop" class="shop-order-tabs" role="group" aria-label="Delivery booking type">
       <button v-for="mode in ['Normal', 'Scheduled']" :key="mode" type="button" :class="{ active: deliveryTab === mode }" :aria-pressed="deliveryTab === mode" :disabled="busy" @click="selectDeliveryTab(mode)"><strong>{{ mode }} orders</strong><small>{{ mode === 'Normal' ? 'Individual deliveries' : 'Time slots & delivery batches' }}</small></button>
     </div>
+    <div v-if="!shop && !route.query.order" class="shop-order-tabs customer-order-tabs" role="group" aria-label="My order delivery status">
+      <button type="button" :class="{ active: customerTab === 'pending' }" :aria-pressed="customerTab === 'pending'" :disabled="busy" @click="selectCustomerTab('pending')"><strong>Not delivered <span>{{ customerCounts.pending }}</span></strong><small>New & ongoing · cancelled orders also appear here</small></button>
+      <button type="button" :class="{ active: customerTab === 'delivered' }" :aria-pressed="customerTab === 'delivered'" :disabled="busy" @click="selectCustomerTab('delivered')"><strong>Delivered <span>{{ customerCounts.delivered }}</span></strong><small>Completed orders · buy again & rate</small></button>
+    </div>
     <div v-if="shop" class="owner-workflow-summary" aria-label="Order workflow summary">
       <button v-for="card in workflowSummary" :key="card.status" type="button" :class="{ active: activeStatus === card.status }" :disabled="busy" @click="selectStatus(card.status)">
         <small>{{ card.label }}</small><strong>{{ statusCount(card.status) }}</strong><span>{{ card.hint }}</span>
@@ -194,7 +206,7 @@ onBeforeUnmount(() => {
     <template v-if="shop && deliveryTab === 'Scheduled'"><slot name="batches" :refresh="load" /><p class="muted">Accept each request below, then manage preparation and dispatch together using the batch controls.</p></template>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
     <p v-if="loading && !orders.length" role="status">Loading orders…</p>
-    <p v-else-if="!visibleOrders.length" class="lc-empty">{{ shop ? `No ${activeStatus === 'All' ? deliveryTab.toLowerCase() : activeStatus.toLowerCase()} orders yet.` : 'No delivery orders yet.' }}</p>
+    <p v-else-if="!visibleOrders.length" class="lc-empty">{{ shop ? `No ${activeStatus === 'All' ? deliveryTab.toLowerCase() : activeStatus.toLowerCase()} orders yet.` : route.query.order ? 'Order unavailable.' : customerTab === 'delivered' ? 'Your delivered orders will appear here.' : 'No undelivered orders. Browse your local shops to place an order.' }}</p>
     <article v-for="order in visibleOrders" :key="order.name" class="order-card">
       <OrderReference :order-id="order.name" />
       <div class="workspace-heading"><div><span class="eyebrow">{{ order.shop_name }}</span><h3>{{ order.recipient }}</h3><small>{{ order.created }}</small></div><span class="status-pill">{{ order.status }}</span></div>
@@ -239,6 +251,13 @@ onBeforeUnmount(() => {
       <template v-if="reorder"><span class="eyebrow">{{ reorder.shop_name }}</span><h2 id="reorder-title">Order your favourites again</h2><p>Current prices and stock are shown below. This replaces the cart for this shop. Delivery charges and taxes are calculated at checkout.</p><ul v-if="reorder.notices.length" class="reorder-notices"><li v-for="notice in reorder.notices" :key="notice">{{ notice }}</li></ul><div class="reorder-lines"><article v-for="item in reorder.items" :key="item.item"><img v-if="item.image" :src="item.image" :alt="item.item_name"><div><strong>{{ item.item_name }}</strong><small>{{ item.quantity }} {{ item.uom }}</small></div><strong>{{ money(item.rate * item.quantity, item.currency) }}</strong></article></div><p v-if="!reorder.items.length">These items are currently unavailable. Browse the shop for alternatives.</p><p v-if="reorderError" role="alert" class="lc-notice">{{ reorderError }}</p><div class="logout-actions"><button type="button" autofocus @click="reorderDialog.close()">Cancel</button><button v-if="reorder.items.length" type="button" class="lc-primary" @click="confirmReorder">Review cart →</button><RouterLink v-else :to="{ name: 'customer-shop', params: { shop: reorder.shop } }" class="primary" @click="reorderDialog.close()">Browse shop →</RouterLink></div></template>
     </dialog>
     <RouterLink v-if="!shop && route.query.order" to="/orders">View all orders →</RouterLink>
-    <div v-else class="lc-pagination"><button :disabled="!start || loading || busy" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="orders.length < 20 || loading || busy" @click="load(20)">Next</button></div>
+    <div v-else class="lc-pagination"><button :disabled="!start || loading || busy" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="(shop ? orders.length < 20 : start + orders.length >= customerCounts[customerTab]) || loading || busy" @click="load(20)">Next</button></div>
   </section>
 </template>
+
+<style scoped>
+.customer-order-tabs strong { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.customer-order-tabs strong span { min-width: 24px; padding: 3px 7px; border-radius: 20px; background: #dfeade; font-size: 12px; text-align: center; }
+.customer-order-tabs button.active strong span { color: white; background: #176547; }
+.customer-order-tabs button:focus-visible { outline: 3px solid #267c6e; outline-offset: 2px; }
+</style>
