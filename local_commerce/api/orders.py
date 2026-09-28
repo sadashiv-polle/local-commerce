@@ -28,8 +28,8 @@ def active_orders():
 
 
 @frappe.whitelist()
-def list_orders(shop=None, start=0, status=None, delivery_mode=None, customer_view=None):
-    return orders.list_orders(shop, start, status, delivery_mode, customer_view)
+def list_orders(shop=None, start=0, status=None, delivery_mode=None, customer_view=None, search=""):
+    return orders.list_orders(shop, start, status, delivery_mode, customer_view, search)
 
 
 @frappe.whitelist()

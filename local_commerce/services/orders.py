@@ -1015,22 +1015,23 @@ def active_orders():
     return rows
 
 
-def list_orders(shop=None, start=0, status=None, delivery_mode=None, customer_view=None):
+def list_orders(shop=None, start=0, status=None, delivery_mode=None, customer_view=None, search=""):
     if shop:
         require_shop(shop)
         filters = {"shop": shop}
     else:
         customer_access()
         filters = {"customer_user": frappe.session.user}
-    counts = None
     if customer_view:
-        if shop or status or delivery_mode or customer_view not in {"pending", "delivered"}:
+        if shop or delivery_mode:
             reject("Invalid customer order view")
-        counts = {
-            "pending": frappe.db.count("LC Order", {**filters, "status": ["!=", "Delivered"]}),
-            "delivered": frappe.db.count("LC Order", {**filters, "status": "Delivered"}),
-        }
-        filters["status"] = "Delivered" if customer_view == "delivered" else ["!=", "Delivered"]
+        from local_commerce.services.customer_orders import find_orders
+
+        names, counts = find_orders(
+            frappe.session.user, customer_view, offset(start), status, search
+        )
+        return {"orders": [serialize(frappe.get_doc("LC Order", name)) for name in names],
+                "counts": counts}
     if status:
         valid_statuses = set(order_rules.TRANSITIONS) | set(order_rules.DELIVERY_TRANSITIONS)
         if status not in valid_statuses:
@@ -1049,7 +1050,7 @@ def list_orders(shop=None, start=0, status=None, delivery_mode=None, customer_vi
         order_by="creation desc",
     )
     rows = [serialize(frappe.get_doc("LC Order", name)) for name in names]
-    return {"orders": rows, "counts": counts} if customer_view else rows
+    return rows
 
 
 def drivers(shop):
