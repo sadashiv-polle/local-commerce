@@ -56,10 +56,10 @@ def recommendations(address=""):
 
 @frappe.whitelist(allow_guest=True, methods=["GET"])
 @rate_limit(limit=300, seconds=3600)
-def category_menu():
+def category_menu(available_only=0):
     from local_commerce.services.category_menu import menu
 
-    return menu()
+    return menu(available_only=str(available_only) == "1")
 
 
 @frappe.whitelist(methods=["GET"])
@@ -81,3 +81,11 @@ def upload_category_image():
     from local_commerce.services.category_menu import upload_image
 
     return upload_image()
+
+
+@frappe.whitelist(allow_guest=True, methods=["GET"])
+@rate_limit(limit=600, seconds=3600)
+def discover(search="", address="", start=0):
+    from local_commerce.services.home_discovery import discover
+
+    return discover(search, address, start)

@@ -219,10 +219,11 @@ def serialize_public_shop(row):
     return row
 
 
-def shops(start=0):
+def shops(start=0, search=""):
+    from local_commerce.services.home_discovery import search_filters
     rows = frappe.get_all(
         "LC Shop",
-        filters={"status": "Active"},
+        filters=search_filters(search),
         fields=SHOP_LISTING_FIELDS,
         start=offset(start),
         limit_page_length=20,
@@ -230,7 +231,8 @@ def shops(start=0):
     return [serialize_public_shop(row) for row in rows]
 
 
-def nearby_shops(address, start=0):
+def nearby_shops(address, start=0, search=""):
+    from local_commerce.services.home_discovery import search_filters
     start = offset(start)
     try:
         destination = point(address.get("latitude"), address.get("longitude"), required=True)
@@ -238,7 +240,7 @@ def nearby_shops(address, start=0):
         reject(str(exc))
     rows = frappe.get_all(
         "LC Shop",
-        filters={"status": "Active"},
+        filters=search_filters(search),
         fields=[
             *SHOP_LISTING_FIELDS,
             "service_radius_km",

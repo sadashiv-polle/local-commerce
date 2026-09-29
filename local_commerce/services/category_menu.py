@@ -41,12 +41,21 @@ def validate_menu(doc):
             reject("Use a public category image")
 
 
-def menu(admin=False):
+def menu(admin=False, available_only=False):
     if admin:
         require_platform()
     doc = frappe.get_single("LC Store Settings")
+    available = None
+    if available_only and not admin:
+        available = set(frappe.db.sql(
+            """select distinct i.item_group from `tabItem` i
+            inner join `tabLC Shop` s on s.name=i.lc_shop
+            where i.disabled=0 and i.is_sales_item=1 and s.status='Active'""", pluck=True,
+        ))
     rows = []
     for row in doc.categories:
+        if available is not None and row.item_group not in available:
+            continue
         if not admin and (not doc.category_menu_enabled or not row.enabled):
             continue
         images = gallery_urls(row.image, [])

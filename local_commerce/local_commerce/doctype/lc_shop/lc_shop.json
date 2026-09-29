@@ -13,6 +13,7 @@
     "shop_type",
     "status",
     "description",
+    "shop_image",
     "order_acceptance",
     "order_response_minutes",
     "accepting_orders",
@@ -418,6 +419,12 @@
       "default": "Easy Split",
       "permlevel": 1,
       "description": "Direct merchant: your own shop uses the selected Cashfree merchant account without vendor splitting."
+    },
+    {
+      "fieldname": "shop_image",
+      "label": "Shop Photo",
+      "fieldtype": "Attach Image",
+      "description": "Public storefront photo. Upload as a public file so customers can view it."
     }
   ],
   "permissions": [
