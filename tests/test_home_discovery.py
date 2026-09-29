@@ -74,6 +74,15 @@ class HomeDiscoveryTests(unittest.TestCase):
         self.assertIn("s.capacity", query)
         self.assertEqual(args, ("fish", "now"))
 
+    def test_stored_shop_id_is_never_interpolated_into_slot_sql(self):
+        payload = "shop') OR 1=1 --"
+        self.orders.shops.return_value[0]["name"] = payload
+        self.frappe.get_all.return_value[0]["name"] = payload
+        self.service.discover()
+        query, values = self.frappe.db.sql.call_args.args
+        self.assertNotIn(payload, query)
+        self.assertEqual(values[0], payload)
+
     def test_selected_address_uses_existing_ownership_check(self):
         self.customers.nearby.side_effect = PermissionError("foreign address")
         with self.assertRaises(PermissionError):

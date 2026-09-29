@@ -173,6 +173,15 @@ class CustomerOrderTabsTests(unittest.TestCase):
         for search in ["%' OR 1=1 --", "private", "%"]:
             self.assertFalse(self.list_orders(customer_view="delivered", search=search)["orders"])
 
+    def test_sql_syntax_in_a_product_name_matches_only_literal_text(self):
+        payload = "x' OR 1=1 --"
+        self.db.execute("insert into `tabSales Order Item` values ('pending', ?)", (payload,))
+        result = self.list_orders(customer_view="pending", search=payload)
+        self.assertEqual([row["name"] for row in result["orders"]], ["pending"])
+        self.assertEqual(result["total"], 1)
+        for call in self.frappe.db.sql.call_args_list:
+            self.assertNotIn(payload, call.args[0])
+
     def test_successful_reverification_returns_failed_order_to_active(self):
         self.db.execute(
             "update `tabLC Order` set payment_status='Paid', status='Accepted' where name='failed'"
