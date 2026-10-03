@@ -1626,7 +1626,7 @@ def change(order, target, reason=""):
         elif doc.payment_status != "Paid" or not doc.payment_entry or doc.gateway_accounting_error:
             reject("Wait for Cashfree payment and accounting verification")
     if target in {"Accepted", "Ready"}:
-        fish.validate_order(doc)
+        fish.validate_order(doc, refresh_expired=target == "Ready")
     if (target == "Cancelled" and doc.payment_method == "Manual UPI"
             and doc.payment_status in {"Paid", "Reconciled", "Awaiting Verification"}):
         reject("Review the UPI payment and resolve any refund with the administrator first")

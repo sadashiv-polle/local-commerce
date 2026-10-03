@@ -86,13 +86,14 @@ def reserve(order, rows):
             cutoff = (get_datetime(frappe.db.get_value(
                 'LC Delivery Slot', order.scheduled_slot, 'delivery_end'))
                 if order.get('scheduled_slot') else now_datetime())
+            cutoff = max(cutoff, now_datetime())
             parts.extend(fish_rules.allocate(lots(shop, item), quantity, held, cutoff))
         except ValueError as exc:
             reject(str(exc))
     order.fish_allocations_json = json.dumps(parts)
 
 
-def validate_order(order):
+def validate_order(order, refresh_expired=False):
     shop = frappe.get_doc('LC Shop', order.shop)
     if not enabled(shop):
         return
@@ -104,16 +105,24 @@ def validate_order(order):
             expected[row.item_code] = (expected.get(row.item_code, Decimal(0))
                                       + Decimal(str(row.stock_qty)))
     actual = {}
+    expired = False
     for part in rows:
         lot = frappe.get_doc('LC Fish Lot', part['lot'])
-        if (lot.shop != shop.name or lot.warehouse != shop.warehouse or lot.item != part['item']
-                or get_datetime(lot.expires_at) <= now_datetime()):
-            reject('Reserved fish stock expired. Repack with fresh stock or cancel the order')
+        if lot.shop != shop.name or lot.warehouse != shop.warehouse or lot.item != part['item']:
+            reject('Reserved fish stock does not belong to this order')
+        expired = expired or get_datetime(lot.expires_at) <= now_datetime()
         actual[part['item']] = actual.get(part['item'], Decimal(0)) + Decimal(str(part['quantity']))
         if Decimal(str(part['quantity'])) > Decimal(str(lot.remaining)):
             reject('Reserved fish stock is no longer available')
     if expected != actual:
         reject('Fish stock allocation is missing. Cancel and place this order again')
+    if expired:
+        if not refresh_expired:
+            reject('Reserved fish stock expired. Repack with fresh stock or cancel the order')
+        # Caller holds the shop and order locks. Replace only reservations, never
+        # stock movements or the agreed sales price. The caller saves atomically.
+        reserve(order, so.items)
+        validate_order(order)
 
 
 def record(data):
