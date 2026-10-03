@@ -10,7 +10,8 @@ scheduler_events = {
     "cron": {
         "*/5 * * * *": ["local_commerce.services.payments.cashfree.reconcile_pending"],
         "* * * * *": ["local_commerce.services.orders.expire_requested_orders",
-                         "local_commerce.services.scheduled.compile_due"],
+                         "local_commerce.services.scheduled.compile_due",
+                         "local_commerce.services.stock_alerts.process_pending"],
     }
 }
 

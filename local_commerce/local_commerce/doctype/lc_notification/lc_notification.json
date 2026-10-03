@@ -15,7 +15,8 @@
     "message",
     "target",
     "read",
-    "read_at"
+    "read_at",
+    "item"
   ],
   "fields": [
     {
@@ -33,7 +34,7 @@
       "label": "Order",
       "fieldtype": "Link",
       "options": "LC Order",
-      "reqd": 1,
+      "reqd": 0,
       "read_only": 1,
       "search_index": 1
     },
@@ -88,6 +89,13 @@
       "fieldname": "read_at",
       "label": "Read At",
       "fieldtype": "Datetime",
+      "read_only": 1
+    },
+    {
+      "fieldname": "item",
+      "label": "Product",
+      "fieldtype": "Link",
+      "options": "Item",
       "read_only": 1
     }
   ],

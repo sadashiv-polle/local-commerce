@@ -1,0 +1,46 @@
+{
+  "doctype": "DocType",
+  "name": "LC Stock Alert",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "prompt",
+  "field_order": [
+    "user",
+    "shop",
+    "item",
+    "last_checked"
+  ],
+  "fields": [
+    {
+      "fieldname": "user",
+      "label": "Customer",
+      "fieldtype": "Link",
+      "options": "User",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "shop",
+      "label": "Shop",
+      "fieldtype": "Link",
+      "options": "LC Shop",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "item",
+      "label": "Product",
+      "fieldtype": "Link",
+      "options": "Item",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "last_checked",
+      "label": "Last Checked",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    }
+  ],
+  "permissions": []
+}

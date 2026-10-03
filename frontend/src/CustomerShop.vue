@@ -1,4 +1,5 @@
 <script setup>
+import StockAlertButton from './StockAlertButton.vue'
 import { displayPrice } from './product-price.js'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -248,6 +249,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-address-change', loadSave
               <div v-if="!item.selling_options?.length && cart[item.item]" class="quantity-stepper" :aria-label="`${item.item_name} quantity`"><button type="button" :aria-label="`Remove one ${item.item_name}`" @click="updateQuantity(item, -1)">−</button><strong aria-live="polite">{{ cart[item.item].quantity }}</strong><button type="button" :disabled="cart[item.item].quantity >= item.available" :aria-label="`Add one ${item.item_name}`" @click="updateQuantity(item, 1)">+</button></div>
               <button v-else class="add-item-button" :disabled="item.available <= 0 || item.rate == null" @click="updateQuantity(item, 1)">{{ item.rate == null ? 'Soon' : item.available > 0 ? item.selling_options?.length ? 'OPTIONS' : 'ADD' : 'Sold out' }}</button>
             </div>
+            <StockAlertButton v-if="item.available <= 0" :shop="route.params.shop" :item="item.item" />
           </article>
         </div>
         <p v-if="!catalog.items.length" class="lc-empty">{{ search || category || inStockOnly ? 'No matching items. Try another search or change your filters.' : 'No products on this page.' }}</p>
@@ -275,6 +277,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-address-change', loadSave
           <div class="product-detail-info">
             <FavouriteButton :key="selectedProduct.item" :item="selectedProduct.item" :shop="route.params.shop" />
             <span class="eyebrow">{{ catalog.shop_name }}</span><h2 id="product-detail-title">{{ selectedProduct.item_name }}</h2><span class="product-detail-unit">{{ selectedProduct.selling_options?.length ? 'Choose your selling option' : selectedProduct.fixed_piece_pricing ? 'Price per piece' : selectedProduct.uom }}</span><p class="product-detail-description">{{ selectedProduct.description || 'From your local shop.' }}</p><p v-if="selectedProduct.fixed_piece_pricing" class="muted">Sold by the piece. Size and weight may vary; your price stays fixed when you order.</p><p class="product-detail-stock">{{ selectedProduct.available > 0 ? selectedProduct.selling_options?.length ? 'In stock' : `${selectedProduct.available} ${selectedProduct.uom} available` : 'Currently sold out' }}</p>
+            <StockAlertButton v-if="selectedProduct.available <= 0" :shop="route.params.shop" :item="selectedProduct.item" />
             <SellingOptionPicker v-if="selectedProduct.selling_options?.length" :product="selectedProduct" :cart="cart" :disabled="busy || !!pending" @change="updateQuantity" /><div v-else class="product-detail-buy"><strong>{{ money(selectedProduct.rate) }}<small v-if="selectedProduct.rate != null">per {{ selectedProduct.uom }}</small></strong><div v-if="cart[selectedProduct.item]" class="quantity-stepper"><button type="button" :disabled="busy || !!pending" aria-label="Remove one item" @click="updateQuantity(selectedProduct, -1)">−</button><strong aria-live="polite">{{ cart[selectedProduct.item].quantity }}</strong><button type="button" :disabled="busy || !!pending || cart[selectedProduct.item].quantity >= selectedProduct.available" aria-label="Add one item" @click="updateQuantity(selectedProduct, 1)">+</button></div><button v-else type="button" class="add-item-button" :disabled="busy || !!pending || selectedProduct.available <= 0 || selectedProduct.rate == null" @click="updateQuantity(selectedProduct, 1)">{{ selectedProduct.rate == null ? 'Price coming soon' : selectedProduct.available > 0 ? 'Add to cart +' : 'Sold out' }}</button></div>
           </div>
         </template>
