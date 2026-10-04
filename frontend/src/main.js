@@ -17,6 +17,7 @@ import Favourites from './Favourites.vue'
 import Delivery from './Delivery.vue'
 import './style.css'
 import './responsive.css'
+import './home.css'
 const router = createRouter({ history: createWebHashHistory(), scrollBehavior: (to, from, saved) => saved || (to.path === from.path ? false : { top: 0 }), routes: [
   { path: '/', component: Store },
   { path: '/store', component: Store },
