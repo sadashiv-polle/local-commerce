@@ -242,14 +242,16 @@ onBeforeUnmount(() => { window.removeEventListener('lc-address-change', loadSave
           <article v-for="item in catalog.items" :key="item.item" class="lc-card customer-product-card">
             <FavouriteButton :item="item.item" :shop="route.params.shop" />
             <button type="button" class="product-art product-preview-button" :aria-label="`View ${item.item_name}`" aria-haspopup="dialog" @click="openProduct(item)"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" decoding="async" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</span><small class="photo-hint">{{ item.images?.length > 1 ? `${item.images.length} photos` : 'View details ↗' }}</small></button>
-            <p class="product-availability">{{ item.selling_options?.length ? (item.available > 0 ? 'In stock' : 'Sold out') : `${item.available} ${item.uom} available` }}</p>
-            <h3><button type="button" class="product-name-button" @click="openProduct(item)">{{ item.item_name }}</button></h3><p class="product-description">{{ item.description || 'Fresh from your local shop.' }}</p>
-            <div class="product-buy-row">
-              <strong>{{ displayPrice(item).from ? 'From ' : '' }}{{ money(displayPrice(item).rate) }}<small v-if="displayPrice(item).rate != null">{{ displayPrice(item).from ? ' · Choose option' : ` / ${item.uom}` }}</small></strong>
-              <div v-if="!item.selling_options?.length && cart[item.item]" class="quantity-stepper" :aria-label="`${item.item_name} quantity`"><button type="button" :aria-label="`Remove one ${item.item_name}`" @click="updateQuantity(item, -1)">−</button><strong aria-live="polite">{{ cart[item.item].quantity }}</strong><button type="button" :disabled="cart[item.item].quantity >= item.available" :aria-label="`Add one ${item.item_name}`" @click="updateQuantity(item, 1)">+</button></div>
-              <button v-else class="add-item-button" :disabled="item.available <= 0 || item.rate == null" @click="updateQuantity(item, 1)">{{ item.rate == null ? 'Soon' : item.available > 0 ? item.selling_options?.length ? 'OPTIONS' : 'ADD' : 'Sold out' }}</button>
+            <p class="product-availability" :class="{ 'is-sold-out': item.available <= 0 }">{{ item.available <= 0 ? 'Sold out' : item.selling_options?.length ? (item.available > 0 ? 'In stock' : 'Sold out') : `${item.available} ${item.uom} available` }}</p>
+            <h3><button type="button" class="product-name-button" @click="openProduct(item)">{{ item.item_name }}</button></h3><p v-if="item.description" class="product-description">{{ item.description }}</p>
+            <div class="product-card-footer">
+              <div class="product-buy-row">
+                <strong class="product-card-price"><small v-if="displayPrice(item).from" class="price-prefix">From</small>{{ money(displayPrice(item).rate) }}<small v-if="displayPrice(item).rate != null">{{ displayPrice(item).from ? 'Choose a pack' : item.uom === 'Nos' ? 'per piece' : `per ${item.uom}` }}</small></strong>
+                <div v-if="!item.selling_options?.length && cart[item.item]" class="quantity-stepper" :aria-label="`${item.item_name} quantity`"><button type="button" :aria-label="`Remove one ${item.item_name}`" @click="updateQuantity(item, -1)">−</button><strong aria-live="polite">{{ cart[item.item].quantity }}</strong><button type="button" :disabled="cart[item.item].quantity >= item.available" :aria-label="`Add one ${item.item_name}`" @click="updateQuantity(item, 1)">+</button></div>
+                <button v-else-if="item.available > 0" class="add-item-button" :disabled="item.available <= 0 || item.rate == null" @click="updateQuantity(item, 1)">{{ item.rate == null ? 'Soon' : item.available > 0 ? item.selling_options?.length ? 'Choose options' : '+ Add' : 'Sold out' }}</button>
+              </div>
+              <StockAlertButton v-if="item.available <= 0" :shop="route.params.shop" :item="item.item" />
             </div>
-            <StockAlertButton v-if="item.available <= 0" :shop="route.params.shop" :item="item.item" />
           </article>
         </div>
         <p v-if="!catalog.items.length" class="lc-empty">{{ search || category || inStockOnly ? 'No matching items. Try another search or change your filters.' : 'No products on this page.' }}</p>
