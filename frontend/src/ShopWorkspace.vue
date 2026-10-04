@@ -22,8 +22,9 @@ const locationError = ref(''), locating = ref(false)
 const timeOptions = Array.from({ length: 48 }, (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`)
 function timeLabel(value) { const [hour, minute] = value.split(':').map(Number); return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}` }
 const canEdit = computed(() => shop.value && (session.value.platform_admin || session.value.memberships.some(m => m.shop === shop.value.name && m.membership_role === 'Owner')))
-const canSchedule = computed(() => session.value.platform_admin || (canEdit.value && session.value.roles.includes('LC Scheduled Delivery Manager')))
-const canEditLocation = computed(() => shop.value && session.value.platform_admin)
+const canSettings = computed(() => session.value.platform_admin || (canEdit.value && session.value.roles.includes('LC Shop Settings Manager')))
+const canSchedule = computed(() => session.value.platform_admin || (canEdit.value && (session.value.roles.includes('LC Scheduled Delivery Manager') || session.value.roles.includes('LC Shop Settings Manager'))))
+const canEditLocation = computed(() => shop.value && canSettings.value)
 const shopPoints = computed(() => {
   const latitude = shop.value?.latitude, longitude = shop.value?.longitude
   return latitude !== '' && longitude !== '' && latitude != null && longitude != null && Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude)) ? [{ kind: 'shop', label: shop.value.shop_name, latitude, longitude }] : []
@@ -36,9 +37,9 @@ async function load() {
     const result = await call('shops.get_shop', { shop: route.params.shop })
     if (current === request) {
       shop.value = result
-      if (session.value.platform_admin) expenseAccounts.value = await call('fish.expense_accounts', { shop: result.name })
+      if (canSettings.value) expenseAccounts.value = await call('fish.expense_accounts', { shop: result.name })
       if (!canEdit.value && tab.value === 'overview') tab.value = 'inventory'
-      if (session.value.platform_admin) payment.value = await call('orders.payment_options', { shop: result.name })
+      if (canSettings.value) payment.value = await call('orders.payment_options', { shop: result.name })
     }
   } catch (e) { if (current === request) error.value = e.message }
   finally { if (current === request) loading.value = false }
@@ -69,7 +70,7 @@ async function save() {
     const s = shop.value
     const values = { shop: s.name, shop_name: s.shop_name, status: s.status, description: s.description || '', order_response_minutes: s.order_response_minutes || 10, accepting_orders: s.accepting_orders ? 1 : 0, opening_hours: s.opening_hours }
     if (canEditLocation.value) Object.assign(values, { address_line1: s.address_line1 || '', city: s.city || '', postal_code: s.postal_code || '', latitude: s.latitude ?? '', longitude: s.longitude ?? '', service_radius_km: s.service_radius_km || 5, live_tracking_enabled: s.live_tracking_enabled ? 1 : 0 })
-    if (session.value.platform_admin) Object.assign(values, { order_acceptance: s.order_acceptance || 'Manual', shop_type: s.shop_type || 'General', fish_wastage_account: s.fish_wastage_account || '', minimum_order_amount: s.minimum_order_amount || 0, free_delivery_above: s.free_delivery_above || 0, delivery_fee_per_km: s.delivery_fee_per_km || 0, delivery_included_km: s.delivery_included_km || 0, delivery_fee: s.delivery_fee || 0 })
+    if (canSettings.value) Object.assign(values, { order_acceptance: s.order_acceptance || 'Manual', shop_type: s.shop_type || 'General', fish_wastage_account: s.fish_wastage_account || '', minimum_order_amount: s.minimum_order_amount || 0, free_delivery_above: s.free_delivery_above || 0, delivery_fee_per_km: s.delivery_fee_per_km || 0, delivery_included_km: s.delivery_included_km || 0, delivery_fee: s.delivery_fee || 0 })
     const result = await call('shops.update_shop', values, true)
     if (current === request) { shop.value = result; saved.value = 'Shop settings saved.' }
   } catch (e) { if (current === request) error.value = e.message }
@@ -129,17 +130,17 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
         <CashReconciliation v-if="tab === 'cash'" :shop="shop.name" :editable="canEdit" />
         <Products v-show="tab === 'inventory'" :key="`${shop.name}:${shop.shop_type}`" :shop="shop.name" :editable="canEdit" :fish-shop="shop.shop_type === 'Fish'" />
         <FishInventory v-if="tab === 'fish' && shop.shop_type === 'Fish' && canEdit" :shop="shop.name" />
-        <ScheduledDelivery v-if="canSchedule && tab === 'settings'" :shop="shop.name" /><form v-show="tab === 'settings'" class="lc-form" @submit.prevent="save">
+        <ScheduledDelivery v-if="canSettings && tab === 'settings'" :shop="shop.name" /><form v-show="tab === 'settings'" class="lc-form" @submit.prevent="save">
           <h2>Shop settings</h2><p class="muted">Keep your shop details and availability up to date.</p>
           <fieldset :disabled="!canEdit || saving" class="workspace-fields">
             <label>Name<input v-model="shop.shop_name" required></label>
             <label>Company<input :value="shop.company" disabled></label>
-            <label>Shop type<select v-model="shop.shop_type" :disabled="!session.platform_admin"><option>General</option><option>Fish</option></select><small>Only Fish shops use stock expiry, market prices and wastage tracking.</small></label>
-            <label v-if="shop.shop_type === 'Fish'">Wastage expense account<select v-model="shop.fish_wastage_account" :disabled="!session.platform_admin"><option value="">Select expense account</option><option v-if="shop.fish_wastage_account && !expenseAccounts.includes(shop.fish_wastage_account)">{{ shop.fish_wastage_account }}</option><option v-for="account in expenseAccounts" :key="account">{{ account }}</option></select><small>A platform administrator chooses an expense account from this Company.</small></label>
+            <label>Shop type<select v-model="shop.shop_type" :disabled="!canSettings"><option>General</option><option>Fish</option></select><small>Only Fish shops use stock expiry, market prices and wastage tracking.</small></label>
+            <label v-if="shop.shop_type === 'Fish'">Wastage expense account<select v-model="shop.fish_wastage_account" :disabled="!canSettings"><option value="">Select expense account</option><option v-if="shop.fish_wastage_account && !expenseAccounts.includes(shop.fish_wastage_account)">{{ shop.fish_wastage_account }}</option><option v-for="account in expenseAccounts" :key="account">{{ account }}</option></select><small>Choose an expense account from this Company.</small></label>
             <label>Status<select v-model="shop.status"><option>Draft</option><option>Active</option><option>Temporarily Closed</option><option>Disabled</option></select></label>
             <label>Description<textarea v-model="shop.description"></textarea></label>
-            <section class="shop-hours"><span class="eyebrow">DELIVERY PRICING</span><h3>Order minimum &amp; delivery fees</h3><p v-if="!session.platform_admin" class="muted">A platform administrator manages these pricing rules.</p><div class="form-columns"><label>Minimum item subtotal<input v-model.number="shop.minimum_order_amount" :disabled="!session.platform_admin" type="number" min="0" step="0.01"><small>0 means no minimum.</small></label><label>Free delivery above<input v-model.number="shop.free_delivery_above" :disabled="!session.platform_admin" type="number" min="0" step="0.01"><small>0 disables free delivery.</small></label><label>Base delivery fee<input v-model.number="shop.delivery_fee" :disabled="!session.platform_admin" type="number" min="0" step="0.01"></label><label>Distance included (km)<input v-model.number="shop.delivery_included_km" :disabled="!session.platform_admin" type="number" min="0" step="0.1"></label><label>Fee per additional km<input v-model.number="shop.delivery_fee_per_km" :disabled="!session.platform_admin" type="number" min="0" step="0.01"><small>Uses straight-line distance. 0 keeps a flat fee.</small></label></div></section>
-            <label>Order acceptance<select v-model="shop.order_acceptance" :disabled="!session.platform_admin"><option value="Manual">Manual — accept or reject each request</option><option value="Automatic">Automatic — accept orders immediately</option></select><small>Admin only. Applies to new normal and scheduled orders. Stock and delivery checks still apply.</small></label>
+            <section class="shop-hours"><span class="eyebrow">DELIVERY PRICING</span><h3>Order minimum &amp; delivery fees</h3><p v-if="!session.platform_admin" class="muted">A platform administrator manages these pricing rules.</p><div class="form-columns"><label>Minimum item subtotal<input v-model.number="shop.minimum_order_amount" :disabled="!canSettings" type="number" min="0" step="0.01"><small>0 means no minimum.</small></label><label>Free delivery above<input v-model.number="shop.free_delivery_above" :disabled="!canSettings" type="number" min="0" step="0.01"><small>0 disables free delivery.</small></label><label>Base delivery fee<input v-model.number="shop.delivery_fee" :disabled="!canSettings" type="number" min="0" step="0.01"></label><label>Distance included (km)<input v-model.number="shop.delivery_included_km" :disabled="!canSettings" type="number" min="0" step="0.1"></label><label>Fee per additional km<input v-model.number="shop.delivery_fee_per_km" :disabled="!canSettings" type="number" min="0" step="0.01"><small>Uses straight-line distance. 0 keeps a flat fee.</small></label></div></section>
+            <label>Order acceptance<select v-model="shop.order_acceptance" :disabled="!canSettings"><option value="Manual">Manual — accept or reject each request</option><option value="Automatic">Automatic — accept orders immediately</option></select><small>Applies to new normal and scheduled orders. Stock and delivery checks still apply.</small></label>
             <label v-if="shop.order_acceptance !== 'Automatic'">Order response time (minutes)<input v-model.number="shop.order_response_minutes" type="number" min="1" max="120" step="1" required><small>New orders cancel automatically if nobody responds within this time.</small></label>
             <label class="check-label"><input v-model="shop.accepting_orders" type="checkbox"><span>Accept new orders<small>Turn this off to pause checkout immediately. Active orders continue normally.</small></span></label>
             <section class="shop-hours"><div><span class="eyebrow">OPENING HOURS</span><h3>Weekly ordering schedule</h3><p class="muted">Customers can browse at any time. Checkout follows this schedule.</p></div><div v-for="day in shop.opening_hours" :key="day.day" class="shop-hours-row"><label class="check-label"><input v-model="day.enabled" type="checkbox"><span>{{ day.day }}</span></label><template v-if="day.enabled"><label><small>Opens</small><select v-model="day.opens" required><option v-for="time in timeOptions" :key="time" :value="time">{{ timeLabel(time) }}</option></select></label><span>to</span><label><small>Closes</small><select v-model="day.closes" required><option v-for="time in timeOptions" :key="time" :value="time">{{ timeLabel(time) }}</option></select></label></template><strong v-else>Closed all day</strong></div><div class="shop-hours-save"><button type="button" class="lc-primary" :disabled="hoursSaving" @click="saveHours">{{ hoursSaving ? 'Saving hours…' : 'Save opening hours' }}</button><span v-if="hoursSaved" role="status">✓ {{ hoursSaved }}</span></div></section>
@@ -158,8 +159,8 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
           </fieldset>
           <p v-if="saved" role="status">{{ saved }}</p>
         </form>
-        <ManualUpiSettings v-if="tab === 'settings' && session.platform_admin" :key="shop.name" :shop="shop.name" />
-        <form v-if="tab === 'settings' && session.platform_admin && payment" class="lc-form payment-settings" @submit.prevent="savePayment">
+        <ManualUpiSettings v-if="tab === 'settings' && canSettings" :key="shop.name" :shop="shop.name" />
+        <form v-if="tab === 'settings' && canSettings && payment" class="lc-form payment-settings" @submit.prevent="savePayment">
           <span class="eyebrow">PAYMENT</span><h2>Cash on Delivery</h2><p class="muted">The rider records the amount at delivery. The Payment Entry is created after the shop confirms the cash handover.</p>
           <fieldset :disabled="paymentSaving" class="workspace-fields">
             <label class="check-label"><input v-model="payment.enabled" type="checkbox"><span>Enable Cash on Delivery<small>Customers can place an order and pay the rider at delivery.</small></span></label>

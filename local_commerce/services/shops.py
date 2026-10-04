@@ -1,6 +1,6 @@
 import frappe
 
-from local_commerce.permissions.scope import require_platform, require_shop
+from local_commerce.permissions.scope import require_settings, require_shop
 from local_commerce.services.location_rules import point
 from local_commerce.services.locations import map_config, shop_location
 from local_commerce.services.owner import checked_number, reject
@@ -104,17 +104,17 @@ def update_shop(
     require_shop(shop, "write")
     doc = frappe.get_doc("LC Shop", shop)
     if order_acceptance is not None:
-        require_platform()
+        require_settings(shop)
         if order_acceptance not in {"Manual", "Automatic"}:
             reject("Choose Manual or Automatic order acceptance")
         doc.order_acceptance = order_acceptance
     if shop_type is not None:
-        require_platform()
+        require_settings(shop)
         if shop_type not in {"General", "Fish"}:
             reject("Choose General or Fish shop type")
         doc.shop_type = shop_type
     if fish_wastage_account is not None:
-        require_platform()
+        require_settings(shop)
         doc.fish_wastage_account = fish_wastage_account
     doc.shop_name, doc.status, doc.description = shop_name, status, description
     try:
@@ -136,10 +136,10 @@ def update_shop(
         "delivery_fee": delivery_fee,
     }.items():
         if value is not None:
-            require_platform()
+            require_settings(shop)
             setattr(doc, field, float(checked_number(value, field.replace("_", " "))))
     if address_line1 is not None:
-        require_platform()
+        require_settings(shop)
         try:
             location = point(latitude, longitude)
         except ValueError as exc:

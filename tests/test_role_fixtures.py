@@ -13,7 +13,10 @@ class RoleFixtureTests(unittest.TestCase):
         records = json.loads(path.read_text())
         names = [record["name"] for record in records]
         self.assertEqual(len(names), len(set(names)))
-        self.assertEqual(set(names), {PLATFORM_ROLE, *MEMBER_ROLES.values(), "LC Customer"})
+        self.assertEqual(
+            set(names),
+            {PLATFORM_ROLE, *MEMBER_ROLES.values(), "LC Customer", "LC Shop Settings Manager"},
+        )
         for record in records:
             self.assertEqual(record["doctype"], "Role")
             self.assertEqual(record["name"], record["role_name"])

@@ -29,9 +29,9 @@ def report(shop, start_date, end_date):
 
 @frappe.whitelist(methods=['GET'])
 def expense_accounts(shop):
-    from local_commerce.permissions.scope import require_platform
+    from local_commerce.permissions.scope import require_settings
 
-    require_platform()
+    require_settings(shop)
     company = frappe.db.get_value('LC Shop', shop, 'company')
     return frappe.get_all('Account', filters={'company': company, 'root_type': 'Expense',
                                               'is_group': 0, 'disabled': 0},

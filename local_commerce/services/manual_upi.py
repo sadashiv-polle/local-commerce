@@ -49,9 +49,9 @@ def validate(shop, method=None):
 
 
 def settings(shop):
-    from local_commerce.permissions.scope import require_platform
+    from local_commerce.permissions.scope import require_settings
 
-    require_platform()
+    require_settings(shop)
     doc = frappe.get_doc("LC Shop", shop)
     return {
         "enabled": bool(doc.get("upi_enabled")),
@@ -75,9 +75,9 @@ def settings(shop):
 
 
 def configure(shop, enabled=0, upi_id="", bank_account="", mode_of_payment=""):
-    from local_commerce.permissions.scope import require_platform
+    from local_commerce.permissions.scope import require_settings
 
-    require_platform()
+    require_settings(shop)
     frappe.db.sql("select name from `tabLC Shop` where name=%s for update", shop)
     doc = frappe.get_doc("LC Shop", shop)
     doc.upi_enabled = enabled in (True, 1, "1", "true")
@@ -123,9 +123,9 @@ def save_image(doctype, name, private):
 
 
 def upload_qr(shop):
-    from local_commerce.permissions.scope import require_platform
+    from local_commerce.permissions.scope import require_settings
 
-    require_platform()
+    require_settings(shop)
     doc = frappe.get_doc("LC Shop", shop)
     doc.upi_qr = save_image("LC Shop", shop, False)
     doc.save(ignore_permissions=True)

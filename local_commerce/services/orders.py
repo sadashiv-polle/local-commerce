@@ -1076,9 +1076,9 @@ def drivers(shop):
 
 
 def payment_options(shop):
-    from local_commerce.permissions.scope import require_platform
+    from local_commerce.permissions.scope import require_settings
 
-    require_platform()
+    require_settings(shop)
     doc = frappe.get_doc("LC Shop", shop)
     return {
         "enabled": bool(doc.cod_enabled),
@@ -1107,9 +1107,9 @@ def payment_options(shop):
 
 
 def configure_cod(shop, enabled, cash_account="", mode_of_payment=""):
-    from local_commerce.permissions.scope import require_platform
+    from local_commerce.permissions.scope import require_settings
 
-    require_platform()
+    require_settings(shop)
     doc = frappe.get_doc("LC Shop", shop)
     requested_enabled = enabled in (True, 1, "1", "true", "True")
     pending = frappe.db.count("LC COD Collection", {"shop": shop, "status": "Awaiting Handover"})

@@ -67,7 +67,9 @@ class LCShop(Document):
                 )
             payment_fields = [field.fieldname for field in self.meta.fields
                               if field.fieldname.startswith(("cod_", "upi_", "cashfree_"))]
-            if any(previous.get(field) != self.get(field) for field in payment_fields):
+            if "LC Shop Settings Manager" not in roles and any(
+                previous.get(field) != self.get(field) for field in payment_fields
+            ):
                 frappe.throw("Only platform administrators can change payment settings",
                              frappe.PermissionError)
             pricing_fields = (
@@ -82,13 +84,9 @@ class LCShop(Document):
                 "delivery_fee_per_km",
                 "delivery_included_km",
             )
-            from local_commerce.permissions.policy import SCHEDULE_ROLE
-
-            if SCHEDULE_ROLE in roles:
-                pricing_fields = tuple(f for f in pricing_fields if f not in (
-                    "delivery_enabled", "scheduled_enabled"
-                ))
-            if any(previous.get(field) != self.get(field) for field in pricing_fields):
+            if "LC Shop Settings Manager" not in roles and any(
+                previous.get(field) != self.get(field) for field in pricing_fields
+            ):
                 frappe.throw(
                     "Only platform administrators can change shop type, accounts "
                     "or delivery pricing",
@@ -104,7 +102,9 @@ class LCShop(Document):
                 "service_radius_km",
                 "live_tracking_enabled",
             )
-            if any(previous.get(field) != self.get(field) for field in location_fields):
+            if "LC Shop Settings Manager" not in roles and any(
+                previous.get(field) != self.get(field) for field in location_fields
+            ):
                 frappe.throw(
                     "Only platform administrators can change shop location settings",
                     frappe.PermissionError,

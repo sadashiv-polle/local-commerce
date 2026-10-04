@@ -38,5 +38,13 @@
     "disabled": 0,
     "is_custom": 1,
     "name": "LC Customer"
+  },
+  {
+    "doctype": "Role",
+    "name": "LC Shop Settings Manager",
+    "role_name": "LC Shop Settings Manager",
+    "desk_access": 1,
+    "disabled": 0,
+    "is_custom": 1
   }
 ]

@@ -11,7 +11,7 @@ class PaymentSettingsAccessTests(unittest.TestCase):
         guard = Mock(side_effect=PermissionError)
         with patch.dict(
             sys.modules,
-            {"local_commerce.permissions.scope": SimpleNamespace(require_platform=guard)},
+            {"local_commerce.permissions.scope": SimpleNamespace(require_settings=guard)},
         ):
             for path, functions in [
                 ("local_commerce/services/manual_upi.py", ["settings", "configure", "upload_qr"]),
@@ -57,3 +57,30 @@ class PaymentSettingsAccessTests(unittest.TestCase):
             doc.meta.fields = [SimpleNamespace(fieldname=field)]
             with self.subTest(field=field), self.assertRaises(PermissionError):
                 scope["validate"](doc)
+
+    def test_settings_role_still_requires_own_shop_write_access(self):
+        tree = ast.parse(Path("local_commerce/permissions/scope.py").read_text())
+        tree.body = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "require_settings"
+        ]
+        shop_guard = Mock()
+        scope = {
+            "identity": lambda: ("owner", ["LC Shop Settings Manager"]),
+            "is_platform": lambda *args: False,
+            "require_shop": shop_guard,
+            "frappe": SimpleNamespace(
+                throw=Mock(side_effect=PermissionError), PermissionError=PermissionError
+            ),
+        }
+        exec(compile(tree, "scope.py", "exec"), scope)
+        scope["require_settings"]("own-shop")
+        shop_guard.assert_called_once_with("own-shop", "write")
+        shop_guard.side_effect = PermissionError
+        with self.assertRaises(PermissionError):
+            scope["require_settings"]("another-shop")
+        shop_guard.side_effect = None
+        scope["identity"] = lambda: ("owner", ["LC Shop Owner"])
+        with self.assertRaises(PermissionError):
+            scope["require_settings"]("own-shop")

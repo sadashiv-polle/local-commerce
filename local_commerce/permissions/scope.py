@@ -67,3 +67,12 @@ def require_schedule(shop):
             "Ask the administrator to grant LC Scheduled Delivery Manager for scheduled delivery",
             frappe.PermissionError,
         )
+
+
+def require_settings(shop):
+    user, roles = identity()
+    if is_platform(user, roles):
+        return
+    require_shop(shop, "write")
+    if "LC Shop Settings Manager" not in roles:
+        frappe.throw("Shop Settings Manager access required", frappe.PermissionError)

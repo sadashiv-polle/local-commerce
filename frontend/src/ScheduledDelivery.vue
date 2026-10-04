@@ -14,7 +14,7 @@ const slotGroups = computed(() => [
 ])
 const session = inject('session'), settings = ref(null), error = ref(''), message = ref(''), busy = ref(false)
 const pageStart = ref(0), editor = ref(null), reuseSource = ref(null), reuseDate = ref(''), activeBatch = ref('')
-const canManage = computed(() => session.value.platform_admin || session.value.roles.includes('LC Scheduled Delivery Manager'))
+const canManage = computed(() => session.value.platform_admin || (session.value.roles.includes('LC Scheduled Delivery Manager') || session.value.roles.includes('LC Shop Settings Manager')))
 const deleting = ref(null), deletePanel = ref(null)
 async function requestDelete(row, daily) { deleting.value = { row, daily }; await nextTick(); deletePanel.value?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }
 const daily = ref(true)

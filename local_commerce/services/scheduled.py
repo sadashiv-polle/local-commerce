@@ -135,7 +135,9 @@ def save_slot(shop, values, name=None):
 
 
 def configure(shop, normal, scheduled):
-    require_schedule(shop)
+    from local_commerce.permissions.scope import require_settings
+
+    require_settings(shop)
     doc = frappe.get_doc("LC Shop", shop)
     doc.delivery_enabled = int(str(normal) in {"1", "True", "true"})
     doc.scheduled_enabled = int(str(scheduled) in {"1", "True", "true"})
