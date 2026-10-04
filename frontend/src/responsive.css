@@ -264,7 +264,9 @@
 #lc-app .favourite-actions { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
 #lc-app .favourites-page .home-search-grid { margin-top: 24px; }
 #lc-app .home-search-product-wrap { position: relative; min-width: 0; }
-#lc-app .home-search-product-wrap > .home-search-product { height: 100%; }
+#lc-app .home-search-product-wrap { display: flex; flex-direction: column; }
+#lc-app .home-search-product-wrap > .home-search-product { flex: 1; height: auto; }
+#lc-app .home-search-product-wrap > .stock-alert-control { margin: 8px 0 0; }
 #lc-app .featured-section { margin: 30px 0 40px; }
 #lc-app .featured-product-row { display: grid; grid-auto-flow: column; grid-auto-columns: 215px; gap: 16px; overflow-x: auto; padding: 4px 2px 18px; scroll-snap-type: x mandatory; }
 #lc-app .featured-product-row > div { scroll-snap-align: start; }
@@ -721,7 +723,7 @@
   #lc-app .customer-bottom-nav a > span { font-size: 22px; line-height: 24px; }
   #lc-app .has-customer-navigation .floating-cart-bar { bottom: calc(78px + env(safe-area-inset-bottom)); }
   #lc-app .home-discovery-page > .delivery-location-bar { gap: 8px; padding: 10px; }
-  #lc-app .home-discovery-page > .delivery-location-bar > a { display: none; }
+  #lc-app .home-discovery-page > .delivery-location-bar > a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; }
   #lc-app .home-discovery-page > .delivery-location-bar > div + a { display: inline; }
   #lc-app .home-discovery-page .section-title { align-items: center; gap: 10px; }
   #lc-app .home-discovery-page .section-title h2 { font-size: 22px; }
@@ -730,4 +732,18 @@
   #lc-app .home-shop-cover { height: 140px; }
   #lc-app .home-shop-body { padding: 16px; }
   #lc-app .home-discovery-page .values { display: none; }
+}
+
+/* Address actions stay visible even with a single saved address. */
+#lc-app .home-discovery-page > .delivery-location-bar > button,
+#lc-app .home-discovery-page > .delivery-location-bar > .home-add-address { min-height: 44px; padding: 10px 14px; border-radius: 10px; font-size: 13px; white-space: nowrap; }
+#lc-app .home-discovery-page > .delivery-location-bar > .home-add-address { color: #176647; background: #eef6ef; text-decoration: none; border: 1px solid #d5e5d8; }
+#lc-app .home-add-address:focus-visible { outline: 3px solid #e6bd45; outline-offset: 2px; }
+@media (max-width: 600px) {
+  #lc-app .home-discovery-page > .delivery-location-bar { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; }
+  #lc-app .home-discovery-page > .delivery-location-bar > label { grid-column: 2; width: 100%; }
+  #lc-app .home-discovery-page > .delivery-location-bar > button { grid-column: 1 / -1; }
+  #lc-app .home-discovery-page > .delivery-location-bar > .home-add-address { grid-column: 1 / -1; }
+  #lc-app .home-discovery-page > .delivery-location-bar > button { display: none; }
+  #lc-app .home-discovery-page > .delivery-location-bar select { min-height: 44px; }
 }
