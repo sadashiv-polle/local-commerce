@@ -80,3 +80,11 @@ def forgot_password(email):
     from local_commerce.services.password_reset import request
 
     return request(email)
+
+
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+@rate_limit(limit=10, seconds=3600)
+def reset_password(key, new_password):
+    from local_commerce.services.password_reset import complete
+
+    return complete(key, new_password)

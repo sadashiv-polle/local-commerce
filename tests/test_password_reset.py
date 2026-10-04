@@ -47,12 +47,17 @@ class PasswordResetTests(unittest.TestCase):
         user.email = "a@example.com"
         user.enabled = 1
         user._reset_password.return_value = "https://site/update-password?key=test"
-        self.module.send("a@example.com")
+        with patch.dict(
+            sys.modules,
+            {"frappe.utils": SimpleNamespace(get_url=lambda **kwargs: "https://webcheckly.shop")},
+        ):
+            self.module.send("a@example.com")
         user.validate_reset_password.assert_called_once()
         user._reset_password.assert_called_once_with(send_email=False)
-        self.assertFalse(user.send_login_mail.call_args.kwargs["now"])
+        self.assertTrue(user.send_login_mail.call_args.kwargs["now"])
         self.assertEqual(
-            user.send_login_mail.call_args.args[2]["link"], "https://site/update-password?key=test"
+            user.send_login_mail.call_args.args[2]["link"],
+            "https://webcheckly.shop/local-commerce#/reset-password?key=test",
         )
 
     def test_disabled_user_is_rechecked_in_worker(self):
@@ -61,3 +66,25 @@ class PasswordResetTests(unittest.TestCase):
         user.enabled = 0
         self.module.send("a@example.com")
         user._reset_password.assert_not_called()
+
+    def test_internal_site_name_cannot_be_emailed(self):
+        with patch.dict(
+            sys.modules, {"frappe.utils": SimpleNamespace(get_url=lambda **kwargs: "http://mysite")}
+        ):
+            with self.assertRaises(ValueError):
+                self.module.app_link("http://mysite/update-password?key=test")
+
+    def test_completion_uses_native_expiry_and_session_revocation(self):
+        native = Mock()
+        self.frappe.ValidationError = ValueError
+        self.frappe.local.response = {}
+        with patch.dict(
+            sys.modules, {"frappe.core.doctype.user.user": SimpleNamespace(update_password=native)}
+        ):
+            self.assertEqual(self.module.complete("a" * 32, "StrongPass123!"), {"updated": True})
+            native.assert_called_once_with(
+                new_password="StrongPass123!", key="a" * 32, logout_all_sessions=1
+            )
+            self.frappe.local.response = {"http_status_code": 410}
+            with self.assertRaises(ValueError):
+                self.module.complete("a" * 32, "StrongPass123!")

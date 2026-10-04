@@ -11,6 +11,7 @@ import CustomerShop from './CustomerShop.vue'
 import Orders from './Orders.vue'
 import Signup from './Signup.vue'
 import Login from './Login.vue'
+import ResetPassword from './ResetPassword.vue'
 import Account from './Account.vue'
 import Favourites from './Favourites.vue'
 import Delivery from './Delivery.vue'
@@ -26,6 +27,7 @@ const router = createRouter({ history: createWebHashHistory(), scrollBehavior: (
   { path: '/orders', component: Orders },
   { path: '/signup', component: Signup },
   { path: '/login', component: Login },
+  { path: '/reset-password', component: ResetPassword },
   { path: '/account', component: Account },
   { path: '/favourites', component: Favourites },
   { path: '/delivery', component: Delivery },
