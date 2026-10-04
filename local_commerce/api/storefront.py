@@ -89,3 +89,28 @@ def discover(search="", address="", start=0):
     from local_commerce.services.home_discovery import discover
 
     return discover(search, address, start)
+
+
+@frappe.whitelist(allow_guest=True, methods=["GET"])
+@rate_limit(limit=300, seconds=3600)
+def promotions():
+    from local_commerce.services.promotions import get
+    return get()
+
+
+@frappe.whitelist(methods=["GET"])
+def promotion_settings():
+    from local_commerce.services.promotions import get
+    return get(admin=True)
+
+
+@frappe.whitelist(methods=["POST"])
+def save_promotions(config):
+    from local_commerce.services.promotions import save
+    return save(config)
+
+
+@frappe.whitelist(methods=["POST"])
+def upload_promotion_image():
+    from local_commerce.services.category_menu import upload_image
+    return upload_image()

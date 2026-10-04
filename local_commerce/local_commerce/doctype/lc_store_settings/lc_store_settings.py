@@ -11,3 +11,7 @@ class LCStoreSettings(Document):
         from local_commerce.services.category_menu import validate_menu
 
         validate_menu(self)
+
+        from local_commerce.services.promotions import validate
+
+        validate(self)

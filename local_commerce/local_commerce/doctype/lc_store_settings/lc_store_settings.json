@@ -12,7 +12,8 @@
     "category_section",
     "category_menu_enabled",
     "category_menu_initialized",
-    "categories"
+    "categories",
+    "promotions_json"
   ],
   "fields": [
     {
@@ -70,6 +71,13 @@
       "label": "Categories",
       "fieldtype": "Table",
       "options": "LC Store Category"
+    },
+    {
+      "fieldname": "promotions_json",
+      "label": "Homepage promotions",
+      "fieldtype": "Code",
+      "options": "JSON",
+      "hidden": 1
     }
   ],
   "permissions": [
