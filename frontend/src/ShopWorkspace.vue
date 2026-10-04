@@ -1,4 +1,5 @@
 <script setup>
+import PaymentReview from './PaymentReview.vue'
 import ManualUpiSettings from './ManualUpiSettings.vue'
 import { computed, inject, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -16,7 +17,7 @@ const expenseAccounts = ref([])
 const payment = ref(null), paymentSaved = ref(''), paymentSaving = ref(false)
 const hoursSaving = ref(false), hoursSaved = ref('')
 const tab = ref('overview')
-const tabs = new Set(['overview', 'orders', 'cash', 'inventory', 'fish', 'settings'])
+const tabs = new Set(['overview', 'orders', 'payment-review', 'cash', 'inventory', 'fish', 'settings'])
 const locationError = ref(''), locating = ref(false)
 const timeOptions = Array.from({ length: 48 }, (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`)
 function timeLabel(value) { const [hour, minute] = value.split(':').map(Number); return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}` }
@@ -106,6 +107,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
       <nav v-if="shop" class="workspace-nav" aria-label="Shop sections">
         <button v-if="canEdit" :class="{ 'sidebar-active': tab === 'overview' }" :aria-current="tab === 'overview' ? 'page' : undefined" @click="tab = 'overview'">Overview</button>
         <button :class="{ 'sidebar-active': tab === 'orders' }" :aria-current="tab === 'orders' ? 'page' : undefined" @click="tab = 'orders'">Orders</button>
+        <button v-if="canEdit" :class="{ 'sidebar-active': tab === 'payment-review' }" @click="tab = 'payment-review'">Payment review</button>
         <button :class="{ 'sidebar-active': tab === 'cash' }" :aria-current="tab === 'cash' ? 'page' : undefined" @click="tab = 'cash'">Cash handover</button>
         <button :class="{ 'sidebar-active': tab === 'inventory' }" :aria-current="tab === 'inventory' ? 'page' : undefined" @click="tab = 'inventory'">Products &amp; stock</button>
         <button v-if="shop.shop_type === 'Fish' && canEdit" :class="{ 'sidebar-active': tab === 'fish' }" @click="tab = 'fish'">Fish inventory &amp; reports</button>
@@ -123,6 +125,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
         <Orders v-if="tab === 'orders'" :shop="shop.name" :editable="canEdit">
           <template #batches="{ refresh }"><ScheduledDelivery v-if="canSchedule" :shop="shop.name" batches-only @changed="refresh()" /></template>
         </Orders>
+        <PaymentReview v-if="tab === 'payment-review' && canEdit" :key="shop.name" :shop="shop.name" />
         <CashReconciliation v-if="tab === 'cash'" :shop="shop.name" :editable="canEdit" />
         <Products v-show="tab === 'inventory'" :key="`${shop.name}:${shop.shop_type}`" :shop="shop.name" :editable="canEdit" :fish-shop="shop.shop_type === 'Fish'" />
         <FishInventory v-if="tab === 'fish' && shop.shop_type === 'Fish' && canEdit" :shop="shop.name" />
