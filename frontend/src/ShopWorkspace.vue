@@ -38,7 +38,7 @@ async function load() {
       shop.value = result
       if (session.value.platform_admin) expenseAccounts.value = await call('fish.expense_accounts', { shop: result.name })
       if (!canEdit.value && tab.value === 'overview') tab.value = 'inventory'
-      if (session.value.platform_admin || session.value.memberships.some(m => m.shop === result.name && m.membership_role === 'Owner')) payment.value = await call('orders.payment_options', { shop: result.name })
+      if (session.value.platform_admin) payment.value = await call('orders.payment_options', { shop: result.name })
     }
   } catch (e) { if (current === request) error.value = e.message }
   finally { if (current === request) loading.value = false }
@@ -158,8 +158,8 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
           </fieldset>
           <p v-if="saved" role="status">{{ saved }}</p>
         </form>
-        <ManualUpiSettings v-if="tab === 'settings' && canEdit" :key="shop.name" :shop="shop.name" />
-        <form v-if="tab === 'settings' && canEdit && payment" class="lc-form payment-settings" @submit.prevent="savePayment">
+        <ManualUpiSettings v-if="tab === 'settings' && session.platform_admin" :key="shop.name" :shop="shop.name" />
+        <form v-if="tab === 'settings' && session.platform_admin && payment" class="lc-form payment-settings" @submit.prevent="savePayment">
           <span class="eyebrow">PAYMENT</span><h2>Cash on Delivery</h2><p class="muted">The rider records the amount at delivery. The Payment Entry is created after the shop confirms the cash handover.</p>
           <fieldset :disabled="paymentSaving" class="workspace-fields">
             <label class="check-label"><input v-model="payment.enabled" type="checkbox"><span>Enable Cash on Delivery<small>Customers can place an order and pay the rider at delivery.</small></span></label>

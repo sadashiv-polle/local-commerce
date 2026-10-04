@@ -65,6 +65,11 @@ class LCShop(Document):
                 frappe.throw(
                     "Only platform administrators can change Company", frappe.PermissionError
                 )
+            payment_fields = [field.fieldname for field in self.meta.fields
+                              if field.fieldname.startswith(("cod_", "upi_", "cashfree_"))]
+            if any(previous.get(field) != self.get(field) for field in payment_fields):
+                frappe.throw("Only platform administrators can change payment settings",
+                             frappe.PermissionError)
             pricing_fields = (
                 "order_acceptance",
                 "delivery_enabled",
