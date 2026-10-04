@@ -316,6 +316,7 @@ def snapshot(shop):
         row['free'] = max(0, row.remaining - row['reserved'])
         row['expired'] = row.expires_at <= now
     return {'items': items, 'lots': stock_lots,
+            'reservation_orders': reservation_details(doc, stock_lots),
             'currency': frappe.db.get_value('Company', doc.company, 'default_currency'),
             'wastage_account': doc.get('fish_wastage_account'),
             'price_history': frappe.get_all('LC Fish Price Change', filters={'shop': shop},
@@ -327,6 +328,33 @@ def snapshot(shop):
                                                 'stock_entry', 'delivery_note', 'creation',
                                                 'reason'],
                                         order_by='creation desc', limit_page_length=100)}
+
+
+def reservation_details(shop, stock_lots):
+    """Caller must authorize shop inventory access before requesting order details."""
+    by_lot = {lot.name: lot for lot in stock_lots}
+    result = []
+    orders = frappe.get_all('LC Order',
+                            filters={'shop': shop.name, 'status': ['in', ACTIVE]},
+                            fields=['name', 'status', 'creation', 'fish_allocations_json'],
+                            order_by='creation asc', limit_page_length=0)
+    for order in orders:
+        quantities = {}
+        for part in json.loads(order.fish_allocations_json or '[]'):
+            lot = by_lot.get(part['lot'])
+            if not lot or lot.item != part['item']:
+                continue
+            entry = quantities.setdefault(part['item'], {'quantity': Decimal(0),
+                                                         'expired_quantity': Decimal(0)})
+            quantity = Decimal(str(part['quantity']))
+            entry['quantity'] += quantity
+            if lot.expired:
+                entry['expired_quantity'] += quantity
+        for item, values in quantities.items():
+            result.append({'order': order.name, 'status': order.status,
+                           'creation': order.creation, 'item': item,
+                           **{key: float(value) for key, value in values.items()}})
+    return result
 
 
 def protect_record(doc, method=None, **kwargs):

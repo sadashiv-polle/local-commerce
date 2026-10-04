@@ -67,7 +67,8 @@ class FishReallocationTests(unittest.TestCase):
         source.body = [
             node
             for node in source.body
-            if isinstance(node, ast.FunctionDef) and node.name in {"reserve", "validate_order"}
+            if isinstance(node, ast.FunctionDef)
+            and node.name in {"reserve", "validate_order", "reservation_details"}
         ]
         exec(compile(source, "fish.py", "exec"), self.scope)
 
@@ -97,3 +98,19 @@ class FishReallocationTests(unittest.TestCase):
         self.scope["validate_order"](self.order, refresh_expired=True)
         self.assertEqual(self.order.fish_allocations_json, before)
         self.scope["reservations"].assert_not_called()
+
+    def test_reservation_details_separate_expired_quantity_and_scope_shop(self):
+        self.old.expired = True
+        self.fresh.expired = False
+        self.order.status = "Preparing"
+        self.order.creation = "2026-10-03"
+        self.order.fish_allocations_json = json.dumps(
+            [dict(lot="old", item="fish", quantity=1), dict(lot="fresh", item="fish", quantity=2)]
+        )
+        self.scope["ACTIVE"] = ["Requested", "Accepted", "Preparing", "Ready"]
+        self.scope["frappe"].get_all.return_value = [self.order]
+        rows = self.scope["reservation_details"](self.shop, [self.old, self.fresh])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["quantity"], 3)
+        self.assertEqual(rows[0]["expired_quantity"], 1)
+        self.assertEqual(self.scope["frappe"].get_all.call_args.kwargs["filters"]["shop"], "shop")
