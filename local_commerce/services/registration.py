@@ -72,11 +72,15 @@ def complete(challenge_id, code, password):
         if frappe.db.exists("User", data["email"]):
             frappe.cache.delete_value(key)
             reject("This account already exists. Use Login or Forgot password.")
+        from local_commerce.services.usernames import allocate
+
+        username = allocate(data["full_name"])
         user = frappe.get_doc(
             {
                 "doctype": "User",
                 "email": data["email"],
                 "first_name": data["full_name"],
+                "username": username,
                 "enabled": 1,
                 "user_type": "Website User",
                 "send_welcome_email": 0,
@@ -84,6 +88,8 @@ def complete(challenge_id, code, password):
                 "roles": [{"role": "LC Customer"}],
             }
         ).insert(ignore_permissions=True)
+        if user.username != username:
+            reject("The username was taken during signup. Please retry.")
         from local_commerce.services.customers import ensure_customer
 
         previous = frappe.session.user
