@@ -49,3 +49,30 @@ test('ordinary framework validation does not expose raw server messages', async 
   globalThis.fetch = async () => ({ status: 417, ok: false, json: async () => ({ _server_messages: 'private information' }) })
   await assert.rejects(call('owner.adjust_stock', {}, true), /could not be completed/)
 })
+
+test('network failures explain safe recovery without discarding pending mutations', async () => {
+  globalThis.fetch = async () => { throw new TypeError('private network details') }
+  await assert.rejects(call('orders.place', {}, true), error => error.status === 0 && /check whether the action completed/.test(error.message) && !error.message.includes('private'))
+})
+
+test('payment server failures warn against paying twice and hide technical details', async () => {
+  globalThis.fetch = async () => ({ status: 500, ok: false, json: async () => ({ exc: 'SECRET', message: 'SECRET' }) })
+  await assert.rejects(call('cashfree.checkout', {}, true), error => /before paying again/.test(error.message) && /HTTP 500/.test(error.message) && !error.message.includes('SECRET'))
+})
+
+test('CSRF errors tell the user to reload instead of requesting roles', async () => {
+  globalThis.fetch = async () => ({ status: 403, ok: false, json: async () => ({ exc_type: 'CSRFTokenError' }) })
+  await assert.rejects(call('shops.update_shop', {}, true), /Reload this page/)
+})
+
+test('expired links and upload limits give specific next steps', async () => {
+  for (const [status, expected] of [[410, /Request a new link/], [413, /up to 5 MB/], [429, /Wait a few minutes/], [409, /record changed/]]) {
+    globalThis.fetch = async () => ({ status, ok: false, json: async () => ({}) })
+    await assert.rejects(call('customers.reset_password', {}, true), expected)
+  }
+})
+
+test('invalid successful responses do not leak JSON parser errors', async () => {
+  globalThis.fetch = async () => ({ ok: true, json: async () => { throw new SyntaxError('SECRET') } })
+  await assert.rejects(call('orders.place', {}, true), error => error.status === 502 && /whether your change was saved/.test(error.message) && !error.message.includes('SECRET'))
+})
