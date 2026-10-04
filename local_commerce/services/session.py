@@ -37,6 +37,10 @@ def get_context():
     return {
         "user": user,
         "full_name": frappe.db.get_value("User", user, "full_name") or user,
+        "username": frappe.db.get_value("User", user, "username") or "",
+        "username_login_enabled": bool(
+            frappe.db.get_single_value("System Settings", "allow_login_using_user_name")
+        ),
         "user_image": frappe.db.get_value("User", user, "user_image") or "",
         "roles": [r for r in roles if r.startswith("LC ")],
         "platform_admin": platform,

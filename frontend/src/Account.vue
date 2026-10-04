@@ -98,7 +98,7 @@ onBeforeUnmount(() => { locationGeneration++; window.removeEventListener('lc-add
   <div class="store-page account-page">
     <AuthChoices v-if="session.user === 'Guest'" />
     <template v-else>
-      <header v-if="!editing" class="account-heading"><div><span class="eyebrow">YOUR LOCAL ACCOUNT</span><h1>Hello, {{ session.full_name.split(' ')[0] }}.</h1><p>{{ session.user }}</p></div><RouterLink class="primary" to="/orders">My orders →</RouterLink></header>
+      <header v-if="!editing" class="account-heading"><div><span class="eyebrow">YOUR LOCAL ACCOUNT</span><h1>Hello, {{ session.full_name.split(' ')[0] }}.</h1><p>Login email: <strong>{{ session.user }}</strong></p><p v-if="session.username">Username: <strong>{{ session.username }}</strong><small>{{ session.username_login_enabled ? ' · You can also use this to log in' : ' · Use your email to log in' }}</small></p></div><RouterLink class="primary" to="/orders">My orders →</RouterLink></header>
       <p v-if="loading" role="status">Loading account…</p>
       <p v-if="error" class="lc-notice" role="alert">{{ error }} <button v-if="!data" @click="load()">Retry</button></p>
       <p v-if="saved" class="success-note" role="status">{{ saved }}</p>

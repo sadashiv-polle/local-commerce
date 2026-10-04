@@ -77,9 +77,6 @@ def complete_signup(challenge_id, code, password):
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 @rate_limit(limit=5, seconds=3600)
 def forgot_password(email):
-    from frappe.core.doctype.user.user import reset_password
+    from local_commerce.services.password_reset import request
 
-    reset_password(str(email).strip())
-    return {
-        "message": "If eligible, this account will receive password reset instructions by email."
-    }
+    return request(email)
