@@ -57,7 +57,6 @@ watch(productSearch, scheduleProductSearch)
 onBeforeUnmount(() => { window.clearTimeout(searchTimer); searchGeneration++; picksGeneration++; shopGeneration++ })
 const shops = ref([]), addresses = ref([]), selectedAddress = ref(''), error = ref(''), start = ref(0), loading = ref(false), hasMore = ref(false)
 let shopGeneration = 0
-const addressPicker = ref(null)
 const activeAddress = computed(() => addresses.value.find(address => address.name === selectedAddress.value))
 async function load(delta = 0) {
   const current = ++shopGeneration
@@ -80,11 +79,6 @@ async function loadAddresses() {
   } catch { addresses.value = []; selectedAddress.value = '' }
   await load()
   await loadCustomerPicks()
-}
-async function selectAddress() {
-  start.value = 0
-  try { sessionStorage.setItem(`lc-selected-address:${session.value.user}`, selectedAddress.value) } catch { /* Selection still works for this page. */ }
-  window.dispatchEvent(new CustomEvent('lc-address-change', { detail: selectedAddress.value }))
 }
 watch(activeAddress, scheduleProductSearch)
 watch(selectedAddress, loadCustomerPicks)
@@ -110,9 +104,6 @@ watch(() => route.query.browse, async (value, previous) => {
 
 <template>
   <div class="store-page home-discovery-page">
-    <div v-if="addresses.length" class="delivery-location-bar"><span class="address-icon" aria-hidden="true">⌖</span><label><small>DELIVERING TO</small><select ref="addressPicker" v-model="selectedAddress" :disabled="loading" @change="selectAddress"><option value="" disabled>Choose delivery address</option><option v-for="address in addresses" :key="address.name" :value="address.name">{{ address.address_label }} · {{ address.line1 }}</option></select></label><button type="button" @click="addressPicker?.focus(); addressPicker?.showPicker?.()">Change</button><RouterLink class="home-add-address" to="/account?add=1" aria-label="Add a new delivery address">+ Add address</RouterLink></div>
-    <div v-else class="delivery-location-bar"><span class="address-icon" aria-hidden="true">⌖</span><div><strong>Choose your delivery location</strong><small>Save an address to see shops that deliver nearby.</small></div><RouterLink :to="session.user === 'Guest' ? '/login?next=%2Faccount%3Fadd%3D1' : '/account?add=1'">{{ session.user === 'Guest' ? 'Login' : 'Add address' }} →</RouterLink></div>
-
     <section class="home-shortcuts" aria-label="Shopping shortcuts">
       <div class="home-shortcuts-intro"><h2>{{ session.user !== 'Guest' && session.roles.includes('LC Customer') ? 'Welcome back' : 'Explore your neighbourhood' }}</h2></div>
       <nav class="home-shortcut-links" aria-label="Quick links">

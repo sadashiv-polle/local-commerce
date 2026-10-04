@@ -789,3 +789,16 @@
 @media (max-width: 350px) {
   #lc-app .product-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* A single address picker under the brand, including the home page. */
+#lc-app .header-delivery-address { min-height: 44px; align-content: center; margin-top: 6px; padding: 4px 0; }
+#lc-app .header-delivery-address small { font-size: 9px; letter-spacing: 1px; }
+#lc-app .header-delivery-address strong { font-size: 12px; line-height: 1.5; }
+#lc-app .header-delivery-address:focus-visible { outline: 2px solid #176547; outline-offset: 3px; border-radius: 5px; }
+#lc-app .header-address-options { max-height: min(460px, 65dvh); overflow-y: auto; overscroll-behavior: contain; }
+#lc-app .header-address-options > button { min-height: 48px; }
+#lc-app .header-address-options > button small { white-space: normal; overflow-wrap: anywhere; font-size: 12px; }
+#lc-app .header-address-options > .header-add-address { position: sticky; bottom: 0; }
+@media (max-width: 600px) {
+  #lc-app .header-address-options { width: min(350px, calc(100vw - 40px)); }
+}
