@@ -84,7 +84,7 @@
       "fieldname": "status",
       "label": "Status",
       "fieldtype": "Select",
-      "options": "Awaiting Handover\nReconciled",
+      "options": "Awaiting Handover\nReconciled\nDifference Pending",
       "reqd": 1,
       "read_only": 1,
       "in_list_view": 1
@@ -123,8 +123,17 @@
     }
   ],
   "permissions": [
-    { "role": "LC Platform Administrator", "read": 1 },
-    { "role": "LC Shop Owner", "read": 1 },
-    { "role": "LC Delivery Person", "read": 1 }
+    {
+      "role": "LC Platform Administrator",
+      "read": 1
+    },
+    {
+      "role": "LC Shop Owner",
+      "read": 1
+    },
+    {
+      "role": "LC Delivery Person",
+      "read": 1
+    }
   ]
 }

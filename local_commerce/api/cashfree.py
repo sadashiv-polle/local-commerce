@@ -44,6 +44,9 @@ def settings():
                 "gateway_order_id",
                 "gateway_payment_id",
                 "gateway_accounting_error",
+                "gateway_settlement_error",
+                "gateway_accounting_json",
+                "sales_invoice",
                 "payment_entry",
             ],
             order_by="creation desc",
@@ -129,15 +132,41 @@ def settlements(order):
     if doc.payment_method != "Cashfree":
         reject("This order does not use Cashfree")
     snap = json.loads(doc.gateway_snapshot)
-    if snap.get("settlement_mode") == "Direct merchant":
-        return {
-            "split": snap,
-            "settlement": "Main merchant account. View bank settlements in Cashfree dashboard.",
-        }
+    from local_commerce.services.payments.accounting import state
+
     result = cashfree.request(
-        doc.gateway_profile, "GET", "/easy-split/orders/" + quote(doc.gateway_order_id, safe="")
+        doc.gateway_profile, "GET", "/orders/" + quote(doc.gateway_order_id, safe="") + "/refunds"
     )
-    return {"split": snap, "settlement": result}
+    return {
+        "accounting": state(doc),
+        "refunds": [
+            {key: row.get(key) for key in ("cf_refund_id", "refund_amount", "refund_status")}
+            for row in result
+        ],
+        "settlement_mode": snap.get("settlement_mode"),
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def reconcile_settlement(order):
+    require_platform()
+    from local_commerce.services.payments import accounting
+
+    return accounting.reconcile_settlement(order)
+
+
+@frappe.whitelist(methods=["POST"])
+def link_refund_credit(order, refund_id, credit_note):
+    from local_commerce.services.payments import accounting
+
+    return accounting.link_refund_credit(order, refund_id, credit_note)
+
+
+@frappe.whitelist(methods=["POST"])
+def prepare_credit(order):
+    from local_commerce.services.payments import accounting
+
+    return accounting.prepare_credit(order)
 
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])

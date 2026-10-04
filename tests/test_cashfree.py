@@ -558,6 +558,7 @@ class CashfreeSyncTests(unittest.TestCase):
     def test_refund_duplicate_is_not_counted_twice(self):
         refund = dict(
             cf_refund_id="refund1",
+            cf_payment_id=42,
             order_id="lc_order",
             refund_currency="INR",
             refund_amount=350,

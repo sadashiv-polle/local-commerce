@@ -61,7 +61,11 @@
     "cashfree_commission",
     "cashfree_clearing_account",
     "cashfree_commission_account",
-    "cashfree_mode_of_payment"
+    "cashfree_mode_of_payment",
+    "cashfree_bank_account",
+    "cashfree_fee_account",
+    "cashfree_fee_tax_account",
+    "cashfree_auto_reconcile"
   ],
   "fields": [
     {
@@ -425,6 +429,30 @@
       "label": "Shop Photo",
       "fieldtype": "Attach Image",
       "description": "Public storefront photo. Upload as a public file so customers can view it."
+    },
+    {
+      "fieldname": "cashfree_bank_account",
+      "label": "Settlement receiving bank account",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "cashfree_fee_account",
+      "label": "Gateway fee expense account",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "cashfree_fee_tax_account",
+      "label": "Gateway fee tax expense account",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "cashfree_auto_reconcile",
+      "label": "Automatically reconcile Cashfree",
+      "fieldtype": "Check",
+      "default": "0"
     }
   ],
   "permissions": [

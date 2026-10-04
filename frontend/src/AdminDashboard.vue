@@ -29,7 +29,7 @@ const adminNavigation = ref(null)
 const summary = ref(null), rows = ref([]), recent = ref([]), loading = ref(false), rowsLoading = ref(false), error = ref(''), rowError = ref(''), busy = ref('')
 const search = ref(''), status = ref(''), start = ref(0), hasMore = ref(false)
 const embedded = computed(() => selectedShop.value && ['orders', 'inventory', 'payments'].includes(section.value))
-const statuses = computed(() => ({ shops: ['Draft', 'Active', 'Temporarily Closed', 'Disabled'], orders: ['Requested', 'Accepted', 'Preparing', 'Ready', 'Picked Up', 'Out for Delivery', 'Delivered', 'Cancelled'], people: ['Owner', 'Staff', 'Delivery Person'], payments: ['Awaiting Handover', 'Reconciled'] })[section.value] || [])
+const statuses = computed(() => ({ shops: ['Draft', 'Active', 'Temporarily Closed', 'Disabled'], orders: ['Requested', 'Accepted', 'Preparing', 'Ready', 'Picked Up', 'Out for Delivery', 'Delivered', 'Cancelled'], people: ['Owner', 'Staff', 'Delivery Person'], payments: ['Awaiting Handover', 'Difference Pending', 'Reconciled'] })[section.value] || [])
 const pipeline = ['Requested', 'Accepted', 'Preparing', 'Ready', 'Picked Up', 'Out for Delivery']
 const chart = computed(() => {
   const today = summary.value?.date

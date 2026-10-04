@@ -26,6 +26,10 @@ SHOP_FIELDS = (
     "cashfree_clearing_account",
     "cashfree_commission_account",
     "cashfree_mode_of_payment",
+    "cashfree_auto_reconcile",
+    "cashfree_bank_account",
+    "cashfree_fee_account",
+    "cashfree_fee_tax_account",
 )
 
 
@@ -113,7 +117,16 @@ def request_failure(response, method, path, reference, secrets, payload=None, re
     reject(detail)
 
 
-def request(profile, method, path, payload=None, key=None, missing=False, recover=False):
+def request(
+    profile,
+    method,
+    path,
+    payload=None,
+    key=None,
+    missing=False,
+    recover=False,
+    api_version="2025-01-01",
+):
     recover = recover and method == "POST" and path == "/orders" and bool(key)
     config = frappe.get_doc("LC Payment Gateway", profile)
     base = {
@@ -124,7 +137,7 @@ def request(profile, method, path, payload=None, key=None, missing=False, recove
     headers = {
         "x-client-id": config.client_id,
         "x-client-secret": config.get_password("client_secret"),
-        "x-api-version": "2025-01-01",
+        "x-api-version": api_version,
         "Content-Type": "application/json",
         "x-request-id": reference,
     }
@@ -223,6 +236,18 @@ def validate_shop(shop, method=None):
     accounts = [("cashfree_clearing_account", "Asset")]
     if split:
         accounts.append(("cashfree_commission_account", "Expense"))
+    for field, root in (
+        ("cashfree_bank_account", "Asset"),
+        ("cashfree_fee_account", "Expense"),
+        ("cashfree_fee_tax_account", "Expense"),
+    ):
+        if shop.get(field) or shop.get("cashfree_auto_reconcile"):
+            accounts.append((field, root))
+    if (
+        shop.get("cashfree_bank_account")
+        and shop.cashfree_bank_account == shop.cashfree_clearing_account
+    ):
+        reject("The settlement bank account must be different from the clearing account")
     for field, root in accounts:
         account = frappe.db.get_value(
             "Account",
@@ -427,26 +452,38 @@ def sync(order, authorize=True):
         if doc.gateway_payment_id and doc.gateway_payment_id != payment_id:
             reject("Payment reference changed; administrator review required")
         doc.gateway_payment_id = payment_id
-        refunded = sum(
-            {
-                str(row["cf_refund_id"]): money(row["refund_amount"])
-                for row in refunds
-                if row.get("refund_status") == "SUCCESS"
-                and row.get("order_id") == doc.gateway_order_id
-                and row.get("refund_currency") == snap["currency"]
-            }.values(),
-            money(0),
+        from local_commerce.services.payments.reconciliation_rules import refunds_for_order
+
+        verified_refunds = refunds_for_order(
+            refunds, doc.gateway_order_id, payment_id, snap["currency"], snap["amount"]
         )
+        refunded = sum((money(row["refund_amount"]) for row in verified_refunds.values()), money(0))
         refunded = max(refunded, money(doc.gateway_refunded_amount or 0))
         doc.gateway_refunded_amount = float(refunded)
         if refunded:
             doc.payment_status = "Refunded" if refunded >= money(snap["amount"]) else "Paid"
-            doc.gateway_accounting_error = (
-                "Refund recorded by Cashfree. Administrator must reconcile the credit note "
-                "and refund accounting before further fulfilment."
-            )
             save(doc)
-            return {"payment_status": doc.payment_status, "accounting_pending": True}
+            frappe.db.savepoint("cashfree_refund_accounting")
+            try:
+                from local_commerce.services.payments.accounting import book_refunds
+
+                book_refunds(doc, list(verified_refunds.values()))
+                doc.gateway_accounting_error = ""
+            except Exception:
+                frappe.db.rollback(save_point="cashfree_refund_accounting")
+                doc.reload()
+                doc.gateway_accounting_error = (
+                    "Refund received. Open Cashfree accounting to link the refund credit note "
+                    "or review the original receipt, then retry verification."
+                )
+                frappe.log_error(
+                    title="Cashfree refund accounting requires review", message=doc.name
+                )
+            save(doc)
+            return {
+                "payment_status": doc.payment_status,
+                "accounting_pending": bool(doc.gateway_accounting_error),
+            }
         if doc.payment_status != "Refunded":
             doc.payment_status = "Paid"
         save(doc)

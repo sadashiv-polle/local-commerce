@@ -902,6 +902,7 @@ def serialize(doc):
         "delivered_at": str(doc.delivered_at) if doc.delivered_at else None,
         "payment_method": doc.payment_method,
         "payment_status": payment_status,
+        "refunded_amount": float(doc.get("gateway_refunded_amount") or 0),
         "accounting_pending": bool(doc.get("gateway_accounting_error")),
         "upi": ({"id": doc.get("upi_id"), "qr": doc.get("upi_qr"),
                  "proof": doc.get("upi_proof"), "note": doc.get("upi_review_note"),
@@ -1112,7 +1113,9 @@ def configure_cod(shop, enabled, cash_account="", mode_of_payment=""):
     require_settings(shop)
     doc = frappe.get_doc("LC Shop", shop)
     requested_enabled = enabled in (True, 1, "1", "true", "True")
-    pending = frappe.db.count("LC COD Collection", {"shop": shop, "status": "Awaiting Handover"})
+    pending = frappe.db.count("LC COD Collection", {
+        "shop": shop, "status": ["in", ["Awaiting Handover", "Difference Pending"]],
+    })
     if pending and (
         not requested_enabled
         or cash_account != doc.cod_cash_account
@@ -1373,7 +1376,8 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
     owner_token = _owner_operation.set(True)
     try:
         if doc.payment_method == "Cashfree" and (
-            doc.payment_status != "Paid" or not doc.payment_entry or doc.gateway_accounting_error
+            doc.payment_status != "Paid" or not doc.payment_entry
+            or doc.gateway_accounting_error or doc.gateway_refunded_amount
         ):
             reject("Cashfree payment and accounting must be verified before dispatch")
         if (target in {"Picked Up", "Out for Delivery", "Delivered"}
@@ -1522,7 +1526,7 @@ def cod_collections(shop, view="pending", start=0):
     require_shop(shop)
     if view not in {"pending", "history"}:
         reject("Invalid cash collection view")
-    status = "Awaiting Handover" if view == "pending" else "Reconciled"
+    status = ["in", ["Awaiting Handover", "Difference Pending"]] if view == "pending" else "Reconciled"
     names = frappe.get_all(
         "LC COD Collection",
         filters={"shop": shop, "status": status},
@@ -1583,20 +1587,38 @@ def reconcile_cod(collection, owner_note=""):
     if len(owner_note) > 500:
         reject("Reconciliation note cannot exceed 500 characters")
     order = frappe.get_doc("LC Order", record.order)
-    if order.status != "Delivered" or order.payment_status != "Collected":
+    if order.status != "Delivered" or order.payment_status not in {
+        "Collected", "Partially Paid", "Overpaid",
+    }:
         reject("This order is not ready for cash reconciliation")
     token = _order_operation.set(True)
     try:
-        payment_entry = create_cod_payment(order, record.collected_amount)
-        record.status = "Reconciled"
+        # A retry after a shortfall must not collect the rider's cash twice.
+        payment_entry = order.payment_entry
+        if not payment_entry:
+            payment_entry = create_cod_payment(order, record.collected_amount)
+        elif frappe.db.get_value("Payment Entry", payment_entry, "docstatus") != 1:
+            reject("The cash receipt was cancelled. Ask the administrator to review it")
+        outstanding = float(frappe.db.get_value(
+            "Sales Invoice", order.sales_invoice, "outstanding_amount") or 0)
+        unallocated = float(frappe.db.get_value(
+            "Payment Entry", payment_entry, "unallocated_amount") or 0) if payment_entry else 0
+        difference_pending = outstanding > 0.005 or unallocated > 0.005
+        record.status = "Difference Pending" if difference_pending else "Reconciled"
         record.reconciled_by = frappe.session.user
         record.reconciled_at = now_datetime()
         record.owner_note = owner_note
         record.save(ignore_permissions=True)
         order.payment_entry = payment_entry
-        order.payment_status = "Reconciled"
+        order.payment_status = (
+            ("Partially Paid" if outstanding > 0.005 else "Overpaid")
+            if difference_pending else "Reconciled"
+        )
         order.save(ignore_permissions=True)
-        order.add_comment("Info", escape(f"Cash handover reconciled by {record.reconciled_by}."))
+        order.add_comment("Info", escape(
+            f"Cash handover recorded by {record.reconciled_by}. "
+            f"Invoice balance: {outstanding:.2f}; unallocated cash: {unallocated:.2f}."
+        ))
         return serialize_collection(record)
     finally:
         _order_operation.reset(token)
@@ -1627,7 +1649,8 @@ def change(order, target, reason=""):
     if doc.payment_method == "Cashfree":
         if target == "Cancelled":
             cashfree.ensure_cancellable(doc, cancellation)
-        elif doc.payment_status != "Paid" or not doc.payment_entry or doc.gateway_accounting_error:
+        elif (doc.payment_status != "Paid" or not doc.payment_entry
+              or doc.gateway_accounting_error or doc.gateway_refunded_amount):
             reject("Wait for Cashfree payment and accounting verification")
     if target in {"Accepted", "Ready"}:
         fish.validate_order(doc, refresh_expired=target == "Ready")

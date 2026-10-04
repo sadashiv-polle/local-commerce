@@ -109,13 +109,15 @@ order: its original payment snapshot and idempotency key must stay intact.
 
 Initiate refunds from Cashfree's dashboard. Successful refunds are fetched from Cashfree;
 full refunds display Refunded, while partial refunds retain Paid and flag accounting review.
-Both block further fulfilment until reviewed. ERPNext credit notes and outgoing refund
-entries require administrator reconciliation; this version does not create them automatically.
+Both block further fulfilment. Verified full refunds now create credit notes and outgoing
+payments automatically. Partial refunds require an administrator-selected credit note
+before the outgoing payment is posted. See [Accounting reconciliation](accounting-reconciliation.md)
+for settlement account setup, partial refunds, replay protection and supported cases.
 
 This version supports INR, Indian ten-digit customer phone numbers and one shop/vendor per
 order, matching the existing cart. Grand total and payable rounded total must match; orders
 requiring additional ERP rounding are rejected before checkout. Vendor KYC, settlement
-schedules and refund initiation remain in Cashfree. The API version is pinned to 2025-01-01.
+schedules and refund initiation remain in Cashfree. Checkout uses API v2025-01-01; settlement reconciliation uses v2026-01-01.
 
 ## Validation before enabling production
 

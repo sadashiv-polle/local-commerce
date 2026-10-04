@@ -57,7 +57,10 @@
     "gateway_accounting_error",
     "gateway_refunded_amount",
     "arrived_at",
-    "arrived_by"
+    "arrived_by",
+    "gateway_accounting_json",
+    "gateway_settlement_error",
+    "gateway_reconciled_at"
   ],
   "fields": [
     {
@@ -165,7 +168,7 @@
       "fieldname": "payment_status",
       "label": "Payment Status",
       "fieldtype": "Select",
-      "options": "Pending\nCollected\nReconciled\nAwaiting Verification\nPayment Rejected\nPaid\nFailed\nRefunded",
+      "options": "Pending\nCollected\nReconciled\nAwaiting Verification\nPayment Rejected\nPaid\nFailed\nRefunded\nPartially Paid\nOverpaid",
       "read_only": 1
     },
     {
@@ -420,6 +423,27 @@
       "fieldtype": "Link",
       "read_only": 1,
       "options": "User"
+    },
+    {
+      "fieldname": "gateway_accounting_json",
+      "label": "Cashfree accounting events",
+      "fieldtype": "Long Text",
+      "read_only": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "gateway_settlement_error",
+      "label": "Settlement review",
+      "fieldtype": "Small Text",
+      "read_only": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "gateway_reconciled_at",
+      "label": "Last reconciliation check",
+      "fieldtype": "Datetime",
+      "read_only": 1,
+      "hidden": 1
     }
   ],
   "permissions": [

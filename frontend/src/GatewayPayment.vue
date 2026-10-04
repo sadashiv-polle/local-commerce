@@ -38,7 +38,8 @@ onMounted(() => {
 <template>
   <section class="order-rating">
     <strong>Cashfree payment · {{ order.payment_status }}</strong>
-    <p v-if="order.payment_status === 'Paid'">Payment received. No cash is due at delivery.</p>
+    <p v-if="order.refunded_amount > 0">Refund recorded: {{ new Intl.NumberFormat(undefined, { style: 'currency', currency: order.currency || 'INR' }).format(order.refunded_amount) }}. Check your bank for the credit. Contact the shop about any remaining items before delivery.</p>
+    <p v-else-if="order.payment_status === 'Paid'">Payment received. No cash is due at delivery.</p>
     <p v-else-if="order.payment_status === 'Reconciled'">A payment receipt is recorded. Refresh payment status to verify it before delivery. Do not pay again.</p>
     <p v-else-if="order.payment_status === 'Refunded'">Your payment has been refunded.</p>
     <p v-else>Complete payment to confirm your order. The shop accepts it automatically after payment is verified.</p>

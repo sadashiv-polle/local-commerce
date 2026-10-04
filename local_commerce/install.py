@@ -225,6 +225,7 @@ def after_migrate():
             and coalesce(payment_method, '')=''"""
         )
         repair_payment_statuses()
+        repair_cod_differences()
     if frappe.db.has_column("LC Shop Member", "shop_name"):
         frappe.db.sql(
             """update `tabLC Shop Member` m
@@ -302,3 +303,21 @@ def before_migrate():
             existing.fieldtype != fieldtype or (options and existing.options != options)
         ):
             frappe.throw(f"Custom field collision: {doctype}.{field}")
+
+
+def repair_cod_differences():
+    """Reclassify historical handovers without creating or changing any ledger entry."""
+    frappe.db.sql("""update `tabLC Order` set payment_status='Partially Paid'
+        where payment_method='Cash on Delivery' and payment_status='Reconciled'
+          and exists (select 1 from `tabSales Invoice` i
+                      where i.name=`tabLC Order`.sales_invoice and i.docstatus=1
+                        and i.outstanding_amount > 0.005)""")
+    frappe.db.sql("""update `tabLC Order` set payment_status='Overpaid'
+        where payment_method='Cash on Delivery' and payment_status='Reconciled'
+          and exists (select 1 from `tabPayment Entry` p
+                      where p.name=`tabLC Order`.payment_entry and p.docstatus=1
+                        and p.unallocated_amount > 0.005)""")
+    frappe.db.sql("""update `tabLC COD Collection` set status='Difference Pending'
+        where status='Reconciled' and exists (select 1 from `tabLC Order` o
+            where o.name=`tabLC COD Collection`.`order`
+              and o.payment_status in ('Partially Paid','Overpaid'))""")

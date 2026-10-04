@@ -22,12 +22,13 @@ class TestFishReports(unittest.TestCase):
         self.db.executescript('''
             create table `tabItem` (name, item_name, stock_uom, lc_shop, current_price);
             create table `tabLC Order` (name, shop, delivery_note, sales_invoice);
-            create table `tabSales Invoice` (name, lc_order, company, docstatus, posting_date);
+            create table `tabSales Invoice` (name, lc_order, company, docstatus, posting_date, update_stock default 0, is_return default 0, return_against);
             create table `tabSales Invoice Item`
-                (parent, item_code, stock_qty, uom, qty, base_net_amount);
+                (parent, item_code, stock_qty, uom, qty, base_net_amount, name,
+                 warehouse default 'W', delivery_note, dn_detail);
             create table `tabStock Ledger Entry`
                 (item_code, actual_qty, stock_value_difference, voucher_type, voucher_no,
-                 warehouse, company, is_cancelled, posting_date);
+                 warehouse, company, is_cancelled, posting_date, voucher_detail_no default 'detail');
             create table `tabLC Fish Movement` (stock_entry, shop, kind);
             create table `tabSales Taxes and Charges`
                 (parent, parenttype, charge_type, description, base_tax_amount);
@@ -35,13 +36,13 @@ class TestFishReports(unittest.TestCase):
                 ('foreign','Other fish','Kg','shop-b',100);
             insert into `tabLC Order` values ('order','shop-a','DN','SI'),
                 ('other','shop-b','DN-other','SI-other');
-            insert into `tabSales Invoice` values ('SI','order','C',1,'2026-09-18'),
+            insert into `tabSales Invoice` (name,lc_order,company,docstatus,posting_date) values ('SI','order','C',1,'2026-09-18'),
                 ('draft','order','C',0,'2026-09-18'),
                 ('SI-other','other','C',1,'2026-09-18');
-            insert into `tabSales Invoice Item` values ('SI','fish',0.47,'Nos',7,245),
+            insert into `tabSales Invoice Item` (parent,item_code,stock_qty,uom,qty,base_net_amount) values ('SI','fish',0.47,'Nos',7,245),
                 ('SI','fish',1.02,'Kg',1.02,306), ('draft','fish',99,'Kg',99,9999),
                 ('SI-other','foreign',10,'Kg',10,1000);
-            insert into `tabStock Ledger Entry` values
+            insert into `tabStock Ledger Entry` (item_code,actual_qty,stock_value_difference,voucher_type,voucher_no,warehouse,company,is_cancelled,posting_date) values
                 ('fish',8,800,'Stock Entry','old-receipt','W','C',0,'2026-09-17'),
                 ('fish',2,240,'Stock Entry','receipt','W','C',0,'2026-09-18'),
                 ('fish',-0.47,-47,'Delivery Note','DN','W','C',0,'2026-09-18'),
@@ -57,6 +58,7 @@ class TestFishReports(unittest.TestCase):
                 ('SI','Sales Invoice','On Net Total','VAT',99);
         ''')
         fake = Mock()
+        fake._dict = Row
         fake.db.sql.side_effect = self.sql
         fake.db.get_value.return_value = 'INR'
         fake.get_doc.return_value = SimpleNamespace(company='C', warehouse='W')
@@ -124,10 +126,10 @@ class TestFishReports(unittest.TestCase):
         self.db.executescript("""
             insert into `tabItem` values ('pieces','Mackerel pieces','Nos','shop-a',12);
             insert into `tabLC Order` values ('pieces-order','shop-a','DN-pieces','SI-pieces');
-            insert into `tabSales Invoice` values
+            insert into `tabSales Invoice` (name,lc_order,company,docstatus,posting_date) values
                 ('SI-pieces','pieces-order','C',1,'2026-09-18');
-            insert into `tabSales Invoice Item` values ('SI-pieces','pieces',6,'Nos',6,72);
-            insert into `tabStock Ledger Entry` values
+            insert into `tabSales Invoice Item` (parent,item_code,stock_qty,uom,qty,base_net_amount) values ('SI-pieces','pieces',6,'Nos',6,72);
+            insert into `tabStock Ledger Entry` (item_code,actual_qty,stock_value_difference,voucher_type,voucher_no,warehouse,company,is_cancelled,posting_date) values
                 ('pieces',50,400,'Stock Entry','pieces-receipt','W','C',0,'2026-09-18'),
                 ('pieces',-6,-48,'Delivery Note','DN-pieces','W','C',0,'2026-09-18'),
                 ('pieces',-4,-32,'Stock Entry','pieces-waste','W','C',0,'2026-09-18');
@@ -149,3 +151,59 @@ class TestFishReports(unittest.TestCase):
         self.db.execute('update `tabItem` set current_price=100')
         self.assertEqual(self.module.report('shop-a', '2026-09-18', '2026-09-18')
                          ['totals']['revenue'], 623)
+
+    def test_prepaid_invoice_without_dispatch_does_not_invent_profit(self):
+        self.db.execute("delete from `tabStock Ledger Entry` where voucher_no='DN'")
+        result = self.module.report('shop-a', '2026-09-18', '2026-09-18')['totals']
+        self.assertEqual(result['revenue'], 551)
+        self.assertEqual(result['pending_cost_revenue'], 551)
+        self.assertIsNone(result['gross_profit'])
+        self.assertIsNone(result['profit_after_stock_losses'])
+
+    def test_offline_invoice_and_financial_credit_are_included(self):
+        self.db.executescript("""
+            insert into `tabSales Invoice` (name,company,docstatus,posting_date,update_stock)
+                values ('OFF','C',1,'2026-09-18',1);
+            insert into `tabSales Invoice Item`
+                (parent,item_code,stock_qty,uom,qty,base_net_amount,name)
+                values ('OFF','fish',1,'Kg',1,200,'off-line');
+            insert into `tabStock Ledger Entry`
+                (item_code,actual_qty,stock_value_difference,voucher_type,voucher_no,
+                 warehouse,company,is_cancelled,posting_date,voucher_detail_no)
+                values ('fish',-1,-100,'Sales Invoice','OFF','W','C',0,'2026-09-18','off-line');
+            insert into `tabSales Invoice` (name,company,docstatus,posting_date,is_return,return_against)
+                values ('CN','C',1,'2026-09-18',1,'OFF');
+            insert into `tabSales Invoice Item` (parent,item_code,stock_qty,uom,qty,base_net_amount)
+                values ('CN','fish',-0.5,'Kg',-0.5,-100);
+        """)
+        result = self.module.report('shop-a', '2026-09-18', '2026-09-18')['totals']
+        self.assertEqual(result['revenue'], 651)
+        self.assertEqual(result['cost'], 249)
+        self.assertEqual(result['gross_profit'], 402)
+
+    def test_stock_return_reverses_cost_only_when_stock_is_returned(self):
+        self.test_offline_invoice_and_financial_credit_are_included()
+        self.db.executescript("""
+            update `tabSales Invoice` set update_stock=1 where name='CN';
+            update `tabSales Invoice Item` set name='return-line' where parent='CN';
+            insert into `tabStock Ledger Entry`
+                (item_code,actual_qty,stock_value_difference,voucher_type,voucher_no,
+                 warehouse,company,is_cancelled,posting_date,voucher_detail_no)
+                values ('fish',0.5,50,'Sales Invoice','CN','W','C',0,'2026-09-18','return-line');
+        """)
+        result = self.module.report('shop-a', '2026-09-18', '2026-09-18')['totals']
+        self.assertEqual(result['revenue'], 651)
+        self.assertEqual(result['cost'], 199)
+
+    def test_full_credit_before_dispatch_has_zero_margin_not_permanent_pending_cost(self):
+        self.db.executescript("""
+            delete from `tabStock Ledger Entry` where voucher_no='DN';
+            insert into `tabSales Invoice` (name,company,docstatus,posting_date,is_return,return_against)
+                values ('CN','C',1,'2026-09-18',1,'SI');
+            insert into `tabSales Invoice Item` (parent,item_code,stock_qty,uom,qty,base_net_amount)
+                values ('CN','fish',-1.49,'Kg',-1.49,-551);
+        """)
+        totals = self.module.report('shop-a', '2026-09-18', '2026-09-18')['totals']
+        self.assertEqual(totals['revenue'], 0)
+        self.assertEqual(totals['gross_profit'], 0)
+        self.assertEqual(totals['pending_cost_lines'], 0)
