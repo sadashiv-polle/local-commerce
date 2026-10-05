@@ -67,3 +67,9 @@ def update_shop(
         fish_wastage_account,
         order_acceptance,
     )
+
+
+@frappe.whitelist(methods=["GET"])
+def readiness(shop):
+    from local_commerce.services.shop_readiness import readiness as inspect
+    return inspect(shop)

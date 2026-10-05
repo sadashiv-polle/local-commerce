@@ -1,4 +1,5 @@
 <script setup>
+import ShopReadiness from './ShopReadiness.vue'
 import PaymentReview from './PaymentReview.vue'
 import ManualUpiSettings from './ManualUpiSettings.vue'
 import { computed, inject, ref, watch } from 'vue'
@@ -122,6 +123,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
       <div v-if="error" class="lc-notice" role="alert">{{ error }} <button v-if="!shop" @click="load">Retry</button></div>
       <template v-if="shop">
         <header class="workspace-heading"><div><span class="eyebrow">YOUR SHOP</span><h1>{{ shop.shop_name }}</h1><p class="muted">{{ shop.company }}</p></div><span class="status-pill">{{ shop.status }}</span></header>
+        <ShopReadiness v-if="session.platform_admin && tab === 'overview'" :key="shop.name" :shop="shop.name" />
         <Dashboard v-if="tab === 'overview' && canEdit" :shop="shop.name" @open="tab = $event" />
         <Orders v-if="tab === 'orders'" :shop="shop.name" :editable="canEdit">
           <template #batches="{ refresh }"><ScheduledDelivery v-if="canSchedule" :shop="shop.name" batches-only @changed="refresh()" /></template>
