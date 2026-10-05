@@ -37,3 +37,8 @@ class PromotionRulesTests(unittest.TestCase):
     def test_pasted_app_url_preserves_shop_route(self):
         result = normalize({"slides": [self.slide(link="https://webcheckly.shop/local-commerce#/store/fish")]})
         self.assertEqual(result["slides"][0]["link"], "/store/fish")
+
+    def test_owner_shop_url_becomes_customer_link(self):
+        for link in ["/shop/rocfk6ct6n", "https://webcheckly.shop/local-commerce#/shop/rocfk6ct6n"]:
+            result = normalize({"slides": [self.slide(link=link)]})
+            self.assertEqual(result["slides"][0]["link"], "/store/rocfk6ct6n")
