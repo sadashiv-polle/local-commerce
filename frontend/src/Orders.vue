@@ -278,7 +278,7 @@ onBeforeUnmount(() => {
       <div v-if="shop && editable && ['Ready', 'Picked Up', 'Out for Delivery', 'Delivered'].includes(order.status)" class="packing-label-action"><a class="lc-primary" :href="`/api/method/local_commerce.api.orders.packing_label?order=${encodeURIComponent(order.name)}`" target="_blank" rel="noopener">Download label · 50 × 30 mm</a><small>Print at actual size (100%). QR includes customer delivery details.</small></div>
       <div v-if="shop && editable && order.status === 'Ready'" class="driver-assignment">
         <label>Delivery person<select v-model="selectedDrivers[order.name]" :disabled="busy || !drivers.length"><option value="" disabled>Select a rider</option><option v-for="driver in drivers" :key="driver.user" :value="driver.user">{{ driver.full_name }}</option></select></label>
-        <button class="lc-primary" :disabled="busy || !selectedDrivers[order.name] || selectedDrivers[order.name] === order.delivery_user" @click="assign(order)">{{ order.delivery_user ? 'Reassign rider' : 'Assign rider' }}</button>
+        <button class="lc-primary" :disabled="busy || !selectedDrivers[order.name] || selectedDrivers[order.name] === order.delivery_user" @click="assign(order)">{{ order.delivery_user ? 'Reassign this order' : 'Assign this order' }}</button>
         <small v-if="!drivers.length">No delivery people are assigned to this shop. A platform administrator can add a Delivery Person membership in Desk.</small>
       </div>
       <div v-if="(shop && editable) || (!shop && order.status === 'Requested')" class="order-actions">
