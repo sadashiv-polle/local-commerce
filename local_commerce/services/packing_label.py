@@ -6,6 +6,7 @@ from pathlib import Path
 import frappe
 from local_commerce.permissions.scope import require_shop
 from local_commerce.services.owner import reject
+from local_commerce.services.label_access import signature, valid_signature
 
 
 def render_label(shop_name, recipient, address, order_id, order_date="", delivery_mode="", verification_url=""):
@@ -51,7 +52,7 @@ def render_label(shop_name, recipient, address, order_id, order_date="", deliver
     pdf.setFont('Helvetica', 5.5)
     for index, line in enumerate(lines(address, 25 * mm, 5.5, 3)):
         pdf.drawString(2 * mm, (10 - index * 2.3) * mm, line)
-    # QR opens the authenticated Vue page; no address or bearer token in the code.
+    # QR grants access only to a limited read-only summary.
     payload = verification_url
     qr = QrCodeWidget(payload, barLevel='L')
     left, bottom, right, top = qr.getBounds()
@@ -83,8 +84,26 @@ def download(order):
             shop.shop_name, doc.recipient, address, doc.name,
             frappe.utils.formatdate(doc.creation, 'dd MMM yy'),
             'Scheduled' if doc.delivery_mode == 'Scheduled' else 'Normal',
-            frappe.utils.get_url('/local-commerce') + '#/orders/verify/' + quote(doc.name, safe=''),
+            frappe.utils.get_url('/local-commerce') + '#/orders/verify/' + quote(doc.name, safe='')
+            + '?token=' + signature(frappe.conf.get('encryption_key'), doc.name),
         ),
         'type': 'pdf',
     })
     frappe.local.response['headers'] = {'Cache-Control': 'private, no-store'}
+
+
+def public_details(order, token):
+    if not isinstance(order, str) or not valid_signature(frappe.conf.get('encryption_key'), order, token):
+        frappe.throw('This label link is invalid. Ask the shop for a new label.', frappe.PermissionError)
+    doc = frappe.get_doc('LC Order', order)
+    so = frappe.get_doc('Sales Order', doc.sales_order)
+    # Deliberate allowlist: never use the authenticated order serializer here.
+    return {
+        'name': doc.name,
+        'shop_name': frappe.db.get_value('LC Shop', doc.shop, 'shop_name'),
+        'status': doc.status,
+        'currency': so.currency,
+        'total': so.grand_total,
+        'items': [{'name': row.item_name, 'quantity': row.qty, 'uom': row.uom,
+                   'amount': row.amount} for row in so.items],
+    }

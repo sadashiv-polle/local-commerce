@@ -42,6 +42,7 @@ function cancelLogout(event) {
 }
 const adminView = computed(() => route.path === '/admin' || route.path.startsWith('/admin/'))
 const ownerView = computed(() => route.path === '/shop' || route.path.startsWith('/shop/') || route.path === '/store-settings' || adminView.value)
+const labelView = computed(() => route.path.startsWith('/orders/verify/'))
 const deliveryView = computed(() => route.path === '/delivery')
 const customerNavigation = computed(() => !ownerView.value && !deliveryView.value && !['/login', '/signup'].includes(route.path))
 const canManage = computed(() => session.value && (session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role))))
@@ -118,6 +119,7 @@ function closeHeaderAddressMenu(event) {
   if (notificationMenu.value?.open && !notificationMenu.value.contains(event.target)) notificationMenu.value.removeAttribute('open')
 }
 async function loadNotifications() {
+  if (labelView.value) return
   if (!session.value || session.value.user === 'Guest' || notificationsLoading.value) return
   notificationsLoading.value = true
   try {
@@ -203,6 +205,7 @@ async function load() {
       ? authenticatedPage(session.value, route.path)
       : launchDestination(session.value, route.path)
     if (destination) await router.replace(destination)
+    if (labelView.value) return
     await loadNotifications()
     await loadPushState()
     if (session.value.roles.includes('LC Customer')) {
@@ -269,7 +272,8 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="commerce-app" :class="{ 'admin-view': adminView, 'owner-view': ownerView, 'delivery-view': deliveryView, 'customer-view': !ownerView && !deliveryView, 'has-global-cart': savedCartLines && !workView, 'has-customer-navigation': customerNavigation || (workView && hasWorkspace) }">
+  <div v-if="labelView" class="commerce-app"><RouterView v-if="session" /><div v-else class="page-state"><p>{{ error || 'Opening package details…' }}</p><button v-if="error" @click="load">Retry</button></div></div>
+  <div v-else class="commerce-app" :class="{ 'admin-view': adminView, 'owner-view': ownerView, 'delivery-view': deliveryView, 'customer-view': !ownerView && !deliveryView, 'has-global-cart': savedCartLines && !workView, 'has-customer-navigation': customerNavigation || (workView && hasWorkspace) }">
     <header class="topbar">
       <div class="brand-stack"><RouterLink class="brand" :to="workView ? workHome : '/store'">local<span>●</span><small v-if="ownerView || deliveryView">{{ adminView ? 'ADMIN' : ownerView ? 'BUSINESS' : 'DELIVERY' }}</small></RouterLink><details v-if="!ownerView && !deliveryView" ref="headerAddressMenu" class="header-address-menu" @keydown.esc.prevent="headerAddressMenu.removeAttribute('open'); headerAddressMenu.querySelector('summary')?.focus()"><summary class="header-delivery-address"><small>DELIVERING TO</small><strong v-if="headerAddress">{{ headerAddress.address_label }} · {{ headerAddress.line1 }}</strong><strong v-else>{{ headerAddresses.length ? 'Choose delivery address' : session?.user === 'Guest' ? 'Choose delivery location' : 'Add delivery address' }}</strong><span aria-hidden="true">⌄</span></summary><div class="header-address-options"><span class="eyebrow">SAVED ADDRESSES</span><button v-for="address in headerAddresses" :key="address.name" type="button" :class="{ selected: address.name === headerAddress?.name }" :aria-pressed="address.name === headerAddress?.name" @click="chooseHeaderAddress(address)"><span class="address-icon" aria-hidden="true">{{ address.address_type === 'Home' ? '⌂' : address.address_type === 'Work' ? '▦' : '⌖' }}</span><span><strong>{{ address.address_label }}</strong><small>{{ address.line1 }} · {{ address.city }}</small></span><b v-if="address.name === headerAddress?.name">✓</b></button><p v-if="!headerAddresses.length">No saved addresses yet.</p><button type="button" class="header-add-address" @click="addHeaderAddress">+ {{ session?.user === 'Guest' ? 'Login to add address' : 'Add address' }}</button></div></details></div>
       <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : deliveryView ? 'Your rider workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : deliveryView ? 'Every order, right on track.' : 'Delivery from your local shops' }}</small></div></div>

@@ -165,3 +165,10 @@ def repack(order):
 def packing_label(order):
     from local_commerce.services.packing_label import download
     return download(order)
+
+
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+@rate_limit(limit=60, seconds=60)
+def label_details(order, token):
+    from local_commerce.services.packing_label import public_details
+    return public_details(order, token)
