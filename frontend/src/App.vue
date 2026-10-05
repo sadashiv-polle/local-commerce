@@ -200,6 +200,8 @@ function receiveNotification(event) {
 async function load() {
   error.value = ''
   try {
+    await router.isReady()
+    if (labelView.value) return
     session.value = await call('session.context'); setCsrfToken(session.value.csrf_token)
     const destination = new URL(window.location.href).searchParams.get('notification') === '1'
       ? authenticatedPage(session.value, route.path)
@@ -272,7 +274,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="labelView" class="commerce-app"><RouterView v-if="session" /><div v-else class="page-state"><p>{{ error || 'Opening package details…' }}</p><button v-if="error" @click="load">Retry</button></div></div>
+  <div v-if="labelView" class="commerce-app"><RouterView /></div>
   <div v-else class="commerce-app" :class="{ 'admin-view': adminView, 'owner-view': ownerView, 'delivery-view': deliveryView, 'customer-view': !ownerView && !deliveryView, 'has-global-cart': savedCartLines && !workView, 'has-customer-navigation': customerNavigation || (workView && hasWorkspace) }">
     <header class="topbar">
       <div class="brand-stack"><RouterLink class="brand" :to="workView ? workHome : '/store'">local<span>●</span><small v-if="ownerView || deliveryView">{{ adminView ? 'ADMIN' : ownerView ? 'BUSINESS' : 'DELIVERY' }}</small></RouterLink><details v-if="!ownerView && !deliveryView" ref="headerAddressMenu" class="header-address-menu" @keydown.esc.prevent="headerAddressMenu.removeAttribute('open'); headerAddressMenu.querySelector('summary')?.focus()"><summary class="header-delivery-address"><small>DELIVERING TO</small><strong v-if="headerAddress">{{ headerAddress.address_label }} · {{ headerAddress.line1 }}</strong><strong v-else>{{ headerAddresses.length ? 'Choose delivery address' : session?.user === 'Guest' ? 'Choose delivery location' : 'Add delivery address' }}</strong><span aria-hidden="true">⌄</span></summary><div class="header-address-options"><span class="eyebrow">SAVED ADDRESSES</span><button v-for="address in headerAddresses" :key="address.name" type="button" :class="{ selected: address.name === headerAddress?.name }" :aria-pressed="address.name === headerAddress?.name" @click="chooseHeaderAddress(address)"><span class="address-icon" aria-hidden="true">{{ address.address_type === 'Home' ? '⌂' : address.address_type === 'Work' ? '▦' : '⌖' }}</span><span><strong>{{ address.address_label }}</strong><small>{{ address.line1 }} · {{ address.city }}</small></span><b v-if="address.name === headerAddress?.name">✓</b></button><p v-if="!headerAddresses.length">No saved addresses yet.</p><button type="button" class="header-add-address" @click="addHeaderAddress">+ {{ session?.user === 'Guest' ? 'Login to add address' : 'Add address' }}</button></div></details></div>

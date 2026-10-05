@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { call } from './api.js'
+import { fetchLabelDetails } from './label-details.js'
 import OrderReference from './OrderReference.vue'
 const route = useRoute()
 const order = ref(null), error = ref(''), loading = ref(false)
@@ -11,7 +11,7 @@ async function load() {
   order.value = null; error.value = ''
   loading.value = true
   try {
-    const result = await call('orders.label_details', { order: route.params.order, token: typeof route.query.token === 'string' ? route.query.token : '' }, true)
+    const result = await fetchLabelDetails(route.params.order, route.query.token)
     if (current === generation) order.value = result
   } catch {
     if (current === generation) error.value = 'This order could not be opened. Scan a newly printed label or ask the shop to check the link.'
