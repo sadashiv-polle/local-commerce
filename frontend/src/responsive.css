@@ -802,3 +802,9 @@
 @media (max-width: 600px) {
   #lc-app .header-address-options { width: min(350px, calc(100vw - 40px)); }
 }
+
+@media (max-width: 700px) {
+  #lc-app .customer-bottom-nav.with-deliveries { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  #lc-app .customer-bottom-nav.rider-bottom-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #lc-app .customer-bottom-nav.with-deliveries a { font-size: 10px; }
+}

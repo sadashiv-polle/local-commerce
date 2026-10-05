@@ -264,7 +264,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="commerce-app" :class="{ 'admin-view': adminView, 'owner-view': ownerView, 'delivery-view': deliveryView, 'customer-view': !ownerView && !deliveryView, 'has-global-cart': savedCartLines && !adminView, 'has-customer-navigation': customerNavigation }">
+  <div class="commerce-app" :class="{ 'admin-view': adminView, 'owner-view': ownerView, 'delivery-view': deliveryView, 'customer-view': !ownerView && !deliveryView, 'has-global-cart': savedCartLines && !adminView, 'has-customer-navigation': customerNavigation || (deliveryView && canDeliver) }">
     <header class="topbar">
       <div class="brand-stack"><RouterLink class="brand" to="/store">local<span>●</span><small v-if="ownerView || deliveryView">{{ adminView ? 'ADMIN' : ownerView ? 'BUSINESS' : 'DELIVERY' }}</small></RouterLink><details v-if="!ownerView && !deliveryView" ref="headerAddressMenu" class="header-address-menu" @keydown.esc.prevent="headerAddressMenu.removeAttribute('open'); headerAddressMenu.querySelector('summary')?.focus()"><summary class="header-delivery-address"><small>DELIVERING TO</small><strong v-if="headerAddress">{{ headerAddress.address_label }} · {{ headerAddress.line1 }}</strong><strong v-else>{{ headerAddresses.length ? 'Choose delivery address' : session?.user === 'Guest' ? 'Choose delivery location' : 'Add delivery address' }}</strong><span aria-hidden="true">⌄</span></summary><div class="header-address-options"><span class="eyebrow">SAVED ADDRESSES</span><button v-for="address in headerAddresses" :key="address.name" type="button" :class="{ selected: address.name === headerAddress?.name }" :aria-pressed="address.name === headerAddress?.name" @click="chooseHeaderAddress(address)"><span class="address-icon" aria-hidden="true">{{ address.address_type === 'Home' ? '⌂' : address.address_type === 'Work' ? '▦' : '⌖' }}</span><span><strong>{{ address.address_label }}</strong><small>{{ address.line1 }} · {{ address.city }}</small></span><b v-if="address.name === headerAddress?.name">✓</b></button><p v-if="!headerAddresses.length">No saved addresses yet.</p><button type="button" class="header-add-address" @click="addHeaderAddress">+ {{ session?.user === 'Guest' ? 'Login to add address' : 'Add address' }}</button></div></details></div>
       <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : deliveryView ? 'Your rider workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : deliveryView ? 'Every order, right on track.' : 'Delivery from your local shops' }}</small></div></div>
@@ -277,11 +277,17 @@ onBeforeUnmount(() => {
       <RouterView v-else />
     </main>
     <button v-if="savedCartLines && !adminView" class="floating-cart-bar global-cart-bar" type="button" aria-label="Open saved cart" @click="openSavedCart"><span class="cart-bag" aria-hidden="true">▣</span><span><strong>{{ savedCartLines }} {{ savedCartLines === 1 ? 'item' : 'items' }}</strong><small>{{ savedCartMoney() }}</small></span><strong>View cart&nbsp; ›</strong></button>
-    <nav v-if="customerNavigation" class="customer-bottom-nav" aria-label="Customer navigation">
+    <nav v-if="customerNavigation" class="customer-bottom-nav" :class="{ 'with-deliveries': canDeliver }" aria-label="App navigation">
       <RouterLink to="/store" :class="{ selected: ['/', '/store'].includes(route.path) && route.query.browse !== 'shops' }"><span aria-hidden="true">⌂</span>Home</RouterLink>
       <RouterLink to="/store?browse=shops" :class="{ selected: route.query.browse === 'shops' || route.path.startsWith('/store/') }"><span aria-hidden="true">▦</span>Shops</RouterLink>
       <RouterLink :to="session?.user === 'Guest' ? '/login?next=/orders' : '/orders'" :class="{ selected: route.path === '/orders' }"><span aria-hidden="true">▤</span>Orders</RouterLink>
+      <RouterLink v-if="canDeliver" to="/delivery"><span aria-hidden="true">▣</span>Deliveries</RouterLink>
       <RouterLink :to="session?.user === 'Guest' ? '/login?next=/account' : '/account'" :class="{ selected: route.path === '/account' }"><span aria-hidden="true">○</span>Account</RouterLink>
+    </nav>
+    <nav v-if="deliveryView && canDeliver" class="customer-bottom-nav rider-bottom-nav" aria-label="Rider navigation">
+      <RouterLink to="/store"><span aria-hidden="true">⌂</span>Home</RouterLink>
+      <RouterLink to="/store?browse=shops"><span aria-hidden="true">▦</span>Shops</RouterLink>
+      <RouterLink to="/delivery" class="selected" aria-current="page"><span aria-hidden="true">▣</span>Deliveries</RouterLink>
     </nav>
     <dialog ref="logoutDialog" class="logout-dialog" aria-labelledby="logout-title" aria-describedby="logout-description" :aria-busy="loggingOut" @cancel="cancelLogout">
       <div class="logout-symbol" aria-hidden="true">↗</div>
