@@ -21,6 +21,9 @@ def normalize(config):
         title = str(row.get("title") or "").strip()
         image = str(row.get("image") or "").strip()
         link = str(row.get("link") or "").strip()
+        # Accept pasted app URLs as well as their hash-router paths.
+        if "#" in link:
+            link = link.split("#", 1)[1]
         # Only public uploaded artwork and internal app routes are allowed.
         if not title or len(title) > 80:
             raise ValueError("Give each slide a title of up to 80 characters")

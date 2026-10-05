@@ -27,7 +27,12 @@ def save(config):
         config = normalize(frappe.parse_json(config) if isinstance(config, str) else config)
     except ValueError as exc:
         frappe.throw(str(exc))
+    if not frappe.get_meta("LC Store Settings").has_field("promotions_json"):
+        frappe.throw("Slider settings need a server update. Run bench --site mysite migrate, then reload this page.")
     doc = frappe.get_single("LC Store Settings")
     doc.promotions_json = frappe.as_json(config)
     doc.save()
-    return get(admin=True)
+    stored = frappe.db.get_single_value("LC Store Settings", "promotions_json", cache=False)
+    if normalize(frappe.parse_json(stored or "{}")) != config:
+        frappe.throw("The slider could not be saved. Reload the page and try again.")
+    return config

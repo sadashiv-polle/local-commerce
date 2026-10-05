@@ -33,3 +33,7 @@ class PromotionRulesTests(unittest.TestCase):
                        {"slides": [self.slide()] * 13}, {"slides": [self.slide(title="")]}]:
             with self.subTest(config=config), self.assertRaises(ValueError):
                 normalize(config)
+
+    def test_pasted_app_url_preserves_shop_route(self):
+        result = normalize({"slides": [self.slide(link="https://webcheckly.shop/local-commerce#/store/fish")]})
+        self.assertEqual(result["slides"][0]["link"], "/store/fish")
