@@ -11,7 +11,16 @@ export function authenticatedPage(session, path) {
   return null
 }
 
+// Apply only when loading the app or completing login, never on in-app switches.
+export function launchDestination(session, path) {
+  const home = defaultPage(session)
+  if (home !== '/store' && /^\/(?:$|store(?:\/|\?|$)|orders(?:\/|\?|$)|account(?:\?|$)|favourites(?:\?|$)|categories(?:\/|\?|$))/.test(path)) return home
+  return authenticatedPage(session, path)
+}
+
 export function loginDestination(session, candidate) {
+  const launch = typeof candidate === 'string' ? launchDestination(session, candidate) : null
+  if (launch) return launch
   if (typeof candidate === 'string' && /^\/(store|shop|orders|account|delivery|favourites|categories|admin|store-settings)(\/|\?|$)/.test(candidate) && candidate !== '/store') return candidate
   return defaultPage(session)
 }

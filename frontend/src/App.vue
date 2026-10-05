@@ -5,7 +5,7 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, provide, re
 import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
 import { activeCart, clearAllCarts, loginUrl } from './cart.js'
-import { authenticatedPage, defaultPage } from './navigation.js'
+import { authenticatedPage, defaultPage, launchDestination } from './navigation.js'
 import { currentSubscription, disablePush, enablePush, pushSupported } from './push.js'
 import { installOverlayScrollLock } from './overlay-scroll.js'
 const IncomingOrders = defineAsyncComponent(() => import('./IncomingOrders.vue'))
@@ -199,7 +199,9 @@ async function load() {
   error.value = ''
   try {
     session.value = await call('session.context'); setCsrfToken(session.value.csrf_token)
-    const destination = authenticatedPage(session.value, route.path)
+    const destination = new URL(window.location.href).searchParams.get('notification') === '1'
+      ? authenticatedPage(session.value, route.path)
+      : launchDestination(session.value, route.path)
     if (destination) await router.replace(destination)
     await loadNotifications()
     await loadPushState()

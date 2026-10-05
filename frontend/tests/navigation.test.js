@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { authenticatedPage, defaultPage, loginDestination } from '../src/navigation.js'
+import { authenticatedPage, defaultPage, loginDestination, launchDestination } from '../src/navigation.js'
 const session = roles => ({ user: 'person@example.com', roles })
 test('history navigation skips authentication pages only while logged in', () => {
   for (const path of ['/login', '/signup']) {
@@ -36,4 +36,18 @@ test('platform administrators default to the master dashboard and keep explicit 
   assert.equal(loginDestination(admin, '/admin/inventory?shop=abc'), '/admin/inventory?shop=abc')
   assert.equal(loginDestination(admin, '/store-settings'), '/store-settings')
   assert.equal(loginDestination(admin, '//example.com/admin'), '/admin')
+})
+
+ test('work users start in their workspace even when opening a saved customer page', () => {
+  for (const [role, home] of [['LC Shop Owner', '/shop'], ['LC Delivery Person', '/delivery']]) {
+    const user = session([role, 'LC Customer'])
+    for (const path of ['/store', '/store/fish?cart=1', '/orders', '/account', '/']) {
+      assert.equal(launchDestination(user, path), home)
+      assert.equal(loginDestination(user, path), home)
+    }
+    assert.equal(authenticatedPage(user, '/store'), null, 'in-app shopping remains accessible')
+    assert.equal(launchDestination(user, home), null)
+  }
+  assert.equal(launchDestination(session(['LC Customer']), '/orders'), null)
+  assert.equal(launchDestination({ user: 'Guest' }, '/store'), null)
 })
