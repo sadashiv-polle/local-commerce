@@ -51,3 +51,11 @@ test('platform administrators default to the master dashboard and keep explicit 
   assert.equal(launchDestination(session(['LC Customer']), '/orders'), null)
   assert.equal(launchDestination({ user: 'Guest' }, '/store'), null)
 })
+
+test('label verification survives login and work-first startup', () => {
+  const path = '/orders/verify/abc123'
+  for (const role of ['LC Customer', 'LC Shop Owner', 'LC Delivery Person']) {
+    assert.equal(launchDestination(session([role]), path), null)
+    assert.equal(loginDestination(session([role]), path), path)
+  }
+})

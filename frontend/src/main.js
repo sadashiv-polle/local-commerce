@@ -25,6 +25,7 @@ const router = createRouter({ history: createWebHashHistory(), scrollBehavior: (
   { path: '/store-settings', component: StoreSettings },
   { path: '/store/:shop', name: 'customer-shop', component: CustomerShop },
   { path: '/orders', component: Orders },
+  { path: '/orders/verify/:order', component: () => import('./VerifyOrder.vue') },
   { path: '/signup', component: Signup },
   { path: '/login', component: Login },
   { path: '/reset-password', component: ResetPassword },

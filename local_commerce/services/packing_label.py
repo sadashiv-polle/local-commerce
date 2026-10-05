@@ -1,6 +1,6 @@
 """Private, on-demand 50 x 30 mm packing labels."""
 from io import BytesIO
-import json
+from urllib.parse import quote
 from pathlib import Path
 
 import frappe
@@ -8,7 +8,7 @@ from local_commerce.permissions.scope import require_shop
 from local_commerce.services.owner import reject
 
 
-def render_label(shop_name, recipient, address, order_id, order_date="", delivery_mode=""):
+def render_label(shop_name, recipient, address, order_id, order_date="", delivery_mode="", verification_url=""):
     from reportlab.pdfgen import canvas
     from reportlab.lib.units import mm
     from reportlab.lib.utils import ImageReader
@@ -51,9 +51,8 @@ def render_label(shop_name, recipient, address, order_id, order_date="", deliver
     pdf.setFont('Helvetica', 5.5)
     for index, line in enumerate(lines(address, 25 * mm, 5.5, 3)):
         pdf.drawString(2 * mm, (10 - index * 2.3) * mm, line)
-    # Full delivery details remain in QR when printed text must be shortened.
-    payload = json.dumps({'order': order_id, 'shop': shop_name, 'customer': recipient,
-                          'address': address}, ensure_ascii=False, separators=(',', ':'))
+    # QR opens the authenticated Vue page; no address or bearer token in the code.
+    payload = verification_url
     qr = QrCodeWidget(payload, barLevel='L')
     left, bottom, right, top = qr.getBounds()
     size = 19 * mm
@@ -84,6 +83,7 @@ def download(order):
             shop.shop_name, doc.recipient, address, doc.name,
             frappe.utils.formatdate(doc.creation, 'dd MMM yy'),
             'Scheduled' if doc.delivery_mode == 'Scheduled' else 'Normal',
+            frappe.utils.get_url('/local-commerce') + '#/orders/verify/' + quote(doc.name, safe=''),
         ),
         'type': 'pdf',
     })

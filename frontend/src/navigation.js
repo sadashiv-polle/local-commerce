@@ -13,6 +13,7 @@ export function authenticatedPage(session, path) {
 
 // Apply only when loading the app or completing login, never on in-app switches.
 export function launchDestination(session, path) {
+  if (/^\/orders\/verify\/[a-zA-Z0-9_-]+$/.test(path)) return null
   const home = defaultPage(session)
   if (home !== '/store' && /^\/(?:$|store(?:\/|\?|$)|orders(?:\/|\?|$)|account(?:\?|$)|favourites(?:\?|$)|categories(?:\/|\?|$))/.test(path)) return home
   return authenticatedPage(session, path)
