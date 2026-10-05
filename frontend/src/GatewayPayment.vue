@@ -1,6 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { call } from './api.js'
+import { checkoutTarget } from './checkout-target.js'
+import { useRoute } from 'vue-router'
+const route = useRoute()
 const props = defineProps({ order: { type: Object, required: true }, customer: Boolean, autoStart: Boolean })
 const emit = defineEmits(['updated', 'checkout-started'])
 const busy = ref(false), error = ref('')
@@ -22,14 +25,17 @@ async function pay() {
       script.onerror = () => { script.remove(); reject(new Error('Payment checkout could not load. Please retry.')) }
       document.head.appendChild(script)
     })
-    await window.Cashfree({ mode: session.environment }).checkout({
-      paymentSessionId: session.payment_session_id, redirectTarget: '_modal',
+    const target = checkoutTarget()
+    const result = await window.Cashfree({ mode: session.environment }).checkout({
+      paymentSessionId: session.payment_session_id, redirectTarget: target,
     })
-    await refresh()
+    if (target === '_modal' || result?.error) await refresh()
+    if (result?.error) error.value ||= 'Checkout was closed or could not finish. Payment status was checked; retry only if payment is still pending.'
   } catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
 onMounted(() => {
+  if (props.customer && route.path === '/orders' && route.query.order === props.order.name && !props.autoStart) { refresh(); return }
   if (!props.autoStart || !props.customer) return
   emit('checkout-started')
   if (props.order.status === 'Requested' && ['Pending', 'Failed'].includes(props.order.payment_status)) pay()
