@@ -20,11 +20,12 @@ def discover(search="", address="", start=0):
     from local_commerce.services import customers, orders
 
     search_filters(search)
+    pinned = frappe.get_single("LC Store Settings").get("pinned_shop") or ""
     if address:
-        result = customers.nearby(address, start, search)
+        result = customers.nearby(address, start, search, pinned_shop=pinned)
         rows, more = result["shops"], result["has_more"]
     else:
-        rows = orders.shops(start, search)
+        rows = orders.shops(start, search, pinned_shop=pinned)
         more = len(rows) == 20
     if not rows:
         return {"shops": [], "has_more": more}

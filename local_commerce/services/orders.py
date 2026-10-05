@@ -219,19 +219,26 @@ def serialize_public_shop(row):
     return row
 
 
-def shops(start=0, search=""):
+def shops(start=0, search="", pinned_shop=""):
     from local_commerce.services.home_discovery import search_filters
+    start = offset(start)
+    filters = search_filters(search)
+    pinned = frappe.get_all("LC Shop", filters={**filters, "name": pinned_shop},
+                            fields=SHOP_LISTING_FIELDS, limit_page_length=1) if pinned_shop else []
+    if pinned:
+        filters["name"] = ["!=", pinned_shop]
     rows = frappe.get_all(
-        "LC Shop",
-        filters=search_filters(search),
-        fields=SHOP_LISTING_FIELDS,
-        start=offset(start),
-        limit_page_length=20,
+        "LC Shop", filters=filters, fields=SHOP_LISTING_FIELDS,
+        order_by="creation desc, name asc",
+        start=max(0, start - bool(pinned)),
+        limit_page_length=19 if pinned and start == 0 else 20,
     )
+    if pinned and start == 0:
+        rows = pinned + rows
     return [serialize_public_shop(row) for row in rows]
 
 
-def nearby_shops(address, start=0, search=""):
+def nearby_shops(address, start=0, search="", pinned_shop=""):
     from local_commerce.services.home_discovery import search_filters
     start = offset(start)
     try:
@@ -266,6 +273,7 @@ def nearby_shops(address, start=0, search=""):
         result.append(public)
     result.sort(
         key=lambda row: (
+            row.name != pinned_shop,
             not row.serviceable,
             row.distance_km is None,
             row.distance_km if row.distance_km is not None else float("inf"),

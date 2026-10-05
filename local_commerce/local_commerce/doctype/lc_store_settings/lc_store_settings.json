@@ -13,7 +13,8 @@
     "category_menu_enabled",
     "category_menu_initialized",
     "categories",
-    "promotions_json"
+    "promotions_json",
+    "pinned_shop"
   ],
   "fields": [
     {
@@ -78,6 +79,12 @@
       "fieldtype": "Code",
       "options": "JSON",
       "hidden": 1
+    },
+    {
+      "fieldname": "pinned_shop",
+      "label": "Show This Shop First",
+      "fieldtype": "Link",
+      "options": "LC Shop"
     }
   ],
   "permissions": [

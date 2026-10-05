@@ -23,6 +23,7 @@ class HomeDiscoveryTests(unittest.TestCase):
                 "local_commerce.services.owner": owner,
             },
         )
+        self.frappe.get_single.return_value = Row(pinned_shop="")
         self.scope.start()
         self.addCleanup(self.scope.stop)
         spec = importlib.util.spec_from_file_location(
@@ -62,7 +63,7 @@ class HomeDiscoveryTests(unittest.TestCase):
 
     def test_public_cards_hide_private_images_and_include_existing_configuration(self):
         result = self.service.discover("Fish", "", 20)
-        self.orders.shops.assert_called_once_with(20, "Fish")
+        self.orders.shops.assert_called_once_with(20, "Fish", pinned_shop="")
         row = result["shops"][0]
         self.assertEqual(row["shop_image"], "")
         self.assertEqual(row["minimum_order_amount"], 100)
@@ -87,7 +88,7 @@ class HomeDiscoveryTests(unittest.TestCase):
         self.customers.nearby.side_effect = PermissionError("foreign address")
         with self.assertRaises(PermissionError):
             self.service.discover("", "foreign", 0)
-        self.customers.nearby.assert_called_once_with("foreign", 0, "")
+        self.customers.nearby.assert_called_once_with("foreign", 0, "", pinned_shop="")
         self.orders.shops.assert_not_called()
         self.frappe.get_all.assert_not_called()
 
@@ -102,3 +103,8 @@ class HomeDiscoveryTests(unittest.TestCase):
         self.orders.shops.return_value = []
         self.assertEqual(self.service.discover(), {"shops": [], "has_more": False})
         self.frappe.db.sql.assert_not_called()
+
+    def test_priority_passed_to_discovery(self):
+        self.frappe.get_single.return_value = Row(pinned_shop="fish")
+        self.service.discover()
+        self.orders.shops.assert_called_once_with(0, "", pinned_shop="fish")

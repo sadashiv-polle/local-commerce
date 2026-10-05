@@ -297,14 +297,14 @@ def archive_address(name):
     return {"archived": True, "addresses": list_addresses()}
 
 
-def nearby(address, start=0, search=""):
+def nearby(address, start=0, search="", pinned_shop=""):
     customer = ensure_customer()
     doc = frappe.get_doc("LC Customer Address", address)
     if doc.user != frappe.session.user or doc.customer != customer["name"] or doc.disabled:
         frappe.throw("Address access denied", frappe.PermissionError)
     from local_commerce.services.orders import nearby_shops
 
-    return nearby_shops(serialize_address(doc), start, search)
+    return nearby_shops(serialize_address(doc), start, search, pinned_shop=pinned_shop)
 
 
 def permission(doc, user=None, permission_type=None, **kwargs):

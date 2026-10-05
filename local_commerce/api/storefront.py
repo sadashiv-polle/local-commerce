@@ -114,3 +114,27 @@ def save_promotions(config):
 def upload_promotion_image():
     from local_commerce.services.category_menu import upload_image
     return upload_image()
+
+
+@frappe.whitelist(methods=["GET"])
+def shop_priority_settings():
+    from local_commerce.permissions.scope import require_platform
+    require_platform()
+    return {
+        "pinned_shop": frappe.get_single("LC Store Settings").get("pinned_shop") or "",
+        "shops": frappe.get_all("LC Shop", filters={"status": "Active"},
+                                fields=["name", "shop_name"], order_by="shop_name, name",
+                                limit_page_length=1000),
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def save_shop_priority(pinned_shop=""):
+    from local_commerce.permissions.scope import require_platform
+    require_platform()
+    if pinned_shop and not frappe.db.exists("LC Shop", {"name": pinned_shop, "status": "Active"}):
+        frappe.throw("Choose an active shop")
+    doc = frappe.get_single("LC Store Settings")
+    doc.pinned_shop = pinned_shop or ""
+    doc.save()
+    return {"pinned_shop": doc.pinned_shop}
