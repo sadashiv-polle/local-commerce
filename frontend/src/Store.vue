@@ -83,7 +83,6 @@ async function loadAddresses() {
   await loadCustomerPicks()
 }
 watch(activeAddress, scheduleProductSearch)
-watch(selectedAddress, loadCustomerPicks)
 watch(() => session.value.user, loadAddresses)
 onMounted(() => { loadAddresses(); window.addEventListener('lc-address-change', loadAddresses) })
 onBeforeUnmount(() => window.removeEventListener('lc-address-change', loadAddresses))

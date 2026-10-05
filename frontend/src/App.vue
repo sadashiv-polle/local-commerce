@@ -1,14 +1,14 @@
 <script setup>
 import ProfileAvatar from './ProfileAvatar.vue'
 import { clearDeliverySelection } from './address-selection.js'
-import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call, setCsrfToken } from './api.js'
 import { activeCart, clearAllCarts, loginUrl } from './cart.js'
 import { authenticatedPage, defaultPage } from './navigation.js'
 import { currentSubscription, disablePush, enablePush, pushSupported } from './push.js'
 import { installOverlayScrollLock } from './overlay-scroll.js'
-import IncomingOrders from './IncomingOrders.vue'
+const IncomingOrders = defineAsyncComponent(() => import('./IncomingOrders.vue'))
 const session = ref(null), error = ref(''), loggingOut = ref(false), logoutError = ref('')
 const route = useRoute(), router = useRouter()
 const logoutDialog = ref(null), headerAddressMenu = ref(null), notificationMenu = ref(null)

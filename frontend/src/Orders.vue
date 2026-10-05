@@ -1,4 +1,5 @@
 <script setup>
+import LocationFreshness from './LocationFreshness.vue'
 import GatewayPayment from './GatewayPayment.vue'
 import ManualUpiPayment from './ManualUpiPayment.vue'
 import OrderReference from './OrderReference.vue'
@@ -163,6 +164,15 @@ async function change(order, target) {
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
+async function repack(order) {
+  if (!window.confirm('Confirm you will repack this order with fresh stock. Expired reservations will be replaced only if sufficient fresh stock is available.')) return
+  busy.value = true; error.value = ''
+  try {
+    const result = await call('orders.repack', { order: order.name }, true)
+    await load()
+    window.alert(result.changed ? 'Fresh stock reserved. Repack the items before marking ready.' : 'The current reservations are still valid. No stock change was needed.')
+  } catch (e) { error.value = e.message } finally { busy.value = false }
+}
 async function assign(order) {
   const deliveryUser = selectedDrivers.value[order.name]
   if (!deliveryUser) return
@@ -257,7 +267,7 @@ onBeforeUnmount(() => {
       </div>
       <details><summary>Delivery details</summary><p>{{ order.address.line1 }}<br>{{ order.address.city }} · {{ order.address.postal_code }}<br><a :href="`tel:${order.phone}`">{{ order.phone }}</a></p></details>
       <p v-if="order.delivery_instructions" class="delivery-instructions"><strong>Delivery note</strong>{{ order.delivery_instructions }}</p>
-      <section v-if="order.destination_location && (shop || order.status === 'Out for Delivery')" class="order-tracking-panel"><div class="tracking-heading"><div><span class="eyebrow">{{ order.status === 'Out for Delivery' ? 'LIVE DELIVERY' : 'DELIVERY MAP' }}</span><h4>{{ order.status === 'Out for Delivery' ? 'Track your rider' : 'Delivery route' }}</h4></div><span v-if="routes[order.name]">{{ routes[order.name].distance_km }} km · about {{ routes[order.name].duration_minutes }} min</span><span v-else-if="order.delivery_distance_km != null">{{ Number(order.delivery_distance_km).toFixed(1) }} km from shop</span></div><MapView preserve-view :config="order.map" :points="mapPoints(order)" :route="routes[order.name]?.points || []" height="250px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Delivery</span><span v-if="order.driver_location"><i class="legend-rider"></i>Rider</span></div><small v-if="routes[order.name]" class="route-attribution"><a :href="routes[order.name].attribution_url" target="_blank" rel="noopener">{{ routes[order.name].attribution }}</a></small><p v-if="routeErrors[order.name]" class="route-error">{{ routeErrors[order.name] }}</p><p v-if="order.status === 'Out for Delivery' && order.driver_location" class="map-confirmation">Rider location updated {{ order.driver_location.updated_at }}</p><p v-else-if="order.status === 'Out for Delivery'" class="muted">Waiting for the rider to start live location sharing. Order updates appear automatically every 10 seconds.</p></section>
+      <section v-if="order.destination_location && (shop || order.status === 'Out for Delivery')" class="order-tracking-panel"><div class="tracking-heading"><div><span class="eyebrow">{{ order.status === 'Out for Delivery' ? 'LIVE DELIVERY' : 'DELIVERY MAP' }}</span><h4>{{ order.status === 'Out for Delivery' ? 'Track your rider' : 'Delivery route' }}</h4></div><span v-if="routes[order.name]">{{ routes[order.name].distance_km }} km · about {{ routes[order.name].duration_minutes }} min</span><span v-else-if="order.delivery_distance_km != null">{{ Number(order.delivery_distance_km).toFixed(1) }} km from shop</span></div><MapView preserve-view :config="order.map" :points="mapPoints(order)" :route="routes[order.name]?.points || []" height="250px" /><div class="map-legend"><span><i class="legend-shop"></i>Shop</span><span><i class="legend-customer"></i>Delivery</span><span v-if="order.driver_location"><i class="legend-rider"></i>Rider</span></div><small v-if="routes[order.name]" class="route-attribution"><a :href="routes[order.name].attribution_url" target="_blank" rel="noopener">{{ routes[order.name].attribution }}</a></small><p v-if="routeErrors[order.name]" class="route-error">{{ routeErrors[order.name] }}</p><LocationFreshness v-if="order.status === 'Out for Delivery' && order.driver_location" :location="order.driver_location" /><p v-else-if="order.status === 'Out for Delivery'" class="muted">Waiting for the rider to start live location sharing. Order updates appear automatically every 10 seconds.</p></section>
       <p v-if="order.delivery_user" class="rider-summary"><span aria-hidden="true">●</span><strong>{{ order.delivery_name }}</strong> is assigned to this delivery.</p>
       <p v-if="order.reason">Cancellation: {{ order.reason }}</p>
       <p v-if="order.status === 'Requested'" class="muted">The shop will check stock before accepting this order.</p>
@@ -271,6 +281,7 @@ onBeforeUnmount(() => {
         <small v-if="!drivers.length">No delivery people are assigned to this shop. A platform administrator can add a Delivery Person membership in Desk.</small>
       </div>
       <div v-if="(shop && editable) || (!shop && order.status === 'Requested')" class="order-actions">
+        <button v-if="shop && ['Accepted', 'Preparing'].includes(order.status) && order.can_repack" :disabled="busy" @click="repack(order)">Repack with fresh stock</button>
         <button v-if="shop && next[order.status] && !(order.payment_method === 'Cashfree' && (order.payment_status !== 'Paid' || order.accounting_pending))" class="lc-primary" :disabled="busy" @click="change(order, next[order.status])">{{ nextLabel[order.status] }}</button>
         <details v-if="cancellable.has(order.status)"><summary>Cancel order</summary><label>Reason<input v-model="reasons[order.name]" minlength="3" maxlength="500"></label><button :disabled="busy || (reasons[order.name] || '').trim().length < 3" @click="change(order, 'Cancelled')">Confirm cancellation</button></details>
       </div>

@@ -1,20 +1,20 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import App from './App.vue'
-import AdminDashboard from './AdminDashboard.vue'
-import Shops from './Shops.vue'
-import ShopWorkspace from './ShopWorkspace.vue'
-import Store from './Store.vue'
-import StoreCategories from './StoreCategories.vue'
-import StoreSettings from './StoreSettings.vue'
-import CustomerShop from './CustomerShop.vue'
-import Orders from './Orders.vue'
-import Signup from './Signup.vue'
-import Login from './Login.vue'
-import ResetPassword from './ResetPassword.vue'
-import Account from './Account.vue'
-import Favourites from './Favourites.vue'
-import Delivery from './Delivery.vue'
+const AdminDashboard = () => import('./AdminDashboard.vue')
+const Shops = () => import('./Shops.vue')
+const ShopWorkspace = () => import('./ShopWorkspace.vue')
+const Store = () => import('./Store.vue')
+const StoreCategories = () => import('./StoreCategories.vue')
+const StoreSettings = () => import('./StoreSettings.vue')
+const CustomerShop = () => import('./CustomerShop.vue')
+const Orders = () => import('./Orders.vue')
+const Signup = () => import('./Signup.vue')
+const Login = () => import('./Login.vue')
+const ResetPassword = () => import('./ResetPassword.vue')
+const Account = () => import('./Account.vue')
+const Favourites = () => import('./Favourites.vue')
+const Delivery = () => import('./Delivery.vue')
 import './style.css'
 import './responsive.css'
 const router = createRouter({ history: createWebHashHistory(), scrollBehavior: (to, from, saved) => saved || (to.path === from.path ? false : { top: 0 }), routes: [

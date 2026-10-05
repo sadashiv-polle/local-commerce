@@ -154,3 +154,8 @@ def map_shops(south, west, north, east):
     from local_commerce.services.shop_map_discovery import shops
 
     return shops(south, west, north, east)
+
+
+@frappe.whitelist(methods=["POST"])
+def repack(order):
+    return orders.repack(order)

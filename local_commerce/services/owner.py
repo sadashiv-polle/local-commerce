@@ -527,6 +527,13 @@ def upload_product_image(shop, item):
 
     from frappe.utils.file_manager import save_file
 
+    from local_commerce.services.image_optimization import optimize
+    from PIL import Image
+    try:
+        content = optimize(content)
+    except (OSError, ValueError, Image.DecompressionBombError):
+        reject("Choose a valid JPG, PNG or WebP product image")
+    filename = "product-" + frappe.generate_hash(length=12) + ".webp"
     file_doc = save_file(filename, content, "Item", product.name, is_private=0)
     product.image = file_doc.file_url
     token = _item_creation.set(True)

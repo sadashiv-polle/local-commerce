@@ -888,11 +888,13 @@ def serialize(doc):
         "shop_location": shop_location(shop),
         "map": map_config(),
         "live_tracking_enabled": bool(shop.live_tracking_enabled),
+        "can_repack": shop.shop_type == "Fish" and doc.status in {"Accepted", "Preparing"},
         "driver_location": (
             {
                 **driver_location,
                 "accuracy": doc.driver_location_accuracy,
                 "updated_at": str(doc.driver_location_at),
+                "age_seconds": max(0, frappe.utils.time_diff_in_seconds(frappe.utils.now_datetime(), doc.driver_location_at)),
             }
             if driver_location
             else None
@@ -1818,3 +1820,29 @@ def _accept_sales_order(doc, so):
         if item_totals[row.item_code] > stock["available"]:
             reject("Not enough available stock to accept this order")
     so.submit()
+
+
+def repack(order):
+    from local_commerce.permissions.scope import require_shop
+    from local_commerce.services import fish
+    doc = frappe.get_doc("LC Order", order)
+    require_shop(doc.shop, "write")
+    frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
+    frappe.db.sql("select name from `tabLC Order` where name=%s for update", doc.name)
+    doc.reload()
+    if doc.status not in {"Accepted", "Preparing"}:
+        reject("Repack is available only before the order is marked ready")
+    if not fish.enabled(frappe.get_doc("LC Shop", doc.shop)):
+        reject("Repack is available for fish stock reservations")
+    if doc.payment_status == "Refunded" or doc.get("gateway_refunded_amount"):
+        reject("Refunded orders cannot be repacked for delivery")
+    before = doc.fish_allocations_json
+    fish.validate_order(doc, refresh_expired=True)
+    if before != doc.fish_allocations_json:
+        token = _order_operation.set(True)
+        try:
+            doc.save(ignore_permissions=True)
+            doc.add_comment("Info", "Expired reservations replaced with fresh stock after shop repack confirmation")
+        finally:
+            _order_operation.reset(token)
+    return {"changed": before != doc.fish_allocations_json}
