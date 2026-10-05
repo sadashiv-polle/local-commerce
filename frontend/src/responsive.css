@@ -808,3 +808,19 @@
   #lc-app .customer-bottom-nav.rider-bottom-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   #lc-app .customer-bottom-nav.with-deliveries a { font-size: 10px; }
 }
+
+/* Keep shopping and operational navigation distinct at every screen size. */
+#lc-app .workspace-switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1400px; margin: 12px auto; padding: 12px 20px; background: #edf5ef; border: 1px solid #d8e6db; border-radius: 14px; }
+#lc-app .workspace-switch div { display: grid; gap: 4px; min-width: 0; }
+#lc-app .workspace-switch strong { font-size: 15px; color: #194d3b; }
+#lc-app .workspace-switch small { font-size: 12px; color: #587166; }
+#lc-app .workspace-switch a { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 14px; border-radius: 10px; background: #17654d; color: white; font-size: 13px; font-weight: 700; text-decoration: none; flex-shrink: 0; }
+@media (max-width: 760px) {
+  #lc-app .workspace-switch { flex-wrap: wrap; margin: 10px 12px; padding: 10px 12px; gap: 10px; }
+  #lc-app .workspace-switch strong { font-size: 13px; }
+  #lc-app .workspace-switch small { font-size: 11px; line-height: 1.4; }
+  #lc-app .workspace-switch a { padding: 8px 10px; font-size: 12px; }
+  #lc-app .customer-bottom-nav.work-bottom-nav { display: flex; }
+}
+
+#lc-app .work-bottom-nav > a { flex: 1; }
