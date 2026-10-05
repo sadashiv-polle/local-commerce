@@ -1,4 +1,2 @@
-export function checkoutTarget(browser = window) {
-  return browser.navigator?.standalone === true || browser.matchMedia?.('(display-mode: standalone)').matches
-    ? '_self' : '_modal'
-}
+// Keep checkout in a popup for browsers and installed apps.
+export function checkoutTarget() { return '_modal' }
