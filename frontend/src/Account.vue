@@ -103,11 +103,10 @@ onBeforeUnmount(() => { locationGeneration++; window.removeEventListener('lc-add
     <template v-else>
       <header v-if="!editing" class="account-hero">
         <ProfileAvatar :name="session.full_name" :image="session.user_image" />
-        <div><span class="eyebrow">YOUR ACCOUNT</span><h1>{{ session.full_name || 'Welcome to Local' }}</h1><p>{{ session.user }}</p><small v-if="session.username">Username: <strong>{{ session.username }}</strong> · {{ session.username_login_enabled ? 'You can use this to log in' : 'Log in with your email' }}</small></div>
+        <div><span class="eyebrow">YOUR ACCOUNT</span><h1>{{ session.full_name || 'Welcome to Local' }}</h1><p>{{ session.user }}</p><small v-if="session.username">Username: <strong>{{ session.username }}</strong><span class="account-login-hint">{{ session.username_login_enabled ? 'You can use this to log in' : 'Log in with your email' }}</span></small></div>
       </header>
       <nav v-if="!editing" class="account-shortcuts" aria-label="Account shortcuts">
         <RouterLink to="/orders"><span aria-hidden="true">▤</span><div><strong>My orders</strong><small>Track deliveries & buy again</small></div><b aria-hidden="true">›</b></RouterLink>
-        <RouterLink to="/favourites"><span aria-hidden="true">♡</span><div><strong>Favourites</strong><small>Your saved products</small></div><b aria-hidden="true">›</b></RouterLink>
         <RouterLink to="/store"><span aria-hidden="true">⌂</span><div><strong>Continue shopping</strong><small>Explore your local shops</small></div><b aria-hidden="true">›</b></RouterLink>
       </nav>
       <p v-if="loading" role="status">Loading account…</p>
@@ -136,10 +135,11 @@ onBeforeUnmount(() => { locationGeneration++; window.removeEventListener('lc-add
 #lc-app .account-hero { display: flex; align-items: center; gap: 20px; padding: 26px; border: 1px solid #dce6dc; border-radius: 22px; background: linear-gradient(120deg, #edf5e9, #fafbf7); }
 #lc-app .account-hero > div { min-width: 0; }
 #lc-app .account-hero .profile-photo-avatar { display: grid; place-items: center; width: 76px; height: 76px; flex-shrink: 0; border-radius: 50%; color: #176547; background: #fff; border: 3px solid white; font-size: 32px; font-weight: 750; }
-#lc-app .account-hero h1 { margin: 6px 0; font-size: clamp(23px, 3vw, 32px); line-height: 1.2; overflow-wrap: anywhere; }
-#lc-app .account-hero p { margin: 4px 0; font-size: 14px; overflow-wrap: anywhere; }
-#lc-app .account-hero small { font-size: 12px; color: #657869; overflow-wrap: anywhere; }
-#lc-app .account-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0 30px; }
+#lc-app .account-hero h1 { margin: 10px 0 12px; font-size: clamp(23px, 3vw, 32px); line-height: 1.4; letter-spacing: normal; overflow-wrap: anywhere; }
+#lc-app .account-hero p { margin: 0 0 12px; font-size: 14px; line-height: 1.7; letter-spacing: normal; overflow-wrap: anywhere; }
+#lc-app .account-hero small { display: block; line-height: 1.8; letter-spacing: normal; font-size: 13px; color: #657869; overflow-wrap: anywhere; }
+#lc-app .account-login-hint { display: block; margin-top: 5px; font-size: 12px; }
+#lc-app .account-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 18px 0 30px; }
 #lc-app .account-shortcuts a { display: flex; align-items: center; gap: 12px; padding: 16px; border: 1px solid #dce6dc; border-radius: 16px; background: white; text-decoration: none; color: #214a36; }
 #lc-app .account-shortcuts a > span { font-size: 25px; }
 #lc-app .account-shortcuts a > div { display: grid; flex: 1; min-width: 0; }
