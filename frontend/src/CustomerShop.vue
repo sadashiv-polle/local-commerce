@@ -1,4 +1,5 @@
 <script setup>
+import { loadCashfree } from './cashfree-sdk.js'
 import StockAlertButton from './StockAlertButton.vue'
 import { displayPrice } from './product-price.js'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -15,6 +16,7 @@ const search = ref(''), category = ref(''), inStockOnly = ref(false)
 let searchTimer, catalogGeneration = 0, openedProduct = ''
 const catalog = ref(null), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
 const paymentMethod = ref('Cash on Delivery')
+watch(paymentMethod, method => { if (method === 'Cashfree') loadCashfree().catch(() => {}) })
 watch(catalog, value => { if (value && !value.payment_methods.includes(paymentMethod.value)) paymentMethod.value = value.payment_methods[0] || '' })
 const deliveryMode = ref('Normal'), scheduledSlot = ref('')
 const cart = ref({}), pending = ref(null), checkout = ref(false), cartOpen = ref(false)

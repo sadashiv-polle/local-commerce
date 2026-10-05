@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { call } from './api.js'
+import { loadCashfree } from './cashfree-sdk.js'
 import { checkoutTarget } from './checkout-target.js'
 import { useRoute } from 'vue-router'
 const route = useRoute()
@@ -26,17 +27,13 @@ async function pay() {
   if (busy.value) return
   busy.value = true; error.value = ''; phase.value = 'opening'
   try {
-    const session = await call('cashfree.checkout', { order: props.order.name }, true)
-    if (!window.Cashfree) await new Promise((resolve, reject) => {
-      const script = document.createElement('script')
-      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'
-      script.onload = resolve
-      script.onerror = () => { script.remove(); reject(new Error('Payment checkout could not load. Please retry.')) }
-      document.head.appendChild(script)
-    })
+    const [session, Cashfree] = await Promise.all([
+      call('cashfree.checkout', { order: props.order.name }, true),
+      loadCashfree(),
+    ])
     const target = checkoutTarget()
     phase.value = 'checkout'
-    const result = await window.Cashfree({ mode: session.environment }).checkout({
+    const result = await Cashfree({ mode: session.environment }).checkout({
       paymentSessionId: session.payment_session_id, redirectTarget: target,
     })
     await verifyPayment()
@@ -45,6 +42,7 @@ async function pay() {
   finally { busy.value = false }
 }
 onMounted(() => {
+  if (props.customer && ['Pending', 'Failed'].includes(props.order.payment_status)) loadCashfree().catch(() => {})
   if (props.customer && route.path === '/orders' && route.query.order === props.order.name && !props.autoStart) { refresh(); return }
   if (!props.autoStart || !props.customer) return
   emit('checkout-started')
