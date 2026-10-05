@@ -8,7 +8,7 @@ from local_commerce.permissions.scope import require_shop
 from local_commerce.services.owner import reject
 
 
-def render_label(shop_name, recipient, address, order_id):
+def render_label(shop_name, recipient, address, order_id, order_date="", delivery_mode=""):
     from reportlab.pdfgen import canvas
     from reportlab.lib.units import mm
     from reportlab.lib.utils import ImageReader
@@ -41,13 +41,16 @@ def render_label(shop_name, recipient, address, order_id):
     title = lines(shop_name, 46 * mm, 7, 1, 'Helvetica-Bold')
     pdf.drawCentredString(25 * mm, 21.5 * mm, title[0] if title else '')
     pdf.setFont('Helvetica', 5)
-    pdf.drawString(2 * mm, 18 * mm, 'ORDER ' + order_id[-10:].upper())
+    pdf.drawString(2 * mm, 18.5 * mm, 'ORDER ' + order_id[-10:].upper())
+    pdf.setStrokeColorRGB(.7, .7, .7)
+    pdf.setLineWidth(.3)
+    pdf.line(2 * mm, 20 * mm, 48 * mm, 20 * mm)
     pdf.setFont('Helvetica-Bold', 7)
     for index, line in enumerate(lines(recipient, 25 * mm, 7, 2, 'Helvetica-Bold')):
-        pdf.drawString(2 * mm, (14.5 - index * 2.8) * mm, line)
+        pdf.drawString(2 * mm, (15.3 - index * 2.8) * mm, line)
     pdf.setFont('Helvetica', 5.5)
-    for index, line in enumerate(lines(address, 25 * mm, 5.5, 4)):
-        pdf.drawString(2 * mm, (9 - index * 2.3) * mm, line)
+    for index, line in enumerate(lines(address, 25 * mm, 5.5, 3)):
+        pdf.drawString(2 * mm, (10 - index * 2.3) * mm, line)
     # Full delivery details remain in QR when printed text must be shortened.
     payload = json.dumps({'order': order_id, 'shop': shop_name, 'customer': recipient,
                           'address': address}, ensure_ascii=False, separators=(',', ':'))
@@ -57,6 +60,11 @@ def render_label(shop_name, recipient, address, order_id):
     drawing = Drawing(size, size, transform=[size / (right-left), 0, 0, size / (top-bottom), 0, 0])
     drawing.add(qr)
     renderPDF.draw(drawing, pdf, 29 * mm, 1 * mm)
+    # Small footer stays outside the address and QR quiet zone.
+    pdf.setFont('Helvetica', 4.5)
+    footer = ' / '.join(value for value in (order_date, delivery_mode) if value)
+    for line in lines(footer, 25 * mm, 4.5, 1):
+        pdf.drawString(2 * mm, 2 * mm, line)
     pdf.showPage(); pdf.save()
     return output.getvalue()
 
@@ -72,7 +80,11 @@ def download(order):
                         ('line1', 'city', 'postal_code') if snapshot.get(key))
     frappe.local.response.update({
         'filename': 'label-' + doc.name[-10:] + '.pdf',
-        'filecontent': render_label(shop.shop_name, doc.recipient, address, doc.name),
+        'filecontent': render_label(
+            shop.shop_name, doc.recipient, address, doc.name,
+            frappe.utils.formatdate(doc.creation, 'dd MMM yy'),
+            'Scheduled' if doc.delivery_mode == 'Scheduled' else 'Normal',
+        ),
         'type': 'pdf',
     })
     frappe.local.response['headers'] = {'Cache-Control': 'private, no-store'}
