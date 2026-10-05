@@ -6,7 +6,7 @@ requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
 # ERPNext/Frappe 15.109 requires cryptography 46.x; pywebpush 2.5 requires >=47.
-dependencies = ["pywebpush==2.0.3"]
+dependencies = ["pywebpush==2.0.3", "reportlab>=4.0,<6"]
 license = {text = "MIT"}
 
 [build-system]

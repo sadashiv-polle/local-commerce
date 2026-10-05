@@ -159,3 +159,9 @@ def map_shops(south, west, north, east):
 @frappe.whitelist(methods=["POST"])
 def repack(order):
     return orders.repack(order)
+
+
+@frappe.whitelist(methods=["GET"])
+def packing_label(order):
+    from local_commerce.services.packing_label import download
+    return download(order)

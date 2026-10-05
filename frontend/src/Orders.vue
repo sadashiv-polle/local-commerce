@@ -275,6 +275,7 @@ onBeforeUnmount(() => {
       <p v-else-if="order.status === 'Ready'" class="muted">Your order is ready and assigned for pickup.</p>
       <p v-else-if="order.status === 'Delivered'" class="success-note">Delivered successfully{{ order.delivered_at ? ` on ${order.delivered_at}` : '' }}.</p>
       <button v-if="!shop && ['Delivered', 'Cancelled'].includes(order.status)" type="button" class="reorder-button" :disabled="reorderBusy" aria-haspopup="dialog" @click="reviewReorder(order)">{{ reorderBusy ? 'Checking items…' : 'Order again ↗' }}</button>
+      <div v-if="shop && editable && ['Ready', 'Picked Up', 'Out for Delivery', 'Delivered'].includes(order.status)" class="packing-label-action"><a class="lc-primary" :href="`/api/method/local_commerce.api.orders.packing_label?order=${encodeURIComponent(order.name)}`" target="_blank" rel="noopener">Download label · 50 × 30 mm</a><small>Print at actual size (100%). QR includes customer delivery details.</small></div>
       <div v-if="shop && editable && order.status === 'Ready'" class="driver-assignment">
         <label>Delivery person<select v-model="selectedDrivers[order.name]" :disabled="busy || !drivers.length"><option value="" disabled>Select a rider</option><option v-for="driver in drivers" :key="driver.user" :value="driver.user">{{ driver.full_name }}</option></select></label>
         <button class="lc-primary" :disabled="busy || !selectedDrivers[order.name] || selectedDrivers[order.name] === order.delivery_user" @click="assign(order)">{{ order.delivery_user ? 'Reassign rider' : 'Assign rider' }}</button>
@@ -311,4 +312,10 @@ onBeforeUnmount(() => {
 #lc-app .customer-order-cancelled .tracking-status-dot { background: #b84035; box-shadow: 0 0 0 6px #fbe3df; }
 #lc-app .customer-order-tabs .cancelled-tab.active { background: #fff0ed; border-color: #edc3bd; color: #9b3028; }
 #lc-app .customer-order-tabs .cancelled-tab.active strong span { background: #9b3028; }
+</style>
+
+<style>
+#lc-app .packing-label-action { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 14px 0; }
+#lc-app .packing-label-action a { padding: 10px 14px; border-radius: 10px; text-decoration: none; }
+#lc-app .packing-label-action small { color: #657568; }
 </style>
