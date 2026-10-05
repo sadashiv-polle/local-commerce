@@ -172,3 +172,8 @@ def packing_label(order):
 def label_details(order, token):
     from local_commerce.services.packing_label import public_details
     return public_details(order, token)
+
+
+@frappe.whitelist(methods=["GET"])
+def assignment_history(order):
+    return orders.assignment_history(order)

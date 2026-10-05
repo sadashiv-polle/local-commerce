@@ -233,6 +233,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-address-change', loadSave
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p><p v-if="loading" role="status">Loading products…</p>
     <template v-if="catalog">
       <h1>{{ catalog.shop_name }}</h1><p><span class="shop-open-status" :class="{ closed: !catalog.accepting_orders }">{{ catalog.availability.label }}</span> {{ catalog.accepting_orders ? 'Delivery requests · Shop confirmation required' : catalog.availability.message }}</p>
+      <p class="shop-hours-notice">{{ catalog.availability.message }}<small v-if="catalog.scheduled_enabled"> · Normal ordering hours; scheduled slots have their own cutoff.</small></p>
       <p v-if="catalog.accepting_orders" class="muted">Delivery within {{ Number(catalog.shop_location.service_radius_km).toFixed(1) }} km · Base delivery fee: {{ money(catalog.delivery_fee) }}</p>
       <p v-if="pending" class="lc-notice">Your last request is not confirmed. Retry it below before starting another.</p>
       <section class="product-discovery" aria-label="Find products">

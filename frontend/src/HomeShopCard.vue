@@ -20,6 +20,7 @@ function time(value) { return String(value).slice(11, 16) }
     </div>
     <div class="home-shop-body">
       <small>{{ shop.city || 'Local to you' }}</small><h3>{{ shop.shop_name }}</h3>
+      <p v-if="shop.availability?.message" class="shop-hours-notice">{{ shop.availability.message }}</p>
       <p v-if="shop.description" class="home-shop-description">{{ shop.description }}</p>
       <div class="home-shop-delivery"><span v-if="shop.normal_delivery">Normal delivery</span><span v-if="shop.scheduled_enabled">Scheduled · free delivery</span><span v-if="!shop.normal_delivery && !shop.scheduled_enabled">Delivery unavailable</span></div>
       <p class="home-shop-minimum">{{ Number(shop.minimum_order_amount) > 0 ? `Minimum order ${money(shop.minimum_order_amount)}` : 'No minimum order' }}<span v-if="shop.normal_delivery && Number(shop.free_delivery_above) > 0"> · Free normal delivery above {{ money(shop.free_delivery_above) }}</span></p>

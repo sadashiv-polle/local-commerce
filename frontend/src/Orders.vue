@@ -173,11 +173,23 @@ async function repack(order) {
     window.alert(result.changed ? 'Fresh stock reserved. Repack the items before marking ready.' : 'The current reservations are still valid. No stock change was needed.')
   } catch (e) { error.value = e.message } finally { busy.value = false }
 }
+const assignmentHistory = ref({})
+async function showAssignmentHistory(order) {
+  try { assignmentHistory.value[order.name] = await call('orders.assignment_history', { order: order.name }) }
+  catch (e) { error.value = e.message }
+}
+async function unassign(order) {
+  if (busy.value || !window.confirm('Remove the rider from this order? It will wait for a new assignment.')) return
+  busy.value = true; error.value = ''
+  try { await call('orders.assign_driver', { order: order.name, delivery_user: '' }, true); await load(); await showAssignmentHistory(order) }
+  catch (e) { error.value = e.message }
+  finally { busy.value = false }
+}
 async function assign(order) {
   const deliveryUser = selectedDrivers.value[order.name]
   if (!deliveryUser) return
   busy.value = true; error.value = ''
-  try { await call('orders.assign_driver', { order: order.name, delivery_user: deliveryUser }, true); await load() }
+  try { await call('orders.assign_driver', { order: order.name, delivery_user: deliveryUser }, true); await load(); await showAssignmentHistory(order) }
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
@@ -276,7 +288,14 @@ onBeforeUnmount(() => {
       <p v-else-if="order.status === 'Delivered'" class="success-note">Delivered successfully{{ order.delivered_at ? ` on ${order.delivered_at}` : '' }}.</p>
       <button v-if="!shop && ['Delivered', 'Cancelled'].includes(order.status)" type="button" class="reorder-button" :disabled="reorderBusy" aria-haspopup="dialog" @click="reviewReorder(order)">{{ reorderBusy ? 'Checking items…' : 'Order again ↗' }}</button>
       <div v-if="shop && editable && ['Ready', 'Picked Up', 'Out for Delivery', 'Delivered'].includes(order.status)" class="packing-label-action"><a class="lc-primary" :href="`/api/method/local_commerce.api.orders.packing_label?order=${encodeURIComponent(order.name)}`" target="_blank" rel="noopener">Download label · 50 × 30 mm</a><small>Print at actual size (100%). QR includes customer delivery details.</small></div>
+      <div v-if="shop" class="assignment-audit">
+        <button v-if="editable && order.delivery_user && ['Accepted', 'Preparing', 'Ready'].includes(order.status)" type="button" :disabled="busy" @click="unassign(order)">Unassign rider</button>
+        <small v-if="order.assigned_at">Assigned on {{ order.assigned_at }}</small>
+        <button type="button" @click="showAssignmentHistory(order)">View assignment history</button>
+        <ul v-if="assignmentHistory[order.name]"><li v-for="(entry, index) in assignmentHistory[order.name]" :key="index">{{ entry.action }} · {{ entry.rider }} · By {{ entry.by }} · {{ entry.at }}</li><li v-if="!assignmentHistory[order.name].length">No rider assignments yet.</li></ul>
+      </div>
       <div v-if="shop && editable && order.status === 'Ready'" class="driver-assignment">
+
         <label>Delivery person<select v-model="selectedDrivers[order.name]" :disabled="busy || !drivers.length"><option value="" disabled>Select a rider</option><option v-for="driver in drivers" :key="driver.user" :value="driver.user">{{ driver.full_name }}</option></select></label>
         <button class="lc-primary" :disabled="busy || !selectedDrivers[order.name] || selectedDrivers[order.name] === order.delivery_user" @click="assign(order)">{{ order.delivery_user ? 'Reassign this order' : 'Assign this order' }}</button>
         <small v-if="!drivers.length">No delivery people are assigned to this shop. A platform administrator can add a Delivery Person membership in Desk.</small>

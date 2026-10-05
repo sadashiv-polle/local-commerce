@@ -60,7 +60,8 @@
     "arrived_by",
     "gateway_accounting_json",
     "gateway_settlement_error",
-    "gateway_reconciled_at"
+    "gateway_reconciled_at",
+    "assignment_history_json"
   ],
   "fields": [
     {
@@ -444,6 +445,14 @@
       "fieldtype": "Datetime",
       "read_only": 1,
       "hidden": 1
+    },
+    {
+      "fieldname": "assignment_history_json",
+      "label": "Delivery assignment history",
+      "fieldtype": "Code",
+      "options": "JSON",
+      "hidden": 1,
+      "read_only": 1
     }
   ],
   "permissions": [

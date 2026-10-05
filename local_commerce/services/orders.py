@@ -1146,22 +1146,34 @@ def assign_driver(order, delivery_user):
     frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
     frappe.db.sql("select name from `tabLC Order` where name=%s for update", doc.name)
     doc.reload()
-    if doc.status != "Ready":
+    if delivery_user and doc.status != "Ready":
         reject("A delivery person can only be assigned when the order is ready")
-    if not is_shop_driver(delivery_user, doc.shop):
+    if not delivery_user and doc.status not in {"Accepted", "Preparing", "Ready"}:
+        reject("A rider can only be unassigned before pickup")
+    if delivery_user and not is_shop_driver(delivery_user, doc.shop):
         reject("Select an enabled delivery person assigned to this shop")
     if doc.delivery_user == delivery_user:
         return serialize(doc)
     token = _order_operation.set(True)
     try:
         previous = doc.delivery_user
-        doc.delivery_user = delivery_user
-        doc.assigned_at = now_datetime()
+        history = json.loads(doc.get('assignment_history_json') or '[]')
+        if not history and previous:
+            history.append({'action': 'Previously assigned', 'rider': previous,
+                            'by': 'Not recorded', 'at': str(doc.assigned_at or '')})
+        history.append({'action': 'Unassigned' if not delivery_user else 'Reassigned' if previous else 'Assigned',
+                        'rider': delivery_user or previous, 'by': frappe.session.user,
+                        'at': str(now_datetime())})
+        doc.assignment_history_json = json.dumps(history)
+        doc.delivery_user = delivery_user or None
+        doc.assigned_at = now_datetime() if delivery_user else None
         doc.save(ignore_permissions=True)
-        label = frappe.db.get_value("User", delivery_user, "full_name") or delivery_user
-        action = "Reassigned" if previous else "Assigned"
+        rider = delivery_user or previous
+        label = frappe.db.get_value("User", rider, "full_name") or rider
+        action = "Unassigned" if not delivery_user else "Reassigned" if previous else "Assigned"
         doc.add_comment("Info", escape(f"{action} delivery to {label}."))
-        order_notifications.driver_assigned(doc, previous)
+        if delivery_user:
+            order_notifications.driver_assigned(doc, previous)
         return serialize(doc)
     finally:
         _order_operation.reset(token)
@@ -1846,3 +1858,14 @@ def repack(order):
         finally:
             _order_operation.reset(token)
     return {"changed": before != doc.fish_allocations_json}
+
+
+def assignment_history(order):
+    from local_commerce.permissions.scope import require_shop
+    doc = frappe.get_doc('LC Order', order)
+    require_shop(doc.shop)
+    rows = json.loads(doc.get('assignment_history_json') or '[]')
+    if not rows and doc.delivery_user:
+        rows = [{'action': 'Previously assigned', 'rider': doc.delivery_user,
+                 'by': 'Not recorded', 'at': str(doc.assigned_at or '')}]
+    return rows

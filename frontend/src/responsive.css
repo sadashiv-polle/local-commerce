@@ -824,3 +824,7 @@
 }
 
 #lc-app .work-bottom-nav > a { flex: 1; }
+
+#lc-app .shop-hours-notice { color: #765516; background: #fff6df; border-radius: 10px; padding: 8px 12px; font-size: 13px; line-height: 1.5; }
+#lc-app .assignment-audit { display: grid; gap: 8px; margin: 12px 0; overflow-wrap: anywhere; }
+#lc-app .assignment-audit button { justify-self: start; }

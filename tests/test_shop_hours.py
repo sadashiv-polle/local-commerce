@@ -31,6 +31,13 @@ class ShopHoursTests(unittest.TestCase):
         self.assertTrue(availability(overnight, datetime(2026, 9, 16, 23))["open"])
         self.assertTrue(availability(overnight, datetime(2026, 9, 17, 1))["open"])
 
+    def test_closing_countdown_including_overnight(self):
+        doc = SimpleNamespace(accepting_orders=1, opening_hours_json=schedule())
+        self.assertEqual(availability(doc, datetime(2026, 9, 16, 20, 45))['message'], 'Orders close in 15 minutes')
+        doc.opening_hours_json = schedule('18:00', '02:00')
+        self.assertEqual(availability(doc, datetime(2026, 9, 17, 1, 45))['message'], 'Orders close in 15 minutes')
+        self.assertFalse(availability(doc, datetime(2026, 9, 17, 2))['open'])
+
     def test_schedule_requires_all_days_and_valid_times(self):
         with self.assertRaisesRegex(ValueError, "seven days"):
             normalize(schedule()[:6])
