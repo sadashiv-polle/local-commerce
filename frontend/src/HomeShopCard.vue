@@ -1,4 +1,5 @@
 <script setup>
+import { displayTime } from './display-time.js'
 import { ref } from 'vue'
 const props = defineProps({ shop: { type: Object, required: true }, hasAddress: Boolean })
 const imageFailed = ref(false)
@@ -6,9 +7,9 @@ function money(value) { return new Intl.NumberFormat(undefined, { style: 'curren
 function dateTime(value) {
   // Slot values are shop-local wall times, not browser-local timestamps.
   const date = new Date(String(value).replace(' ', 'T') + 'Z')
-  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { timeZone: 'UTC', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(date)
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { timeZone: 'UTC', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).format(date)
 }
-function time(value) { return String(value).slice(11, 16) }
+function time(value) { return displayTime(String(value).slice(11, 16)) }
 </script>
 <template>
   <RouterLink class="home-shop-card" :to="{ name: 'customer-shop', params: { shop: shop.name } }">

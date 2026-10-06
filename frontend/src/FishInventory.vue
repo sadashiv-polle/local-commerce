@@ -1,4 +1,5 @@
 <script setup>
+import { displayTime } from './display-time.js'
 import { computed, inject, nextTick, onMounted, ref } from 'vue'
 import { call } from './api.js'
 import OrderReference from './OrderReference.vue'
@@ -44,7 +45,7 @@ const totals = computed(() => {
 })
 function money(value) { return new Intl.NumberFormat(undefined, { style: 'currency', currency: data.value?.currency || 'INR' }).format(Number(value || 0)) }
 function kg(value) { return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 6 }) }
-function when(value) { return value ? String(value).replace('T', ' ').slice(0, 19) : '—' }
+function when(value) { return value ? displayTime(value) : '—' }
 async function load() {
   loading.value = true; error.value = ''
   try { data.value = await call('fish.snapshot', { shop: props.shop }) }

@@ -18,7 +18,7 @@ const pageTotals = computed(() => {
 })
 
 function money(value, currency) { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value) }
-function when(value) { return value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '' }
+function when(value) { return value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', hour12: true }).format(new Date(value)) : '' }
 async function load(delta = 0) {
   start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
   try { collections.value = await call('orders.cod_collections', { shop: props.shop, view: view.value, start: start.value }) }

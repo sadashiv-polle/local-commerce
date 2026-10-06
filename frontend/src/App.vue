@@ -165,7 +165,7 @@ async function turnOffPush() {
 }
 function notificationTime(value) {
   const parsed = new Date(String(value || '').replace(' ', 'T'))
-  return Number.isNaN(parsed.getTime()) ? '' : parsed.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+  return Number.isNaN(parsed.getTime()) ? '' : parsed.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short', hour12: true })
 }
 async function openNotification(notification) {
   if (!notification.read) {

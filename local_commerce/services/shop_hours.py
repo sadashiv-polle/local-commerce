@@ -36,6 +36,11 @@ def _minutes(value):
     return int(hour) * 60 + int(minute)
 
 
+def clock_label(value):
+    hour, minute = map(int, value.split(':'))
+    return f"{hour % 12 or 12}:{minute:02d} {'PM' if hour >= 12 else 'AM'}"
+
+
 def availability(doc, current=None):
     if current is None:
         from frappe.utils import now_datetime
@@ -57,14 +62,14 @@ def availability(doc, current=None):
             return {
                 "open": True,
                 "label": "Closing soon" if remaining <= 30 else "Open",
-                "message": (f"Orders close in {remaining} minutes" if remaining <= 30 else f"Closes at {row['closes']}"),
+                "message": (f"Orders close in {remaining} minutes" if remaining <= 30 else f"Closes at {clock_label(row['closes'])}"),
             }
     previous = schedule[(today - 1) % 7]
     if previous["enabled"] and _minutes(previous["opens"]) > _minutes(previous["closes"]):
         if now_minutes < _minutes(previous["closes"]):
             remaining = _minutes(previous['closes']) - now_minutes
             return {"open": True, "label": "Closing soon" if remaining <= 30 else "Open",
-                    "message": f"Orders close in {remaining} minutes" if remaining <= 30 else f"Closes at {previous['closes']}"}
+                    "message": f"Orders close in {remaining} minutes" if remaining <= 30 else f"Closes at {clock_label(previous['closes'])}"}
     for offset in range(0, 8):
         candidate = schedule[(today + offset) % 7]
         if not candidate["enabled"]:
@@ -77,6 +82,6 @@ def availability(doc, current=None):
             return {
                 "open": False,
                 "label": "Closed",
-                "message": f"Opens {day_label} at {candidate['opens']}",
+                "message": f"Opens {day_label} at {clock_label(candidate['opens'])}",
             }
     return {"open": False, "label": "Closed", "message": "Opening time unavailable"}

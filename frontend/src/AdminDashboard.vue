@@ -99,7 +99,7 @@ watch(section, revealSection, { flush: 'post' })
 function go(target, shop = '', filter = '') { router.push({ path: `/admin/${target}`, query: { ...(shop ? { shop } : {}), ...(filter ? { status: filter } : {}) } }) }
 function chooseShop(event) { go(section.value, event.target.value) }
 function money(value, currency) { return value == null || !currency ? '—' : new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(value)) }
-function when(value) { return value ? new Date(String(value).replace(' ', 'T')).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—' }
+function when(value) { return value ? new Date(String(value).replace(' ', 'T')).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short', hour12: true }) : '—' }
 function record(type, name) { return `/app/${type}/${encodeURIComponent(name)}` }
 async function loadRows(delta = 0) {
   const current = ++generation
