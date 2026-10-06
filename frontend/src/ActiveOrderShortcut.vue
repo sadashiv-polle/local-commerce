@@ -43,7 +43,7 @@ onBeforeUnmount(() => {
   <section v-if="customer && orders.length" class="home-active-orders" aria-label="Your active orders">
     <RouterLink v-for="order in orders" :key="order.name" class="home-active-order" :to="{ path: '/orders', query: { order: order.name } }">
       <span class="home-active-order-dot" aria-hidden="true"></span>
-      <span class="home-active-order-copy"><small>{{ order.shop_name }} · #{{ order.name.slice(-8).toUpperCase() }}<template v-if="order.delivery_mode === 'Scheduled'"> · Scheduled</template></small><strong>{{ labels[order.status] || order.status }}</strong></span>
+      <span class="home-active-order-copy"><small>{{ order.shop_name }} · #{{ order.name.slice(0, 8).toUpperCase() }}<template v-if="order.delivery_mode === 'Scheduled'"> · Scheduled</template></small><strong>{{ labels[order.status] || order.status }}</strong></span>
       <span class="home-active-order-action">Track order <span aria-hidden="true">→</span></span>
     </RouterLink>
   </section>
