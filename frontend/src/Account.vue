@@ -106,6 +106,7 @@ onBeforeUnmount(() => { locationGeneration++; window.removeEventListener('lc-add
         <div><span class="eyebrow">YOUR ACCOUNT</span><h1>{{ session.full_name || 'Welcome to Local' }}</h1><p>{{ session.user }}</p><small v-if="session.username" class="account-username" :title="session.username_login_enabled ? 'You can also log in with this username' : 'Use your email to log in'"><span>Username</span><strong>{{ session.username }}</strong></small></div>
       </header>
       <nav v-if="!editing" class="account-shortcuts" aria-label="Account shortcuts">
+        <RouterLink to="/security"><span aria-hidden="true">⚿</span><div><strong>Change password</strong><small>Update your password or request a reset email</small></div><b aria-hidden="true">›</b></RouterLink>
         <RouterLink to="/orders"><span aria-hidden="true">▤</span><div><strong>My orders</strong><small>Track deliveries & buy again</small></div><b aria-hidden="true">›</b></RouterLink>
         <RouterLink to="/store"><span aria-hidden="true">⌂</span><div><strong>Continue shopping</strong><small>Explore your local shops</small></div><b aria-hidden="true">›</b></RouterLink>
       </nav>
