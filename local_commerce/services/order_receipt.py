@@ -8,44 +8,66 @@ from local_commerce.permissions.scope import require_shop
 
 
 def render_receipt(data):
-    from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas
+    from reportlab.platypus import Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
     output = BytesIO()
-    styles = getSampleStyleSheet()
-    def text(value, style='Normal'):
+    width, margin = 80 * mm, 4 * mm
+    content = width - 2 * margin
+    styles = {
+        'body': ParagraphStyle('body', fontName='Helvetica', fontSize=8, leading=11),
+        'center': ParagraphStyle('center', fontName='Helvetica', fontSize=8, leading=11, alignment=1),
+        'title': ParagraphStyle('title', fontName='Helvetica-Bold', fontSize=13, leading=16, alignment=1),
+        'bold': ParagraphStyle('bold', fontName='Helvetica-Bold', fontSize=10, leading=13),
+        'small': ParagraphStyle('small', fontName='Helvetica', fontSize=6, leading=8, alignment=1),
+    }
+    def text(value, style='body'):
         return Paragraph(escape(str(value or '')), styles[style])
     def money(value):
-        return f"{data['currency']} {float(value or 0):,.2f}"
+        return f"{float(value or 0):,.2f}"
+    def rule():
+        return HRFlowable(width=content, thickness=.5, spaceBefore=0, spaceAfter=0)
+    def pair(label, value, bold=False):
+        row = Table([[text(label, 'bold' if bold else 'body'), text(value, 'bold' if bold else 'body')]],
+                    colWidths=[content * .63, content * .37])
+        row.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 0)]))
+        return row
     logo = Path(__file__).resolve().parents[1] / 'public/icons/local-wordmark.png'
-    image = Image(str(logo), width=90, height=48)
-    image.hAlign = 'LEFT'
-    story = [image, text(data['shop'], 'Heading1'), text('ORDER RECEIPT', 'Heading2'),
-             text('Order ID: ' + data['order']), text('Order date: ' + data['created']),
-             text('Order status: ' + data['status']), Spacer(1, 12),
-             text('Customer: ' + data['customer']), text(data['address']), Spacer(1, 16)]
-    rows = [[text(value) for value in ['Item', 'Qty / unit', 'Rate', 'Amount']]]
+    image = Image(str(logo), width=72, height=39)
+    story = [image, text(data['shop'], 'title'), text('ORDER RECEIPT', 'center'),
+             Spacer(1, 6), rule(), Spacer(1, 6),
+             text('Order: ' + data['order'][-10:].upper(), 'bold'),
+             text(data['created']), text('Status: ' + data['status']),
+             text('Customer: ' + data['customer']), text(data['address']),
+             Spacer(1, 6), rule(), Spacer(1, 5),
+             text('ITEM / QTY × RATE                        AMOUNT', 'small')]
     for row in data['items']:
-        rows.append([text(row['name']), text(f"{row['qty']:g} {row['uom']}"),
-                     text(money(row['rate'])), text(money(row['amount']))])
-    table = Table(rows, colWidths=[230, 75, 95, 95], repeatRows=1, hAlign='LEFT')
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8f2eb')),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('LINEBELOW', (0, 0), (-1, -1), .3, colors.HexColor('#dce4de')),
-    ]))
-    story += [table, Spacer(1, 14), text('Item subtotal: ' + money(data['subtotal'])),
-              text('Taxes and delivery charges: ' + money(data['charges'])),
-              text('Additional discount: ' + money(data['discount'])),
-              text('Order total: ' + money(data['total']), 'Heading2'),
-              text('Payment method: ' + data['method']), text('Payment status: ' + data['payment_status']),
-              Spacer(1, 14), text('This is an order summary, not a tax invoice or independent proof of payment.'),
-              text('Thank you for shopping local.')]
-    SimpleDocTemplate(output, pagesize=A4, leftMargin=50, rightMargin=50,
-                      topMargin=30, bottomMargin=35, title='Order receipt').build(story)
+        story += [text(row['name']), pair(f"{row['qty']:g} {row['uom']} x {money(row['rate'])}",
+                                          money(row['amount'])), Spacer(1, 4)]
+    story += [rule(), Spacer(1, 5), text('Currency: ' + data['currency']),
+              pair('Subtotal', money(data['subtotal'])),
+              pair('Tax + delivery', money(data['charges']))]
+    if data['discount']:
+        story.append(pair('Discount', money(data['discount'])))
+    story += [rule(), pair('TOTAL', money(data['total']), True), rule(), Spacer(1, 6),
+              text('Payment: ' + data['method']), text('Payment status: ' + data['payment_status']),
+              Spacer(1, 8), text('Thank you for shopping local.', 'center'),
+              text('Order summary — not a tax invoice or independent proof of payment.', 'small'),
+              Spacer(1, 4), text('Full order ID: ' + data['order'], 'small')]
+    # Measure wrapped content first so roll length fits the order without A4 whitespace.
+    measured = [(flow, *flow.wrap(content, 100000)) for flow in story]
+    height = sum(h for _, _, h in measured) + 2 * margin
+    pdf = canvas.Canvas(output, pagesize=(width, height))
+    pdf.setTitle('80 mm order receipt')
+    y = height - margin
+    for flow, w, h in measured:
+        y -= h
+        flow.drawOn(pdf, margin + max(0, (content - w) / 2), y)
+    pdf.showPage()
+    pdf.save()
     return output.getvalue()
 
 
