@@ -30,6 +30,7 @@ const router = createRouter({ history: createWebHashHistory(), scrollBehavior: (
   { path: '/login', component: Login },
   { path: '/reset-password', component: ResetPassword },
   { path: '/account', component: Account },
+  { path: '/security', component: () => import('./PasswordSettings.vue') },
   { path: '/favourites', component: Favourites },
   { path: '/delivery', component: Delivery },
   { path: '/admin', component: AdminDashboard },
