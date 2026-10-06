@@ -177,3 +177,9 @@ def label_details(order, token):
 @frappe.whitelist(methods=["GET"])
 def assignment_history(order):
     return orders.assignment_history(order)
+
+
+@frappe.whitelist(methods=["GET"])
+def receipt(order):
+    from local_commerce.services.order_receipt import download
+    return download(order)
