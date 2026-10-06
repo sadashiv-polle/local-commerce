@@ -42,7 +42,7 @@ def render_label(shop_name, recipient, address, order_id, order_date="", deliver
     title = lines(shop_name, 46 * mm, 7, 1, 'Helvetica-Bold')
     pdf.drawCentredString(25 * mm, 21.5 * mm, title[0] if title else '')
     pdf.setFont('Helvetica', 5)
-    pdf.drawString(2 * mm, 18.5 * mm, 'ORDER ' + order_id[-10:].upper())
+    pdf.drawString(2 * mm, 18.5 * mm, 'ORDER REF ' + order_id[-8:].upper())
     pdf.setStrokeColorRGB(.7, .7, .7)
     pdf.setLineWidth(.3)
     pdf.line(2 * mm, 20 * mm, 48 * mm, 20 * mm)

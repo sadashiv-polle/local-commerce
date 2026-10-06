@@ -39,7 +39,7 @@ def render_receipt(data):
     image = Image(str(logo), width=72, height=39)
     story = [image, text(data['shop'], 'title'), text('ORDER RECEIPT', 'center'),
              Spacer(1, 6), rule(), Spacer(1, 6),
-             text('Order: ' + data['order'][-10:].upper(), 'bold'),
+             text('Order ID', 'bold'), text(data['order']),
              text(data['created']), text('Status: ' + data['status']),
              text('Customer: ' + data['customer']), text(data['address']),
              Spacer(1, 6), rule(), Spacer(1, 5),
@@ -56,7 +56,7 @@ def render_receipt(data):
               text('Payment: ' + data['method']), text('Payment status: ' + data['payment_status']),
               Spacer(1, 8), text('Thank you for shopping local.', 'center'),
               text('Order summary — not a tax invoice or independent proof of payment.', 'small'),
-              Spacer(1, 4), text('Full order ID: ' + data['order'], 'small')]
+              Spacer(1, 4)]
     # Measure wrapped content first so roll length fits the order without A4 whitespace.
     measured = [(flow, *flow.wrap(content, 100000)) for flow in story]
     height = sum(h for _, _, h in measured) + 2 * margin
