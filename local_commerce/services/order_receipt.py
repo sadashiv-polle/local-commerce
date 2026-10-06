@@ -39,7 +39,7 @@ def render_receipt(data):
     image = Image(str(logo), width=72, height=39)
     story = [image, text(data['shop'], 'title'), text('ORDER RECEIPT', 'center'),
              Spacer(1, 6), rule(), Spacer(1, 6),
-             text('Order ID', 'bold'), text(data['order']),
+             text('Order ref: ' + data['order'][-8:].upper(), 'bold'),
              text(data['created']), text('Status: ' + data['status']),
              text('Customer: ' + data['customer']), text(data['address']),
              Spacer(1, 6), rule(), Spacer(1, 5),
