@@ -3,7 +3,7 @@ self.addEventListener('push', event => {
   try { data = event.data ? event.data.json() : {} } catch { data = {} }
   event.waitUntil(self.registration.showNotification(data.title || 'Local Commerce', {
     body: data.body || 'Your order has an update.',
-    icon: '/assets/local_commerce/icons/icon-192.png',
+    icon: '/assets/local_commerce/icons/icon-192.png?v=20261007',
     badge: '/assets/local_commerce/icons/badge-96.png',
     tag: data.tag || 'local-commerce',
     data: { url: data.url || '/local-commerce' },
