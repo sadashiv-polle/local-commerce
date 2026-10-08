@@ -4,7 +4,7 @@ from io import BytesIO
 import frappe
 from local_commerce.permissions.scope import require_platform
 
-DEFAULT_FAVICON = "/assets/local_commerce/icons/icon-192.png?v=20261007-white"
+DEFAULT_FAVICON = "/assets/local_commerce/icons/favicon.svg?v=20261008"
 
 
 def favicon():
