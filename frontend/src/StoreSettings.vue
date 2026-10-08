@@ -3,6 +3,7 @@ import { inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
 import AdminWorkspaceTabs from './AdminWorkspaceTabs.vue'
 import ShopPrioritySettings from './ShopPrioritySettings.vue'
+import BrandingSettings from './BrandingSettings.vue'
 import PromotionSettings from './PromotionSettings.vue'
 import CategoryMenuSettings from './CategoryMenuSettings.vue'
 defineProps({ embedded: Boolean })
@@ -58,6 +59,7 @@ onBeforeUnmount(() => { window.clearTimeout(timer); generation++ })
   <section class="store-page storefront-settings">
     <template v-if="!embedded"><AdminWorkspaceTabs /><RouterLink to="/shop">← Shop workspace</RouterLink><h1>Storefront settings</h1><p class="muted">Choose the products customers see above the shop directory.</p></template>
     <p v-if="!session.platform_admin" class="lc-notice">Platform administrator access is required.</p><p v-if="error" role="alert" class="lc-notice">{{ error }}</p><p v-if="message" role="status" class="success-note">{{ message }}</p>
+    <BrandingSettings v-if="session.platform_admin" />
     <ShopPrioritySettings v-if="session.platform_admin" />
     <PromotionSettings v-if="session.platform_admin" />
     <CategoryMenuSettings v-if="session.platform_admin" />

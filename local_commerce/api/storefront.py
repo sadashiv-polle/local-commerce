@@ -138,3 +138,21 @@ def save_shop_priority(pinned_shop=""):
     doc.pinned_shop = pinned_shop or ""
     doc.save()
     return {"pinned_shop": doc.pinned_shop}
+
+
+@frappe.whitelist(methods=["GET"])
+def branding_settings():
+    from local_commerce.services.branding import settings
+    return settings()
+
+
+@frappe.whitelist(methods=["POST"])
+def upload_favicon():
+    from local_commerce.services.branding import upload
+    return upload()
+
+
+@frappe.whitelist(methods=["POST"])
+def reset_favicon():
+    from local_commerce.services.branding import reset
+    return reset()

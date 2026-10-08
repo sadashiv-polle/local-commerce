@@ -14,7 +14,8 @@
     "category_menu_initialized",
     "categories",
     "promotions_json",
-    "pinned_shop"
+    "pinned_shop",
+    "app_favicon"
   ],
   "fields": [
     {
@@ -85,6 +86,12 @@
       "label": "Show This Shop First",
       "fieldtype": "Link",
       "options": "LC Shop"
+    },
+    {
+      "fieldname": "app_favicon",
+      "label": "App Favicon",
+      "fieldtype": "Attach Image",
+      "read_only": 1
     }
   ],
   "permissions": [

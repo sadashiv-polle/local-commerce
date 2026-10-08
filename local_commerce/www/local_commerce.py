@@ -16,4 +16,7 @@ def get_context(context):
     base = "/assets/local_commerce/frontend/"
     context.lc_entry = base + entry["file"]
     context.lc_css = [base + file for file in entry.get("css", [])]
+    from local_commerce.services.branding import favicon
+
+    context.lc_favicon = favicon()
     context.no_cache = 1
