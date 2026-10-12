@@ -14,7 +14,7 @@ onMounted(load)
 <template>
   <section class="earnings-panel">
     <header><h2>Delivery earnings & cash</h2><button :disabled="busy" @click="load">Refresh</button></header>
-    <p>All-time totals for your deliveries. Earnings are recorded at completion using the shop’s rider rate; they are not a payout confirmation.</p>
+    <p>Shop owners pay you directly. The app does not make payouts. These all-time earnings use rates set by the administrator; a zero total does not confirm whether the shop has paid you.</p>
     <p v-if="error" role="alert">{{ error }}</p><p v-if="busy" role="status">Loading totals…</p>
     <template v-if="data">
       <p v-if="!data.delivered.length">No completed deliveries yet.</p>
