@@ -14,6 +14,7 @@ from local_commerce.permissions.scope import identity, memberships, require_shop
 from local_commerce.services import notifications as order_notifications
 from local_commerce.services import order_rules, scheduled
 from local_commerce.services.delivery_pricing import delivery_price
+from local_commerce.services.checkout_summary import checkout_bill
 from local_commerce.services.location_rules import (
     accuracy_metres,
     delivery_match,
@@ -934,6 +935,7 @@ def serialize(doc):
         "currency": so.currency,
         "total": so.grand_total,
         "taxes_and_charges": so.total_taxes_and_charges,
+        "bill": checkout_bill(so),
         "erp_status": so.status,
         "items": [
             {
