@@ -183,3 +183,9 @@ def assignment_history(order):
 def receipt(order):
     from local_commerce.services.order_receipt import download
     return download(order)
+
+
+@frappe.whitelist(methods=["GET"])
+def rider_earnings():
+    from local_commerce.services.operations import rider_totals
+    return rider_totals()

@@ -29,7 +29,7 @@ from local_commerce.services.owner import (
     get_price,
     reject,
 )
-from local_commerce.services.payments import cashfree
+from local_commerce.services.payments import cashfree, refund_tracking
 from local_commerce.services.product_images import gallery_urls
 from local_commerce.services.reorder_rules import reorder_line
 from local_commerce.services.selling_rules import selected as selected_offer
@@ -912,6 +912,7 @@ def serialize(doc):
         "delivered_at": str(doc.delivered_at) if doc.delivered_at else None,
         "payment_method": doc.payment_method,
         "payment_status": payment_status,
+        "refund_tracking": refund_tracking.summary(doc),
         "refunded_amount": float(doc.get("gateway_refunded_amount") or 0),
         "accounting_pending": bool(doc.get("gateway_accounting_error")),
         "upi": ({"id": doc.get("upi_id"), "qr": doc.get("upi_qr"),
@@ -1444,6 +1445,8 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
                 doc.sales_invoice = invoice
                 doc.payment_status = "Collected"
                 doc.collected_at = now_datetime()
+            doc.rider_fee_amount = float(frappe.db.get_value("LC Shop", doc.shop, "rider_delivery_fee") or 0)
+            doc.rider_fee_recorded = 1
             doc.delivered_at = now_datetime()
             # Precise rider coordinates are transient and are not retained after delivery.
             doc.driver_latitude = None

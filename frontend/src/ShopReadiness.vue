@@ -1,6 +1,7 @@
 <script setup>
-import { ref } from 'vue'
+import { inject, onMounted, ref } from 'vue'
 import { call } from './api.js'
+const session = inject('session')
 const props = defineProps({ shop: { type: String, required: true } })
 const result = ref(null), busy = ref(false), error = ref('')
 async function runCheck() {
@@ -8,14 +9,15 @@ async function runCheck() {
   try { result.value = await call('shops.readiness', { shop: props.shop }) }
   catch (e) { error.value = e.message } finally { busy.value = false }
 }
+onMounted(runCheck)
 function target(check) {
-  return check.target === 'people' ? { path: '/admin/people', query: { shop: props.shop } }
-    : { name: 'shop-workspace', params: { shop: props.shop }, query: { tab: check.target } }
+  return check.target === 'people' && session.value.platform_admin ? { path: '/admin/people', query: { shop: props.shop } }
+    : { name: 'shop-workspace', params: { shop: props.shop }, query: { tab: check.target === 'people' ? 'settings' : check.target } }
 }
 </script>
 <template>
   <section class="shop-readiness">
-    <header><div><h2>Shop readiness</h2><p>Check setup before taking orders. This does not replace a test checkout.</p></div><button type="button" :disabled="busy" @click="runCheck">{{ busy ? 'Checking…' : result ? 'Check again' : 'Check setup' }}</button></header>
+    <header><div><h2>Shop opening checklist</h2><p>Check setup before taking orders. This does not replace a test checkout.</p></div><button type="button" :disabled="busy" @click="runCheck">{{ busy ? 'Checking…' : result ? 'Check again' : 'Check setup' }}</button></header>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
     <template v-if="result"><p role="status"><strong>{{ result.passed }} / {{ result.total }} checks passed</strong></p><ul><li v-for="check in result.checks" :key="check.label"><span :class="{ passed: check.ready }">{{ check.ready ? '✓ Passed' : 'Review' }}</span><div><strong>{{ check.label }}</strong><p>{{ check.detail }}</p></div><RouterLink :to="target(check)">{{ check.ready ? 'View' : 'Fix this' }} →</RouterLink></li></ul></template>
   </section>

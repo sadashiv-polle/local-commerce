@@ -1,12 +1,12 @@
 """Read-only setup checks; never enable a shop or bypass checkout validation."""
 import frappe
-from local_commerce.permissions.scope import require_platform
+from local_commerce.permissions.scope import require_shop
 from local_commerce.services.shop_hours import normalize
 from local_commerce.services.locations import shop_location
 
 
 def readiness(shop):
-    require_platform()
+    require_shop(shop, "write")
     doc = frappe.get_doc("LC Shop", shop)
     checks = []
 

@@ -19,7 +19,7 @@ class ReadinessTests(unittest.TestCase):
         self.frappe.get_roles.return_value = ['LC Shop Owner', 'LC Delivery Person']
         self.frappe.db.exists.return_value = True
         catalog = Mock(return_value={'items': [{'lc_sold_out': False, 'stock': {'available': 2}, 'price': 50}], 'total': 1})
-        modules = {'frappe': self.frappe, 'local_commerce.permissions.scope': SimpleNamespace(require_platform=self.guard),
+        modules = {'frappe': self.frappe, 'local_commerce.permissions.scope': SimpleNamespace(require_shop=self.guard),
             'local_commerce.services.locations': SimpleNamespace(shop_location=lambda d: {'latitude': 1}),
             'local_commerce.services.owner': SimpleNamespace(catalog=catalog)}
         self.patch = patch.dict(sys.modules, modules)
@@ -27,7 +27,7 @@ class ReadinessTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location('readiness_test', Path('local_commerce/services/shop_readiness.py'))
         self.module = importlib.util.module_from_spec(spec); spec.loader.exec_module(self.module)
 
-    def test_admin_required_before_reading_shop(self):
+    def test_shop_write_access_required_before_reading_shop(self):
         self.guard.side_effect = PermissionError
         with self.assertRaises(PermissionError): self.module.readiness('shop')
         self.frappe.get_doc.assert_not_called()

@@ -1,4 +1,6 @@
 <script setup>
+import NeedsAttention from './NeedsAttention.vue'
+import RiderRateSettings from './RiderRateSettings.vue'
 import CashfreeSettings from './CashfreeSettings.vue'
 import ProfileAvatar from './ProfileAvatar.vue'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -12,6 +14,7 @@ import StoreSettings from './StoreSettings.vue'
 const session = inject('session'), route = useRoute(), router = useRouter()
 const modules = [
   { id: 'overview', title: 'Overview', description: 'Your platform at a glance' },
+  { id: 'attention', title: 'Needs attention', description: 'Payment, delivery, stock and accounting issues' },
   { id: 'shops', title: 'Shops', description: 'Businesses, locations and ordering controls' },
   { id: 'orders', title: 'Orders', description: 'Prepare, assign and follow every order' },
   { id: 'inventory', title: 'Inventory', description: 'Products, stock and selling prices' },
@@ -103,7 +106,7 @@ function when(value) { return value ? new Date(String(value).replace(' ', 'T')).
 function record(type, name) { return `/app/${type}/${encodeURIComponent(name)}` }
 async function loadRows(delta = 0) {
   const current = ++generation
-  if (!session.value.platform_admin || ['overview', 'storefront', 'settings', 'cashfree'].includes(section.value) || embedded.value) { rows.value = []; rowsLoading.value = false; return }
+  if (!session.value.platform_admin || ['overview', 'attention', 'storefront', 'settings', 'cashfree'].includes(section.value) || embedded.value) { rows.value = []; rowsLoading.value = false; return }
   start.value = Math.max(0, start.value + delta); rowsLoading.value = true; rowError.value = ''
   try {
     const result = await call('admin.listing', { section: section.value, shop: selectedShop.value, search: search.value, status: status.value, start: start.value })
@@ -147,9 +150,10 @@ onBeforeUnmount(() => { generation++; window.clearTimeout(searchTimer); window.c
           <div class="admin-overview-grid"><section class="admin-card"><header><div><h2>Latest orders</h2><p>The latest activity across your platform</p></div><RouterLink to="/admin/orders">View all →</RouterLink></header><div class="admin-recent-orders"><RouterLink v-for="order in recent" :key="order.name" :to="{ path: '/admin/orders', query: { shop: order.shop } }"><span class="admin-row-symbol"><AdminIcon name="orders" /></span><div><strong>{{ order.recipient }}</strong><small>{{ order.shop_name }} · {{ when(order.creation) }}</small></div><span class="admin-order-summary"><b>{{ money(order.amount, order.currency) }}</b><small class="admin-state" :class="{ good: order.status === 'Delivered', warning: order.status === 'Requested' }">{{ order.status }}</small></span></RouterLink><p v-if="!recent.length" class="admin-empty">Orders will appear here when customers start shopping.</p></div></section><section class="admin-card"><header><div><h2>Keep things moving</h2><p>Your next actions</p></div></header><div class="admin-action-list"><RouterLink to="/admin/orders"><AdminIcon name="orders" /><div><strong>Respond to new orders</strong><small>{{ summary.pending_orders }} waiting for confirmation</small></div><span>→</span></RouterLink><RouterLink to="/admin/shops"><AdminIcon name="shops" /><div><strong>Review shop setup</strong><small>{{ summary.inventory_setup_pending }} active shops without a warehouse</small></div><span>→</span></RouterLink><RouterLink to="/admin/storefront"><AdminIcon name="storefront" /><div><strong>Refresh your storefront</strong><small>Manage categories and featured product lists</small></div><span>→</span></RouterLink></div></section></div>
         </template>
       </template>
+      <template v-else-if="section === 'attention'"><NeedsAttention /></template>
       <template v-else-if="section === 'cashfree'"><CashfreeSettings /></template>
       <template v-else-if="section === 'storefront'"><StoreSettings embedded /></template>
-      <template v-else-if="section === 'settings'"><div class="admin-settings-grid"><section v-for="group in systemLinks" :key="group.title" class="admin-card"><header><h2>{{ group.title }}</h2></header><a v-for="link in group.links" :key="link[1]" :href="link[1]" class="admin-settings-link">{{ link[0] }}<span>↗</span></a></section></div></template>
+      <template v-else-if="section === 'settings'"><RiderRateSettings /><div class="admin-settings-grid"><section v-for="group in systemLinks" :key="group.title" class="admin-card"><header><h2>{{ group.title }}</h2></header><a v-for="link in group.links" :key="link[1]" :href="link[1]" class="admin-settings-link">{{ link[0] }}<span>↗</span></a></section></div></template>
       <template v-else>
         <section class="admin-toolbar"><label v-if="section !== 'customers'">Shop<select :value="selectedShop" @change="chooseShop"><option value="">All shops</option><option v-for="shop in summary?.shop_options || []" :key="shop.name" :value="shop.name">{{ shop.shop_name }}</option><option v-if="selectedShop && !summary?.shop_options.some(shop => shop.name === selectedShop)" :value="selectedShop">Selected shop</option></select></label><label v-if="!embedded" class="admin-search">Search<input v-model="search" type="search" maxlength="140" placeholder="Search names, shops and records…"></label><label v-if="statuses.length && !embedded">{{ section === 'people' ? 'Role' : 'Status' }}<select v-model="status"><option value="">All {{ section === 'people' ? 'roles' : 'statuses' }}</option><option v-for="value in statuses" :key="value">{{ value }}</option></select></label><button v-if="section === 'shops'" type="button" class="admin-primary" @click="openSetup('shop')">+ Add shop</button><button v-if="section === 'people'" type="button" class="admin-primary" @click="openSetup('membership')">+ Add membership</button></section>
         <p v-if="embedded" class="admin-selected-note">Managing one shop. Choose “All shops” to return to the platform overview for this section.</p>

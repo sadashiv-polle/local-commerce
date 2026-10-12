@@ -1,4 +1,5 @@
 <script setup>
+import RiderEarnings from './RiderEarnings.vue'
 import ProfileAvatar from './ProfileAvatar.vue'
 import OrderReference from './OrderReference.vue'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -231,6 +232,7 @@ onBeforeUnmount(() => stopTracking('', false))
   <section v-else class="delivery-page">
     <header class="delivery-hero"><div><span class="eyebrow">RIDER WORKSPACE</span><h1>Hello, {{ session.full_name.split(' ')[0] }}.</h1><p>Your profile, assigned shops, and every delivery in one place.</p></div><ProfileAvatar class="rider-avatar" :name="session.full_name" :image="session.user_image" /></header>
 
+    <details class="rider-earnings-section"><summary>Delivery earnings & cash</summary><RiderEarnings /></details>
     <div class="rider-dashboard-grid">
       <aside class="rider-profile-card">
         <ProfileAvatar class="profile-avatar" :name="profile?.profile.full_name || session.full_name" :image="profile?.profile.user_image || session.user_image" />

@@ -65,7 +65,8 @@
     "cashfree_bank_account",
     "cashfree_fee_account",
     "cashfree_fee_tax_account",
-    "cashfree_auto_reconcile"
+    "cashfree_auto_reconcile",
+    "rider_delivery_fee"
   ],
   "fields": [
     {
@@ -453,6 +454,13 @@
       "label": "Automatically reconcile Cashfree",
       "fieldtype": "Check",
       "default": "0"
+    },
+    {
+      "fieldname": "rider_delivery_fee",
+      "label": "Rider fee per completed delivery",
+      "fieldtype": "Currency",
+      "read_only": 1,
+      "default": 0
     }
   ],
   "permissions": [

@@ -1,6 +1,7 @@
 <script setup>
 defineProps({ name: { type: String, default: 'overview' } })
 const paths = {
+  attention: 'M12 3 2 21h20z M12 9v5 M12 17v1',
   overview: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
   shops: 'M3 10h18L19 3H5z M5 10v11h14V10 M9 21v-7h6v7',
   orders: 'M7 3h10v3h3v15H4V6h3z M8 11h8 M8 16h5',

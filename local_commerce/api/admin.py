@@ -35,3 +35,22 @@ def create_shop(shop_name, company="", country="", currency=""):
 @frappe.whitelist(methods=["POST"])
 def save_membership(shop, user, membership_role="Delivery Person", name="", enabled=1):
     return admin.save_membership(shop, user, membership_role, name, enabled)
+
+
+@frappe.whitelist(methods=["GET"])
+@rate_limit(limit=240, seconds=3600)
+def attention(category="unpaid", start=0, shop=""):
+    from local_commerce.services.operations import attention as get_attention
+    return get_attention(category, start, shop)
+
+
+@frappe.whitelist(methods=["GET"])
+def rider_rates():
+    from local_commerce.services.operations import rider_rates
+    return rider_rates()
+
+
+@frappe.whitelist(methods=["POST"])
+def save_rider_rate(shop, amount):
+    from local_commerce.services.operations import rider_rates
+    return rider_rates(shop, amount)

@@ -114,6 +114,7 @@ class CashfreeSyncTests(unittest.TestCase):
         self.frappe.db.transaction_writes = 0
         self.frappe.db.sql.return_value = [(1,)]
         self.frappe.local.site = "test-site"
+        self.doc.get = lambda key: getattr(self.doc, key, None)
         self.service.locked = Mock(return_value=self.doc)
         self.service.save = Mock()
         self.service.book_payment = Mock(side_effect=self.book)

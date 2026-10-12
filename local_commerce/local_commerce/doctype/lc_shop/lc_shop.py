@@ -65,6 +65,8 @@ class LCShop(Document):
                 frappe.throw(
                     "Only platform administrators can change Company", frappe.PermissionError
                 )
+            if previous.get("rider_delivery_fee") != self.get("rider_delivery_fee"):
+                frappe.throw("Only platform administrators can change rider earnings rates", frappe.PermissionError)
             payment_fields = [field.fieldname for field in self.meta.fields
                               if field.fieldname.startswith(("cod_", "upi_", "cashfree_"))]
             if "LC Shop Settings Manager" not in roles and any(

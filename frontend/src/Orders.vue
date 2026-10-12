@@ -1,4 +1,5 @@
 <script setup>
+import RefundTimeline from './RefundTimeline.vue'
 import { displayTime } from './display-time.js'
 import LocationFreshness from './LocationFreshness.vue'
 import GatewayPayment from './GatewayPayment.vue'
@@ -57,7 +58,7 @@ function applyCustomerFilters(status = customerStatus.value, search = searchText
 function needsPaymentReview(order) {
   return ['Failed', 'Payment Rejected', 'Refunded'].includes(order.payment_status) || order.accounting_pending || (order.status === 'Cancelled' && ['Paid', 'Reconciled', 'Awaiting Verification'].includes(order.payment_status))
 }
-const visibleOrders = computed(() => !props.shop || activeStatus.value === 'All' ? orders.value : orders.value.filter(order => order.status === activeStatus.value))
+const visibleOrders = computed(() => route.query.order || !props.shop || activeStatus.value === 'All' ? orders.value : orders.value.filter(order => order.status === activeStatus.value))
 function selectCustomerTab(view) {
   if (busy.value || view === customerTab.value) return
   const query = { ...route.query, view }
@@ -141,14 +142,14 @@ async function load(delta = 0, { background = false } = {}) {
     start.value = Math.max(0, start.value + delta); loading.value = true; error.value = ''
   }
   try {
-    const focusedOrder = !props.shop && typeof route.query.order === 'string' ? route.query.order : ''
+    const focusedOrder = typeof route.query.order === 'string' ? route.query.order : ''
     const requests = [focusedOrder ? call('orders.detail', { order: focusedOrder }).then(order => [order]) : call('orders.list_orders', { ...(props.shop ? { shop: props.shop, delivery_mode: deliveryTab.value } : { customer_view: customerTab.value, status: customerStatus.value === 'All' ? '' : customerStatus.value, search: customerSearch.value }), start: start.value })]
     if (props.shop && props.editable) requests.push(call('orders.drivers', { shop: props.shop }))
     const [response, availableDrivers = []] = await Promise.all(requests)
     const result = !props.shop && !focusedOrder ? response.orders : response
     if (current === generation) {
       if (!props.shop && !focusedOrder) { customerCounts.value = response.counts; customerTotal.value = response.total }
-      orders.value = reconcileOrders(orders.value, result)
+      orders.value = reconcileOrders(orders.value, props.shop ? result.filter(order => order.shop === props.shop) : result)
       loadRoutes(result)
       drivers.value = availableDrivers
       if (!background) selectedDrivers.value = Object.fromEntries(result.map(order => [order.name, order.delivery_user || '']))
@@ -245,12 +246,12 @@ onBeforeUnmount(() => {
       <button type="submit" :disabled="busy || loading">Search</button><button v-if="customerSearch || customerStatus !== 'All'" type="button" :disabled="busy" @click="searchText = ''; applyCustomerFilters('All', '')">Clear filters</button>
     </form>
     <p v-if="!shop && !route.query.order && (customerSearch || customerStatus !== 'All')" class="muted" role="status">{{ customerTotal }} matching orders · tab totals include all your orders</p>
-    <div v-if="shop" class="owner-workflow-summary" aria-label="Order workflow summary">
+    <div v-if="shop && !route.query.order" class="owner-workflow-summary" aria-label="Order workflow summary">
       <button v-for="card in workflowSummary" :key="card.status" type="button" :class="{ active: activeStatus === card.status }" :disabled="busy" @click="selectStatus(card.status)">
         <small>{{ card.label }}</small><strong>{{ statusCount(card.status) }}</strong><span>{{ card.hint }}</span>
       </button>
     </div>
-    <div v-if="shop" class="order-status-tabs" role="tablist" aria-label="Order status">
+    <div v-if="shop && !route.query.order" class="order-status-tabs" role="tablist" aria-label="Order status">
       <button v-for="status in statusTabs" :key="status" type="button" role="tab" :class="{ active: activeStatus === status }" :aria-selected="activeStatus === status" @click="selectStatus(status)"><span>{{ status }}</span><b>{{ statusCount(status) }}</b></button>
     </div>
     <template v-if="shop && deliveryTab === 'Scheduled'"><slot name="batches" :refresh="load" /><p class="muted">Accept each request below, then manage preparation and dispatch together using the batch controls.</p></template>
@@ -259,6 +260,7 @@ onBeforeUnmount(() => {
     <p v-else-if="!visibleOrders.length" class="lc-empty">{{ shop ? `No ${activeStatus === 'All' ? deliveryTab.toLowerCase() : activeStatus.toLowerCase()} orders yet.` : route.query.order ? 'Order unavailable.' : customerSearch || customerStatus !== 'All' ? 'No matching orders in this tab. Try another tab or clear the filters.' : customerTab === 'cancelled' ? 'No cancelled orders.' : customerTab === 'attention' ? 'No orders need attention.' : customerTab === 'delivered' ? 'Your delivered orders will appear here.' : 'No undelivered orders. Browse your local shops to place an order.' }}</p>
     <article v-for="order in visibleOrders" :key="order.name" class="order-card" :class="{ 'customer-order-cancelled': !shop && order.status === 'Cancelled' }">
       <OrderReference :order-id="order.name" />
+      <RefundTimeline :rows="order.refund_tracking || []" :refunded="order.refunded_amount || 0" :payment-status="order.payment_status" />
       <section v-if="!shop && needsPaymentReview(order)" class="payment-review-help" aria-label="Payment help"><strong>Payment needs review</strong><p v-if="order.payment_method === 'Cashfree' && order.payment_status !== 'Refunded'">Use “Refresh payment status” below to check for an update.</p><p>If your bank shows a debit and the order still shows failed, cancelled or unconfirmed, contact the shop with this order ID and your transaction reference before paying again.</p><p v-if="order.payment_status === 'Refunded'">This order is marked refunded. Check your bank statement and contact the shop if the credit has not arrived.</p><a v-if="supportNumber(order.shop_support_phone)" :href="`tel:${order.shop_support_phone}`">Call shop to check payment</a><p v-else>Share the order ID above with the shop owner to check the payment.</p></section>
       <div class="workspace-heading"><div><span class="eyebrow">{{ order.shop_name }}</span><h3>{{ order.recipient }}</h3><small>{{ displayTime(order.created) }}</small></div><span class="status-pill">{{ order.status }}</span></div>
       <p v-if="order.scheduled_period" class="lc-notice">Scheduled · {{ order.scheduled_period.title }} · {{ displayTime(order.scheduled_period.delivery_start) }} – {{ displayTime(order.scheduled_period.delivery_end) }} · Free delivery</p><div class="delivery-progress" :aria-label="`Order status: ${order.status}`"><span v-for="step in steps" :key="step" :class="{ complete: steps.indexOf(step) <= steps.indexOf(order.status) }">{{ step }}</span></div><div v-if="!shop" class="customer-tracking-summary"><span class="tracking-status-dot" aria-hidden="true"></span><div><small>DELIVERY UPDATE · ORDER {{ order.name.slice(0, 8).toUpperCase() }}</small><strong>{{ deliveryEstimate(order) }}</strong></div><span v-if="order.delivery_name" class="tracking-rider">{{ order.delivery_name }}</span></div>
@@ -311,8 +313,9 @@ onBeforeUnmount(() => {
     <dialog ref="reorderDialog" class="reorder-dialog" aria-labelledby="reorder-title">
       <template v-if="reorder"><span class="eyebrow">{{ reorder.shop_name }}</span><h2 id="reorder-title">Order your favourites again</h2><p>Current prices and stock are shown below. This replaces the cart for this shop. Delivery charges and taxes are calculated at checkout.</p><ul v-if="reorder.notices.length" class="reorder-notices"><li v-for="notice in reorder.notices" :key="notice">{{ notice }}</li></ul><div class="reorder-lines"><article v-for="item in reorder.items" :key="item.item"><img v-if="item.image" :src="item.image" :alt="item.item_name"><div><strong>{{ item.item_name }}</strong><small>{{ item.quantity }} {{ item.uom }}</small></div><strong>{{ money(item.rate * item.quantity, item.currency) }}</strong></article></div><p v-if="!reorder.items.length">These items are currently unavailable. Browse the shop for alternatives.</p><p v-if="reorderError" role="alert" class="lc-notice">{{ reorderError }}</p><div class="logout-actions"><button type="button" autofocus @click="reorderDialog.close()">Cancel</button><button v-if="reorder.items.length" type="button" class="lc-primary" @click="confirmReorder">Review cart →</button><RouterLink v-else :to="{ name: 'customer-shop', params: { shop: reorder.shop } }" class="primary" @click="reorderDialog.close()">Browse shop →</RouterLink></div></template>
     </dialog>
+    <RouterLink v-if="shop && route.query.order" :to="{ path: route.path, query: { shop } }">View all shop orders →</RouterLink>
     <RouterLink v-if="!shop && route.query.order" to="/orders">View all orders →</RouterLink>
-    <div v-else class="lc-pagination"><button :disabled="!start || loading || busy" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="(shop ? orders.length < 20 : start + orders.length >= customerTotal) || loading || busy" @click="load(20)">Next</button></div>
+    <div v-if="!route.query.order" class="lc-pagination"><button :disabled="!start || loading || busy" @click="load(-20)">Previous</button><span>Page {{ start / 20 + 1 }}</span><button :disabled="(shop ? orders.length < 20 : start + orders.length >= customerTotal) || loading || busy" @click="load(20)">Next</button></div>
   </section>
 </template>
 

@@ -452,6 +452,11 @@ def sync(order, authorize=True):
         if doc.gateway_payment_id and doc.gateway_payment_id != payment_id:
             reject("Payment reference changed; administrator review required")
         doc.gateway_payment_id = payment_id
+        from local_commerce.services.payments.refund_tracking import merge
+        tracking = merge(doc.get("refund_tracking_json"), refunds, doc.gateway_order_id,
+                         payment_id, snap["currency"], snap["amount"], str(frappe.utils.now_datetime()))
+        doc.refund_tracking_json = json.dumps(tracking)
+        doc.refund_attention = int(any(r["status"] in {"FAILED", "CANCELLED"} for r in tracking))
         from local_commerce.services.payments.reconciliation_rules import refunds_for_order
 
         verified_refunds = refunds_for_order(
