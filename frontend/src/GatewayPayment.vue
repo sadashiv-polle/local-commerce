@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
 import { loadCashfree } from './cashfree-sdk.js'
 import { checkoutTarget } from './checkout-target.js'
@@ -8,11 +8,28 @@ const route = useRoute()
 const props = defineProps({ order: { type: Object, required: true }, customer: Boolean, autoStart: Boolean })
 const emit = defineEmits(['updated', 'checkout-started'])
 const busy = ref(false), error = ref(''), phase = ref(''), verified = ref('')
+function verificationError(e) {
+  phase.value = ''
+  if (['Paid', 'Refunded'].includes(props.order.payment_status) || ['Paid', 'Refunded'].includes(verified.value)) {
+    error.value = ''
+  } else {
+    error.value = 'Payment confirmation is temporarily unavailable. If you paid, do not pay again. Refresh payment status in a moment.'
+  }
+  emit('updated')
+}
+watch(() => props.order.payment_status, status => {
+  if (['Paid', 'Refunded'].includes(status)) {
+    error.value = ''; verified.value = status
+    phase.value = status === 'Paid' ? 'success' : ''
+  }
+})
 async function verifyPayment() {
   phase.value = 'checking'
   const result = await call('cashfree.verify', { order: props.order.name }, true)
-  verified.value = result.payment_status
-  phase.value = result.payment_status === 'Paid' ? 'success' : 'pending'
+  verified.value = props.order.payment_status === 'Refunded' ? 'Refunded'
+    : result.payment_status === 'Refunded' ? 'Refunded'
+      : props.order.payment_status === 'Paid' ? 'Paid' : result.payment_status
+  phase.value = verified.value === 'Paid' ? 'success' : 'pending'
   emit('updated')
   return result
 }
@@ -20,7 +37,7 @@ async function refresh() {
   if (busy.value) return
   busy.value = true; error.value = ''
   try { await verifyPayment() }
-  catch (e) { phase.value = ''; error.value = e.message }
+  catch (e) { verificationError(e) }
   finally { busy.value = false }
 }
 async function pay() {
@@ -36,14 +53,14 @@ async function pay() {
     const result = await Cashfree({ mode: session.environment }).checkout({
       paymentSessionId: session.payment_session_id, redirectTarget: target,
     })
-    await verifyPayment()
+    try { await verifyPayment() } catch (e) { verificationError(e); return }
     if (result?.error && verified.value !== 'Paid') error.value = 'Checkout closed or could not finish. If money was deducted, refresh payment status before paying again.'
   } catch (e) { phase.value = ''; error.value = e.message }
   finally { busy.value = false }
 }
 onMounted(() => {
   if (props.customer && ['Pending', 'Failed'].includes(props.order.payment_status)) loadCashfree().catch(() => {})
-  if (props.customer && route.path === '/orders' && route.query.order === props.order.name && !props.autoStart) { refresh(); return }
+  if (props.customer && !['Paid', 'Refunded'].includes(props.order.payment_status) && route.path === '/orders' && route.query.order === props.order.name && !props.autoStart) { refresh(); return }
   if (!props.autoStart || !props.customer) return
   emit('checkout-started')
   if (props.order.status === 'Requested' && ['Pending', 'Failed'].includes(props.order.payment_status)) pay()
@@ -69,7 +86,7 @@ onMounted(() => {
       <button v-if="customer && verified !== 'Paid' && ['Pending', 'Failed'].includes(order.payment_status) && order.status !== 'Cancelled'" :disabled="busy" class="lc-primary" @click="pay">Pay securely</button>
       <button :disabled="busy" @click="refresh">{{ busy ? 'Checking…' : 'Refresh payment status' }}</button>
     </div>
-    <p v-if="error" role="alert" class="lc-notice">{{ error }}</p>
+    <p v-if="error && !['Paid', 'Refunded'].includes(order.payment_status)" role="alert" class="lc-notice">{{ error }}</p>
   </section>
 </template>
 

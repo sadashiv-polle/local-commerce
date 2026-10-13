@@ -73,7 +73,7 @@ const hasEstimatedWeights = computed(() => Object.values(cart.value).some(row =>
 function requestItems() { return Object.values(cart.value).map(row => ({ item: row.item, quantity: row.quantity, ...(row.option_id ? { option_id: row.option_id } : {}) })) }
 watch(catalog, value => { if (!value || pending.value) return; if (!value.normal_enabled && value.scheduled_enabled) deliveryMode.value = 'Scheduled'; else if (!value.scheduled_enabled) deliveryMode.value = 'Normal' })
 const quotedFee = computed(() => deliveryQuote.value?.delivery_fee ?? (deliveryMode.value === 'Scheduled' ? 0 : Number(catalog.value?.delivery_fee || 0)))
-const estimatedTotal = computed(() => (deliveryQuote.value?.subtotal ?? subtotal.value) + quotedFee.value)
+const estimatedTotal = computed(() => deliveryQuote.value?.grand_total ?? (subtotal.value + quotedFee.value))
 const deliveryDistance = computed(() => distanceKm(catalog.value?.shop_location, address.value))
 const outsideDeliveryRange = computed(() => deliveryMode.value === 'Normal' && deliveryDistance.value != null && deliveryDistance.value > Number(catalog.value?.shop_location?.service_radius_km || 0))
 const deliveryPoints = computed(() => {
@@ -305,7 +305,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-address-change', loadSave
               <label>Delivery instructions <small>(optional)</small><textarea v-model="address.delivery_instructions" maxlength="500" placeholder="Landmark, gate, floor, or how to find you"></textarea></label>
               <label v-for="method in catalog.payment_methods" :key="method" class="checkout-payment"><input v-model="paymentMethod" type="radio" :value="method" name="payment-method"><div><strong>{{ method === 'Manual UPI' ? 'UPI · scan & pay' : method }}</strong><small>{{ method === 'Manual UPI' ? 'Scan, pay and upload your screenshot from My orders.' : method === 'Cashfree' ? 'Pay securely online through Cashfree.' : 'Pay the delivery person when your order arrives.' }}</small></div></label>
             </fieldset>
-            <CheckoutSummary :address="address" :items="Object.values(cart)" :currency="catalog.currency" :subtotal="deliveryQuote?.subtotal ?? subtotal" :delivery="quotedFee" :total="estimatedTotal" :updating="quoting" :needs-location="!!deliveryQuote?.needs_location" :payment="paymentMethod" estimated />
+            <CheckoutSummary :address="address" :items="Object.values(cart)" :currency="catalog.currency" :subtotal="deliveryQuote?.subtotal ?? subtotal" :delivery="quotedFee" :total="estimatedTotal" :discount="deliveryQuote?.discount || 0" :taxes="deliveryQuote?.taxes ?? null" :updating="quoting" :needs-location="!!deliveryQuote?.needs_location" :payment="paymentMethod" :estimated="hasEstimatedWeights || !deliveryQuote" />
             <p v-if="error" class="checkout-error" role="alert">{{ error }}</p>
             <p v-if="!catalog.accepting_orders" class="muted">Your cart is saved. {{ catalog.availability.message }}.</p>
             <button class="cart-checkout-button" :disabled="busy || editingLocation || outsideDeliveryRange || (!pending && (quoting || !!quoteError || !deliveryQuote || deliveryQuote.minimum_remaining > 0 || deliveryQuote.needs_location)) || (!catalog.accepting_orders && !pending)"><span>{{ busy ? 'Sending…' : outsideDeliveryRange ? 'Address outside delivery range' : pending ? 'Retry request' : session.user === 'Guest' ? 'Login to order' : paymentMethod === 'Cashfree' ? 'Continue to payment' : 'Send order request' }}</span><strong>{{ money(estimatedTotal) }} ›</strong></button>

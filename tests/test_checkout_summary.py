@@ -22,3 +22,27 @@ class CheckoutSummaryTests(unittest.TestCase):
     def test_decimal_totals(self):
         bill = self.bill(subtotal=349.99, discount=10.55, fee=15.5, total=362.12)
         self.assertAlmostEqual(bill['subtotal'] + bill['delivery'] + bill['taxes'] - bill['discount'], 362.12)
+
+
+class PreparedOrderTests(unittest.TestCase):
+    def test_preview_is_unsaved_and_uses_same_template_and_delivery(self):
+        import sys
+        from unittest.mock import Mock, patch
+        from local_commerce.services.checkout_summary import prepare_sales_order
+        frappe = Mock()
+        so = frappe.get_doc.return_value
+        taxes = Mock(return_value=[{'charge_type': 'On Net Total', 'rate': 5}])
+        modules = {'frappe': frappe, 'frappe.utils': SimpleNamespace(nowdate=lambda: '2026-10-13'),
+                   'erpnext.controllers.accounts_controller': SimpleNamespace(get_taxes_and_charges=taxes)}
+        shop = SimpleNamespace(company='Shop', selling_price_list='Retail', warehouse='Stock',
+                               order_tax_template='GST', delivery_account='Delivery')
+        with patch.dict(sys.modules, modules):
+            result = prepare_sales_order(shop, [{'item_code': 'fish', 'qty': 1, 'rate': 350}],
+                                         'Customer', '2026-10-13', 20)
+        self.assertIs(result, so)
+        taxes.assert_called_once_with('Sales Taxes and Charges Template', 'GST')
+        so.set_missing_values.assert_called_once()
+        so.append.assert_called_once_with('taxes', dict(charge_type='Actual', account_head='Delivery',
+                                                       description='Delivery charge', tax_amount=20))
+        so.insert.assert_not_called()
+        so.save.assert_not_called()

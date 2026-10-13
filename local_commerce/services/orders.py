@@ -14,7 +14,7 @@ from local_commerce.permissions.scope import identity, memberships, require_shop
 from local_commerce.services import notifications as order_notifications
 from local_commerce.services import order_rules, scheduled
 from local_commerce.services.delivery_pricing import delivery_price
-from local_commerce.services.checkout_summary import checkout_bill
+from local_commerce.services.checkout_summary import checkout_bill, prepare_sales_order
 from local_commerce.services.location_rules import (
     accuracy_metres,
     delivery_match,
@@ -520,15 +520,32 @@ def quote(shop, items, latitude=None, longitude=None, delivery_mode="Normal",
     origin = shop_location(doc)
     distance = distance_km(origin, destination) if origin and destination else None
     subtotal = checked_number(0, "Subtotal")
+    prepared = []
     for row in rows:
-        product = product_data(doc, frappe.get_doc("Item", row["item"]))
+        item = frappe.get_doc("Item", row["item"])
+        product = product_data(doc, item)
         quantity, snapshot = selling_quantity(product, row)
-        subtotal += (checked_number(snapshot["fixed_amount"], "Piece total")
-                     if snapshot.get("billing") == "Pieces"
-                     else quantity * checked_number(product["rate"], "Price"))
-    scheduled.validate_booking(doc, delivery_mode, scheduled_slot, rows)
+        by_piece = snapshot.get("billing") == "Pieces"
+        sale_qty = snapshot["option_quantity"] * snapshot["packs"] if by_piece else float(quantity)
+        sale_rate = snapshot["piece_price"] if by_piece else product["rate"]
+        subtotal += checked_number(sale_qty, "Quantity") * checked_number(sale_rate, "Price")
+        prepared.append(dict(item_code=item.name, item_name=item.item_name,
+            qty=sale_qty, rate=sale_rate, price_list_rate=sale_rate,
+            uom="Nos" if by_piece else item.stock_uom, stock_uom=item.stock_uom,
+            conversion_factor=float(quantity) / sale_qty if by_piece else 1,
+            warehouse=doc.warehouse, delivery_date=nowdate(), description=escape(item.item_name)))
+    slot = scheduled.validate_booking(doc, delivery_mode, scheduled_slot, rows)
     price = pricing_for(doc, subtotal, distance, delivery_mode)
-    price.update({"subtotal": float(subtotal), "distance_km": distance})
+    customer = (frappe.db.get_value("LC Customer Account", frappe.session.user, "customer")
+                if frappe.session.user != "Guest" else None)
+    for item in prepared:
+        item["delivery_date"] = getdate(slot.delivery_start) if slot else nowdate()
+    so = prepare_sales_order(doc, prepared, customer,
+        getdate(slot.delivery_start) if slot else nowdate(), price["delivery_fee"])
+    so.calculate_taxes_and_totals()
+    price.update(checkout_bill(so))
+    price.update({"grand_total": float(so.grand_total), "distance_km": distance})
+
     return price
 
 
@@ -727,46 +744,10 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
         )
         destination.is_your_company_address = 0
         destination.insert(ignore_permissions=True)
-        so = frappe.get_doc(
-            {
-                "doctype": "Sales Order",
-                "lc_order": order.name,
-                "company": doc.company,
-                "customer": customer,
-                "transaction_date": nowdate(),
-                "delivery_date": getdate(slot.delivery_start) if slot else nowdate(),
-                "order_type": "Sales",
-                "selling_price_list": doc.selling_price_list,
-                "currency": frappe.db.get_value("Company", doc.company, "default_currency"),
-                "conversion_rate": 1,
-                "plc_conversion_rate": 1,
-                "ignore_pricing_rule": 1,
-                "shipping_address_name": destination.name,
-                "set_warehouse": doc.warehouse,
-                "taxes_and_charges": doc.order_tax_template,
-                "items": prepared,
-                "remarks": "Delivery timing requires shop confirmation. No payment collected.",
-            }
-        )
-        from erpnext.controllers.accounts_controller import get_taxes_and_charges
-
-        if doc.order_tax_template:
-            so.set(
-                "taxes",
-                get_taxes_and_charges("Sales Taxes and Charges Template", doc.order_tax_template),
-            )
-        so.flags.ignore_permissions = True
-        so.set_missing_values()
-        if price["delivery_fee"]:
-            so.append(
-                "taxes",
-                {
-                    "charge_type": "Actual",
-                    "account_head": doc.delivery_account,
-                    "description": "Delivery charge",
-                    "tax_amount": price["delivery_fee"],
-                },
-            )
+        so = prepare_sales_order(doc, prepared, customer,
+            getdate(slot.delivery_start) if slot else nowdate(), price["delivery_fee"],
+            lc_order=order.name, shipping_address_name=destination.name,
+            remarks="Delivery timing requires shop confirmation. No payment collected.")
         so.insert(ignore_permissions=True)
         for expected, posted in zip(prepared, so.items, strict=True):
             if checked_number(posted.qty, "Quantity") != checked_number(
