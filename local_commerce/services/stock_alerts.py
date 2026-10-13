@@ -54,7 +54,7 @@ def restocked(product):
     if options:
         return any(
             0 < float(option.get('estimated_weight') or 0) <= product['available']
-            and (option.get('piece_price') is not None
+            and (option.get('pack_price') is not None if option.get('billing') == 'Pack' else option.get('piece_price') is not None
                  if option.get('billing') == 'Pieces' else product.get('rate') is not None)
             for option in options
         )

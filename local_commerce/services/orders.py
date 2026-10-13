@@ -1,5 +1,7 @@
 """Delivery orders backed by ERPNext Sales Orders, invoices and delivery notes."""
 
+from local_commerce.services.selling_rules import sale_values, options as validate_options
+
 import hashlib
 import hmac
 import json
@@ -525,14 +527,13 @@ def quote(shop, items, latitude=None, longitude=None, delivery_mode="Normal",
         item = frappe.get_doc("Item", row["item"])
         product = product_data(doc, item)
         quantity, snapshot = selling_quantity(product, row)
-        by_piece = snapshot.get("billing") == "Pieces"
-        sale_qty = snapshot["option_quantity"] * snapshot["packs"] if by_piece else float(quantity)
-        sale_rate = snapshot["piece_price"] if by_piece else product["rate"]
+        sale_qty, sale_rate, sale_uom, factor = sale_values(
+            item.stock_uom, quantity, snapshot, product["rate"])
         subtotal += checked_number(sale_qty, "Quantity") * checked_number(sale_rate, "Price")
         prepared.append(dict(item_code=item.name, item_name=item.item_name,
             qty=sale_qty, rate=sale_rate, price_list_rate=sale_rate,
-            uom="Nos" if by_piece else item.stock_uom, stock_uom=item.stock_uom,
-            conversion_factor=float(quantity) / sale_qty if by_piece else 1,
+            uom=sale_uom, stock_uom=item.stock_uom,
+            conversion_factor=factor,
             warehouse=doc.warehouse, delivery_date=nowdate(), description=escape(item.item_name)))
     slot = scheduled.validate_booking(doc, delivery_mode, scheduled_slot, rows)
     price = pricing_for(doc, subtotal, distance, delivery_mode)
@@ -552,9 +553,8 @@ def quote(shop, items, latitude=None, longitude=None, delivery_mode="Normal",
 def selling_quantity(product, row):
     offers = product.get("selling_options") or []
     if offers or row.get("option_id"):
-        if product["uom"] != "Kg":
-            reject("Packed-weight products must use Kg as their stock unit")
         try:
+            validate_options(offers, product["uom"])
             offer = selected_offer(offers, row.get("option_id"), row["quantity"])
         except ValueError as exc:
             reject(str(exc))
@@ -573,6 +573,11 @@ def selling_quantity(product, row):
                                           * checked_number(offer["quantity"], "Pieces")
                                           * checked_number(offer["packs"], "Packs"))
                                     if offer["billing"] == "Pieces" else None)
+        if offer["billing"] == "Pack":
+            snapshot.update(pack_price=offer["pack_price"], preweighed=True,
+                            stock_quantity=offer["quantity"] * offer["packs"],
+                            fixed_amount=float(checked_number(offer["pack_price"], "Pack price")
+                                               * checked_number(offer["packs"], "Packs")))
         return checked_number(offer["estimated_total_weight"], "Estimated weight",
                               positive=True), snapshot
     return checked_number(row["quantity"], "Quantity", positive=True), {}
@@ -661,9 +666,8 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
             balance(item.name, doc.warehouse, lock=True)["available"], "Available stock"
         ):
             reject("Not enough available stock; update your cart")
-        by_piece = snapshot.get("billing") == "Pieces"
-        sale_qty = snapshot["option_quantity"] * snapshot["packs"] if by_piece else float(quantity)
-        sale_rate = snapshot["piece_price"] if by_piece else product["rate"]
+        sale_qty, sale_rate, sale_uom, factor = sale_values(
+            item.stock_uom, quantity, snapshot, product["rate"])
         prepared.append(
             {
                 "item_code": item.name,
@@ -671,14 +675,14 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
                 "qty": sale_qty,
                 "rate": sale_rate,
                 "price_list_rate": sale_rate,
-                "uom": "Nos" if by_piece else item.stock_uom,
+                "uom": sale_uom,
                 "stock_uom": item.stock_uom,
-                "conversion_factor": float(quantity) / sale_qty if by_piece else 1,
+                "conversion_factor": factor,
                 "warehouse": doc.warehouse,
                 "delivery_date": getdate(slot.delivery_start) if slot else nowdate(),
                 "description": escape(item.item_name + (
                     f" · {snapshot['label']} × {snapshot['packs']:g}; "
-                    + ("pre-weighed pack" if snapshot.get("preweighed") else "estimated weight, "
+                    + ("fixed piece pack" if snapshot.get("billing") == "Pack" else "pre-weighed pack" if snapshot.get("preweighed") else "estimated weight, "
                     + ("fixed piece price" if snapshot.get("billing") == "Pieces"
                      else "final price after packing")) if snapshot else ""
                 )),
@@ -755,7 +759,9 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
             ):
                 reject("ERPNext quantity precision changed this order; use a supported quantity")
         for snapshot, posted in zip(selling_lines, so.items, strict=True):
-            if snapshot.get("billing") == "Pieces":
+            if snapshot.get("billing") == "Pack" and checked_number(posted.stock_qty, "Stock quantity") != checked_number(snapshot["stock_quantity"], "Pieces"):
+                reject("ERPNext changed the pack quantity; contact the administrator")
+            if snapshot.get("billing") in {"Pieces", "Pack"}:
                 if not stock_weight_matches(
                     posted.stock_qty, snapshot["estimated_weight"], posted.qty,
                     posted.precision("stock_qty"), posted.precision("conversion_factor"),

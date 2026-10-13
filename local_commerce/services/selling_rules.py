@@ -1,4 +1,4 @@
-"""Configurable count/weight offers sharing one item's kilogram inventory."""
+"""Configurable weight offers and fixed-price packs sharing an item's stock."""
 
 import re
 from decimal import Decimal
@@ -6,7 +6,7 @@ from decimal import Decimal
 from local_commerce.services.owner_rules import number
 
 
-def options(rows):
+def options(rows, stock_uom=None):
     if not isinstance(rows, list) or len(rows) > 20:
         raise ValueError("Add up to 20 selling options")
     result, ids = [], set()
@@ -25,20 +25,28 @@ def options(rows):
         if kind == "Count" and quantity != quantity.to_integral_value():
             raise ValueError(f'Option "{label}": enter a whole number of pieces (for example, 5). '
                              'Enter kilograms in Approx. weight, or select Sell by Weight.')
-        weight = (number(row.get("estimated_weight"), "Estimated weight", positive=True)
-                  if kind == "Count" else quantity)
         billing = row.get("billing", "Weight")
-        if billing not in {"Weight", "Pieces"} or (kind == "Weight" and billing != "Weight"):
+        if stock_uom and ((billing == "Pack" and stock_uom != "Nos")
+                          or (billing != "Pack" and stock_uom != "Kg")):
+            raise ValueError("Use Nos stock for fixed piece packs, or Kg for weight options")
+        weight = quantity if billing == "Pack" else (number(row.get("estimated_weight"), "Estimated weight", positive=True)
+                  if kind == "Count" else quantity)
+        if billing not in {"Weight", "Pieces", "Pack"} or (kind == "Weight" and billing != "Weight"):
             raise ValueError("Choose weight pricing or piece pricing for count options")
         enabled = row.get("enabled", True)
         if not isinstance(enabled, bool):
             raise ValueError("Invalid selling option visibility")
         piece_price = (float(number(row.get("piece_price"), "Price per piece", positive=True))
                        if billing == "Pieces" else None)
+        pack_price = (number(row.get("pack_price"), "Pack price", positive=True)
+                      if billing == "Pack" else None)
+        if pack_price is not None and pack_price != pack_price.quantize(Decimal("0.01")):
+            raise ValueError("Pack price can have at most two decimal places")
         ids.add(identifier)
         result.append({"id": identifier, "label": label, "kind": kind,
                        "quantity": float(quantity), "estimated_weight": float(weight),
-                       "billing": billing, "piece_price": piece_price, "enabled": enabled})
+                       "billing": billing, "piece_price": piece_price, "enabled": enabled,
+                       **({"pack_price": float(pack_price)} if billing == "Pack" else {})})
     if result and not any(row["enabled"] for row in result):
         raise ValueError("Show at least one selling option")
     return result
@@ -79,3 +87,17 @@ def stock_weight_matches(actual, expected, pieces, stock_precision, conversion_p
     tolerance = (Decimal(10) ** -stock_precision / 2
                  + pieces * Decimal(10) ** -conversion_precision / 2)
     return abs(actual - expected) <= min(tolerance, expected * Decimal("0.01"))
+
+
+def pack_uom(quantity):
+    return f"Pack of {int(quantity)} Nos"
+
+
+def sale_values(stock_uom, quantity, snapshot, rate):
+    """Keep pack prices exact; ERPNext converts sale packs to stock pieces."""
+    if snapshot.get("billing") == "Pack":
+        return snapshot["packs"], snapshot["pack_price"], pack_uom(snapshot["option_quantity"]), snapshot["option_quantity"]
+    if snapshot.get("billing") == "Pieces":
+        qty = snapshot["option_quantity"] * snapshot["packs"]
+        return qty, snapshot["piece_price"], "Nos", float(quantity) / qty
+    return float(quantity), rate, stock_uom, 1

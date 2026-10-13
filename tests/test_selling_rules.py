@@ -102,3 +102,54 @@ class TestPreweighedPacking(unittest.TestCase):
         self.assertEqual(packed_weights(lines, {"1": 0.6}), {1: 0.6})
         with self.assertRaises(ValueError):
             packed_weights(lines, {"0": 0.7, "1": 0.6})
+
+
+class TestFixedPiecePacks(unittest.TestCase):
+    def offers(self):
+        return [{"id": "six", "label": "6 Bangde", "kind": "Count", "quantity": 6,
+                 "billing": "Pack", "pack_price": 100},
+                {"id": "fifteen", "label": "15 Bangde", "kind": "Count", "quantity": 15,
+                 "billing": "Pack", "pack_price": 200}]
+
+    def test_exact_price_and_piece_stock_without_dividing_price(self):
+        from local_commerce.services.selling_rules import sale_values
+        for identifier, packs, pieces, price in [("six", 1, 6, 100), ("six", 2, 12, 200),
+                                                 ("fifteen", 1, 15, 200)]:
+            offer = selected(options(self.offers(), "Nos"), identifier, packs)
+            snapshot = {**offer, "option_quantity": offer["quantity"]}
+            qty, rate, uom, factor = sale_values("Nos", pieces, snapshot, 999)
+            self.assertEqual(qty * rate, price)
+            self.assertEqual(qty * factor, pieces)
+            self.assertEqual(offer["estimated_total_weight"], pieces)
+            self.assertEqual(uom, f"Pack of {int(offer['quantity'])} Nos")
+
+    def test_stock_unit_and_invalid_pack_inputs(self):
+        with self.assertRaises(ValueError):
+            options(self.offers(), "Kg")
+        for change in [{"quantity": 1.5}, {"pack_price": 0}, {"pack_price": "NaN"},
+                       {"pack_price": 100.001}, {"kind": "Weight"}]:
+            with self.assertRaises(ValueError):
+                options([{**self.offers()[0], **change}], "Nos")
+
+    def test_snapshot_uses_server_price_and_skips_weighing(self):
+        import ast
+        from pathlib import Path
+        from local_commerce.services.owner_rules import number
+        tree = ast.parse(Path('local_commerce/services/orders.py').read_text())
+        method = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                      and node.name == 'selling_quantity')
+        def reject(message):
+            raise ValueError(message)
+        scope = dict(selected_offer=selected, validate_options=options,
+                     checked_number=number, reject=reject)
+        exec(compile(ast.Module(body=[method], type_ignores=[]), '<order-test>', 'exec'), scope)
+        stock, snapshot = scope['selling_quantity'](
+            {'item': 'fish', 'uom': 'Nos', 'rate': 999, 'selling_options': self.offers()},
+            {'option_id': 'six', 'quantity': 2, 'pack_price': 1})
+        self.assertEqual(stock, 12)
+        self.assertEqual(snapshot['fixed_amount'], 200)
+        self.assertEqual(snapshot['stock_quantity'], 12)
+        self.assertTrue(snapshot['preweighed'])
+        self.assertEqual(packed_weights([snapshot], {}), {})
+        with self.assertRaises(ValueError):
+            packed_weights([snapshot], {'0': 9})

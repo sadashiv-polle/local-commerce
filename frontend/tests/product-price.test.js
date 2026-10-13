@@ -14,3 +14,11 @@ test('both modes show the lowest visible pack price', () => {
   assert.equal(displayPrice(both).rate, 150)
   assert.deepEqual(displayPrice({ rate: 90, uom: 'Nos' }), { rate: 90, unit: 'Nos', from: false })
 })
+
+test('fixed piece packs show exact total price independently of per-piece price', () => {
+  assert.equal(displayPrice({ rate: 999, uom: 'Nos', selling_options: [
+    { billing: 'Pack', quantity: 6, pack_price: 100 },
+    { billing: 'Pack', quantity: 15, pack_price: 200 },
+    { billing: 'Pack', quantity: 1, pack_price: 1, enabled: false },
+  ] }).rate, 100)
+})

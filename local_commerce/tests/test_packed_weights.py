@@ -153,3 +153,37 @@ class TestPackedWeights(FrappeTestCase):
         self.assertEqual(ready["status"], "Ready")
         self.assertEqual(ready["total"], before["total"])
         self.assertEqual(ready["items"], before["items"])
+
+    def test_fixed_piece_packs_preserve_exact_prices_and_stock(self):
+        frappe.set_user(self.user.name)
+        created = products.create_item(self.shop.name, "Bangde fixed packs", self.group, "Nos")
+        item = frappe.get_doc("Item", created["name"])
+        owner.adjust_stock(self.shop.name, item.name, "Add", 30, "Pack stock",
+                           "fixed-pack-stock", 5)
+        item.reload()
+        offers = [{"id": "six", "label": "6 Bangde", "kind": "Count", "quantity": 6,
+                   "billing": "Pack", "pack_price": 100},
+                  {"id": "fifteen", "label": "15 Bangde", "kind": "Count", "quantity": 15,
+                   "billing": "Pack", "pack_price": 200}]
+        owner.update_product(self.shop.name, item.name, str(item.modified), item.item_name,
+                             price=20, selling_options=offers)
+        frappe.set_user(self.customer.name)
+        rows = [{"item": item.name, "option_id": "six", "quantity": 2},
+                {"item": item.name, "option_id": "fifteen", "quantity": 1}]
+        preview = orders.quote(self.shop.name, rows)
+        self.assertEqual(preview["subtotal"], 400)
+        result = orders.place(self.shop.name, rows, self.address, "fixed-pack-order")
+        so = frappe.get_doc("Sales Order", frappe.db.get_value(
+            "LC Order", result["name"], "sales_order"))
+        self.assertEqual([(row.qty, row.rate, row.stock_qty) for row in so.items],
+                         [(2, 100, 12), (1, 200, 15)])
+        self.assertEqual(so.total, 400)
+        frappe.set_user(self.user.name)
+        orders.change(result["name"], "Accepted")
+        orders.change(result["name"], "Preparing")
+        ready = orders.change(result["name"], "Ready")
+        self.assertEqual(ready["total"], result["total"])
+        from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
+        invoice = make_sales_invoice(so.name)
+        self.assertEqual([(row.qty, row.rate, row.stock_qty) for row in invoice.items],
+                         [(2, 100, 12), (1, 200, 15)])

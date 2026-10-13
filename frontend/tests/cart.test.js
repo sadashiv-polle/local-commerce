@@ -61,3 +61,12 @@ test('the latest cart is available from every app page', () => {
   clearCart(saved, 'shop-b')
   assert.equal(activeCart(saved), null)
 })
+
+test('different piece packs share the same stock pool', () => {
+  const six = { item: 'bangde', item_name: 'Bangde', option_id: 'six', rate: 100, stock_per_pack: 6, stock_available: 20, available: 3 }
+  const fifteen = { ...six, option_id: 'fifteen', rate: 200, stock_per_pack: 15, available: 1 }
+  const cart = changeQuantity({}, six, 1)
+  assert.throws(() => changeQuantity(cart, fifteen, 1), /stock/)
+  const two = changeQuantity(cart, six, 1)
+  assert.equal(two['bangde::six'].quantity * two['bangde::six'].rate, 200)
+})

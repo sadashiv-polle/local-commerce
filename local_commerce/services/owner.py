@@ -441,13 +441,29 @@ def update_product(
         from local_commerce.services.selling_rules import options
 
         try:
-            offers = options(frappe.parse_json(selling_options))
+            offers = options(frappe.parse_json(selling_options), product.stock_uom)
         except (ValueError, TypeError) as exc:
             reject(str(exc))
-        if offers and (product.stock_uom != "Kg" or frappe.db.get_value(
+        if offers and product.stock_uom == "Kg" and frappe.db.get_value(
             "UOM", "Kg", "must_be_whole_number"
-        )):
+        ):
             reject("Use Kg with fractional quantities for products billed by packed weight")
+        from local_commerce.services.selling_rules import pack_uom
+
+        for offer in offers:
+            if offer["billing"] != "Pack":
+                continue
+            unit = pack_uom(offer["quantity"])
+            if not frappe.db.exists("UOM", unit):
+                frappe.get_doc({"doctype": "UOM", "uom_name": unit,
+                                "enabled": 1, "must_be_whole_number": 1}).insert(ignore_permissions=True)
+            if not frappe.db.get_value("UOM", unit, "enabled"):
+                reject(f"Enable the {unit} unit before saving this pack")
+            conversion = next((row for row in product.uoms if row.uom == unit), None)
+            if conversion:
+                conversion.conversion_factor = offer["quantity"]
+            else:
+                product.append("uoms", {"uom": unit, "conversion_factor": offer["quantity"]})
         product.lc_selling_options = json.dumps(offers)
         piece_offer = next((row for row in offers if row["billing"] == "Pieces"), None)
         if piece_offer:

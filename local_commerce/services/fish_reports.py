@@ -27,7 +27,7 @@ def report(shop, start_date, end_date):
         """
         select si.name as invoice, si.update_stock, si.is_return, si.return_against,
                sii.name as detail, sii.item_code as item, sii.stock_qty,
-               sii.uom, sii.qty, sii.base_net_amount as revenue,
+               sii.uom, i.stock_uom, sii.qty, sii.base_net_amount as revenue,
                sii.delivery_note, sii.dn_detail, o.delivery_note as order_delivery
         from `tabSales Invoice` si
         inner join `tabSales Invoice Item` sii on sii.parent=si.name
@@ -223,7 +223,8 @@ def invoice_results(invoices, stock_costs):
         )
         qty = float(row["stock_qty"] or 0)
         out["sold_kg"] += qty
-        out["sold_pieces"] += float(row["qty"] or 0) if row["uom"] == "Nos" else 0
+        out["sold_pieces"] += (qty if row.get("stock_uom") == "Nos" else
+                               float(row["qty"] or 0) if row["uom"] == "Nos" else 0)
         out["revenue"] += float(row["revenue"] or 0)
         if row["update_stock"]:
             key = ("Sales Invoice", row["invoice"], row["detail"], item)
