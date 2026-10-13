@@ -203,7 +203,7 @@ async function place() {
     sessionStorage.removeItem(storageKey.value); pending.value = null; clearCart(localStorage, route.params.shop); cart.value = {}
     await router.push({ path: '/orders', query: {
       order: placed.name,
-      review: '1',
+      ...(placed.payment_method === 'Cashfree' ? { pay: '1' } : {}),
     } })
   } catch (e) {
     error.value = e.message
@@ -308,7 +308,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-address-change', loadSave
             <CheckoutSummary :address="address" :items="Object.values(cart)" :currency="catalog.currency" :subtotal="deliveryQuote?.subtotal ?? subtotal" :delivery="quotedFee" :total="estimatedTotal" :updating="quoting" :needs-location="!!deliveryQuote?.needs_location" :payment="paymentMethod" estimated />
             <p v-if="error" class="checkout-error" role="alert">{{ error }}</p>
             <p v-if="!catalog.accepting_orders" class="muted">Your cart is saved. {{ catalog.availability.message }}.</p>
-            <button class="cart-checkout-button" :disabled="busy || editingLocation || outsideDeliveryRange || (!pending && (quoting || !!quoteError || !deliveryQuote || deliveryQuote.minimum_remaining > 0 || deliveryQuote.needs_location)) || (!catalog.accepting_orders && !pending)"><span>{{ busy ? 'Sending…' : outsideDeliveryRange ? 'Address outside delivery range' : pending ? 'Retry request' : session.user === 'Guest' ? 'Login to order' : paymentMethod === 'Cashfree' ? 'Review final total' : 'Send order request' }}</span><strong>{{ money(estimatedTotal) }} ›</strong></button>
+            <button class="cart-checkout-button" :disabled="busy || editingLocation || outsideDeliveryRange || (!pending && (quoting || !!quoteError || !deliveryQuote || deliveryQuote.minimum_remaining > 0 || deliveryQuote.needs_location)) || (!catalog.accepting_orders && !pending)"><span>{{ busy ? 'Sending…' : outsideDeliveryRange ? 'Address outside delivery range' : pending ? 'Retry request' : session.user === 'Guest' ? 'Login to order' : paymentMethod === 'Cashfree' ? 'Continue to payment' : 'Send order request' }}</span><strong>{{ money(estimatedTotal) }} ›</strong></button>
           </form>
         </aside>
       </div>
