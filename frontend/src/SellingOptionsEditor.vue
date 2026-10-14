@@ -20,7 +20,7 @@ function remove(index) { emit('update:modelValue', props.modelValue.filter((_, i
 <template>
   <section class="selling-options-editor">
     <div class="selling-options-heading"><div><h3>Selling options</h3><p>Offer fixed-price piece packs or weight options for this product.</p></div><button type="button" :disabled="disabled || !['Kg', 'Nos'].includes(uom) || modelValue.length >= 20" @click="add">+ Add option</button></div>
-    <p v-if="uom === 'Nos'" class="muted">Set the whole pack price: for example, 6 Bangde for ₹100 or 15 for ₹200. Stock is counted in individual pieces; buying two 6-piece packs uses 12 pieces.</p>
+    <p v-if="uom === 'Nos'" class="muted">These options share this product’s loose-piece stock. For separate pack stock, create a new product using By prepared packs instead. Shared-stock example: 6 Bangde for ₹100 or 15 for ₹200. Stock is counted in individual pieces; buying two 6-piece packs uses 12 pieces.</p>
     <p v-else-if="uom !== 'Kg'" class="muted">Create this product with unit Kg to use shared stock and pricing by packed weight.</p>
     <p v-else class="muted">Selling price above is per kg. For fish weight packs, enter the weighed quantity, such as 0.500, 0.530 or 0.600 kg; no packing confirmation is needed. count weights are estimates for stock. Piece pricing stays fixed after packing.</p>
     <label v-if="modelValue.length && uom === 'Kg'">Show to customers<select :value="display" :disabled="disabled" @change="setDisplay($event.target.value)"><option>Weight</option><option>Pieces</option><option>Both</option></select></label>

@@ -64,7 +64,7 @@ class TestFishReports(unittest.TestCase):
         fake.get_doc.return_value = SimpleNamespace(company='C', warehouse='W')
         fake.get_all.side_effect = lambda *args, **kwargs: self.sql(
             "select name,item_name,stock_uom from `tabItem` "
-            "where lc_shop=? and stock_uom in ('Kg','Nos')",
+            "where lc_shop=? and stock_uom in ('Kg','Nos','Pack')",
             (kwargs['filters']['lc_shop'],), as_dict=True)
         utilities = Mock(getdate=lambda value: date.fromisoformat(value))
         owner = Mock(reject=Mock(side_effect=ValueError))
@@ -207,3 +207,15 @@ class TestFishReports(unittest.TestCase):
         self.assertEqual(totals['revenue'], 0)
         self.assertEqual(totals['gross_profit'], 0)
         self.assertEqual(totals['pending_cost_lines'], 0)
+
+    def test_pack_inventory_does_not_mix_with_kilogram_totals(self):
+        self.db.execute("insert into `tabItem` values ('pack','6 Bangde','Pack','shop-a',100)")
+        self.db.execute("""insert into `tabStock Ledger Entry`
+            (item_code,actual_qty,stock_value_difference,voucher_type,voucher_no,
+             warehouse,company,is_cancelled,posting_date)
+            values ('pack',10,500,'Stock Entry','pack-receipt','W','C',0,'2026-09-18')""")
+        report = self.module.report('shop-a', '2026-09-18', '2026-09-18')
+        pack = next(row for row in report['items'] if row['item'] == 'pack')
+        self.assertEqual(pack['closing_quantity'], 10)
+        self.assertEqual(report['totals']['closing_packs'], 10)
+        self.assertAlmostEqual(report['totals']['closing_kg'], 6.01)

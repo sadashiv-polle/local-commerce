@@ -611,7 +611,7 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
             stock["actual"],
             stock["reserved"],
             bool(frappe.db.get_value("UOM", product.stock_uom, "must_be_whole_number"))
-            or (fish.enabled(doc, product) and product.stock_uom == "Nos"),
+            or (fish.enabled(doc, product) and product.stock_uom in {"Nos", "Pack"}),
         )
     except ValueError as exc:
         reject(str(exc))

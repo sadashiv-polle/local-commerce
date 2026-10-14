@@ -18,12 +18,12 @@ ACTIVE = ['Requested', 'Accepted', 'Preparing', 'Ready']
 
 
 def enabled(shop, item=None):
-    return shop.get('shop_type') == 'Fish' and (item is None or item.stock_uom in {'Kg', 'Nos'})
+    return shop.get('shop_type') == 'Fish' and (item is None or item.stock_uom in {'Kg', 'Nos', 'Pack'})
 
 
 def require_fish(shop, item=None):
     if not enabled(shop, item):
-        reject('This feature is only available for Kg or Nos products in Fish shops')
+        reject('This feature is only available for Kg, Nos or Pack products in Fish shops')
 
 
 def selling_options(shop, item, rows):
@@ -78,7 +78,7 @@ def reserve(order, rows):
     parts = []
     totals = {}
     for row in rows:
-        if frappe.db.get_value('Item', row.item_code, 'stock_uom') in {'Kg', 'Nos'}:
+        if frappe.db.get_value('Item', row.item_code, 'stock_uom') in {'Kg', 'Nos', 'Pack'}:
             totals[row.item_code] = (totals.get(row.item_code, Decimal(0))
                                     + Decimal(str(row.stock_qty)))
     for item, quantity in sorted(totals.items()):
@@ -101,7 +101,7 @@ def validate_order(order, refresh_expired=False):
     so = frappe.get_doc('Sales Order', order.sales_order)
     expected = {}
     for row in so.items:
-        if row.stock_uom in {'Kg', 'Nos'}:
+        if row.stock_uom in {'Kg', 'Nos', 'Pack'}:
             expected[row.item_code] = (expected.get(row.item_code, Decimal(0))
                                       + Decimal(str(row.stock_qty)))
     actual = {}
@@ -165,7 +165,7 @@ def picked_up(order, note):
             allocated[part['item']] = (allocated.get(part['item'], Decimal(0))
                                        + Decimal(str(part['quantity'])))
         for row in note.items:
-            if row.stock_uom in {'Kg', 'Nos'}:
+            if row.stock_uom in {'Kg', 'Nos', 'Pack'}:
                 dispatched[row.item_code] = (dispatched.get(row.item_code, Decimal(0))
                                              + Decimal(str(row.stock_qty)))
         if allocated != dispatched:
@@ -197,10 +197,10 @@ def adjust(shop, item, action, quantity, reason, request_key, unit_cost=0,
 
     shop_doc, product = own_item(shop, item, True)
     require_fish(shop_doc, product)
-    if product.stock_uom == 'Nos':
-        qty = checked_number(quantity, 'Number of pieces', positive=True)
+    if product.stock_uom in {'Nos', 'Pack'}:
+        qty = checked_number(quantity, 'Number of pieces or packs', positive=True)
         if qty != qty.to_integral_value():
-            reject('Enter a whole number of pieces')
+            reject('Enter a whole number of pieces or packs')
     if action not in {'Add', 'Remove', 'Wastage'}:
         reject('Choose Add, Remove or Wastage')
     metadata = {'kind': action, 'lot': lot or '', 'validity_hours': str(validity_hours or '')}
@@ -305,7 +305,7 @@ def snapshot(shop):
     require_fish(doc)
     held = reservations(doc)
     now = now_datetime()
-    products = frappe.get_all('Item', filters={'lc_shop': shop, 'stock_uom': ['in', ['Kg', 'Nos']]},
+    products = frappe.get_all('Item', filters={'lc_shop': shop, 'stock_uom': ['in', ['Kg', 'Nos', 'Pack']]},
                               fields=['name', 'item_name', 'disabled'], limit_page_length=0)
     from local_commerce.services.owner import detail
 
@@ -370,7 +370,7 @@ def protect_stock(doc, method=None, **kwargs):
 
     for row in doc.get('items') or []:
         item = frappe.db.get_value('Item', row.item_code, ['lc_shop', 'stock_uom'], as_dict=True)
-        if not item or item.stock_uom not in {'Kg', 'Nos'} or not item.lc_shop:
+        if not item or item.stock_uom not in {'Kg', 'Nos', 'Pack'} or not item.lc_shop:
             continue
         if frappe.db.get_value('LC Shop', item.lc_shop, 'shop_type') != 'Fish':
             continue
@@ -384,7 +384,7 @@ def protect_stock(doc, method=None, **kwargs):
 def protect_cancel(doc, method=None, **kwargs):
     for row in doc.get('items') or []:
         item = frappe.db.get_value('Item', row.item_code, ['lc_shop', 'stock_uom'], as_dict=True)
-        if item and item.stock_uom in {'Kg', 'Nos'} and item.lc_shop and frappe.db.get_value(
+        if item and item.stock_uom in {'Kg', 'Nos', 'Pack'} and item.lc_shop and frappe.db.get_value(
             'LC Shop', item.lc_shop, 'shop_type'
         ) == 'Fish' and not (doc.doctype == 'Sales Invoice' and not doc.get('update_stock')):
             reject('Fish stock postings cannot be cancelled; use an opposite Fish stock movement')

@@ -33,7 +33,7 @@ def report(shop, start_date, end_date):
         inner join `tabSales Invoice Item` sii on sii.parent=si.name
         inner join `tabItem` i on i.name=sii.item_code
         left join `tabLC Order` o on o.name=si.lc_order and o.shop=%s
-        where i.lc_shop=%s and i.stock_uom in ('Kg','Nos')
+        where i.lc_shop=%s and i.stock_uom in ('Kg','Nos','Pack')
           and si.company=%s and si.docstatus=1
           and (sii.warehouse=%s or o.name is not null)
           and si.posting_date >= %s and si.posting_date < %s
@@ -65,7 +65,7 @@ def report(shop, start_date, end_date):
             sum(sle.actual_qty) as closing_kg,
             sum(sle.stock_value_difference) as closing_value
         from `tabStock Ledger Entry` sle inner join `tabItem` i on i.name=sle.item_code
-        where i.lc_shop=%s and i.stock_uom in ('Kg', 'Nos') and sle.warehouse=%s and sle.company=%s
+        where i.lc_shop=%s and i.stock_uom in ('Kg', 'Nos', 'Pack') and sle.warehouse=%s and sle.company=%s
           and sle.is_cancelled=0 and sle.posting_date < %s
         group by sle.item_code
     """,
@@ -105,7 +105,7 @@ def report(shop, start_date, end_date):
     )
     products = frappe.get_all(
         "Item",
-        filters={"lc_shop": shop, "stock_uom": ["in", ["Kg", "Nos"]]},
+        filters={"lc_shop": shop, "stock_uom": ["in", ["Kg", "Nos", "Pack"]]},
         fields=["name", "item_name", "stock_uom"],
         limit_page_length=0,
     )
@@ -136,11 +136,15 @@ def report(shop, start_date, end_date):
                 data[row.item].update({key: float(row.get(key) or 0) for key in keys if key in row})
     quantity_fields = ["opening", "stock_in", "stock_out", "closing", "wastage", "removal"]
     keys += [f"{field}_pieces" for field in quantity_fields]
+    keys += [f"{field}_packs" for field in [*quantity_fields, "sold"]]
     totals = dict.fromkeys(keys, 0.0)
     for row in data.values():
         for field in [*quantity_fields, "sold"]:
             raw = float(row.get(f"{field}_kg") or 0)
             row[f"{field}_quantity"] = raw
+            if row["stock_uom"] == "Pack":
+                row[f"{field}_packs"] = raw
+                row[f"{field}_kg"] = 0.0
             if row["stock_uom"] == "Nos":
                 row[f"{field}_pieces"] = raw
                 row[f"{field}_kg"] = 0.0

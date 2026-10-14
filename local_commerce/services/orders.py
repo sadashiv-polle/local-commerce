@@ -657,7 +657,7 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
         try:
             order_rules.whole_quantity(
                 quantity, frappe.db.get_value("UOM", item.stock_uom, "must_be_whole_number")
-                or (doc.get("shop_type") == "Fish" and item.stock_uom == "Nos")
+                or (doc.get("shop_type") == "Fish" and item.stock_uom in {"Nos", "Pack"})
             )
         except ValueError as exc:
             reject(str(exc))

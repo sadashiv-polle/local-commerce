@@ -45,7 +45,7 @@ def validate_item(doc, method=None):
     previous = doc.get_doc_before_save()
     if (previous and doc.get("lc_shop") and previous.stock_uom != doc.stock_uom
             and frappe.db.get_value("LC Shop", doc.lc_shop, "shop_type") == "Fish"):
-        frappe.throw("Stock unit cannot be changed. Create a separate product for Kg or Nos.")
+        frappe.throw("Stock unit cannot be changed. Create a separate product for weight, loose pieces or packs.")
     if previous and previous.get("lc_shop") != doc.get("lc_shop"):
         frappe.throw("Item shop ownership cannot be changed", frappe.PermissionError)
     if doc.is_new() and doc.get("lc_shop") and not _item_creation.get():
@@ -152,6 +152,13 @@ def create_item(
         frappe.throw("Category and unit must be names")
     if not frappe.db.exists("Item Group", {"name": item_group, "is_group": 0}):
         frappe.throw("Select a valid item group")
+    if stock_uom == "Pack":
+        if not frappe.db.exists("UOM", "Pack"):
+            frappe.get_doc({"doctype": "UOM", "uom_name": "Pack", "enabled": 1,
+                            "must_be_whole_number": 1}).insert(ignore_permissions=True,
+                                                               ignore_if_duplicate=True)
+        if not frappe.db.get_value("UOM", "Pack", "must_be_whole_number"):
+            frappe.throw("Ask the administrator to set the Pack unit to whole numbers")
     if not frappe.db.exists("UOM", {"name": stock_uom, "enabled": 1}):
         frappe.throw("Select an enabled unit of measure")
     selling_options = None

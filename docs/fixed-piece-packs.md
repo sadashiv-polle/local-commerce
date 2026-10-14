@@ -1,4 +1,30 @@
-# Fixed-price fish packs
+# Loose fish and separately stocked packs
+
+For independent stock, create a separate product for each selling format:
+
+| Product | Selling mode | Price | Example receipt |
+| --- | --- | --- | --- |
+| Bangde — loose | By pieces (Nos) | ₹20 per piece | 30 pieces |
+| Bangde — 6-piece pack | By prepared packs (Pack) | ₹100 per pack | 10 packs |
+| Bangde — 15-piece pack | By prepared packs (Pack) | ₹200 per pack | 5 packs |
+
+1. Open Products & stock → Add product.
+2. Choose By prepared packs. Put the contents in the name, e.g. Bangde — 6-piece pack.
+3. Create it, open Manage, and set the price per Pack.
+4. Receive the number of complete packs and enter the purchase cost per pack and expiry.
+5. Repeat for another pack size. Receive loose pieces on the separate Nos product.
+
+Selling one 6-piece pack reduces 10 packs to 9. It does not deduct loose pieces or
+15-piece packs. Each product has its own expiry lots, reservations, stock valuation,
+and sales. Receive stock separately; there is no automatic loose-to-pack transfer.
+Existing stock and orders are not converted automatically. Existing shared-stock options
+remain shared; create new Pack products for this independent-stock workflow.
+
+## Earlier shared-stock options
+
+The following feature remains available for products that intentionally share loose stock.
+Do not use it when receiving complete packs separately.
+
 
 Use a product with stock unit **Nos**. Keep stock and purchase costs in individual pieces.
 Do not change the stock unit on an existing Kg product with transactions; create a separate

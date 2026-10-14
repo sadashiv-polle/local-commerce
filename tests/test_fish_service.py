@@ -99,3 +99,23 @@ class TestFishService(unittest.TestCase):
         self.assertEqual(json.loads(order.fish_allocations_json)[0]['quantity'], 6)
         self.module.lots.return_value[0]['expires_at'] = self.now
         self.assertEqual(self.module.sellable(self.shop, item, 50), 0)
+
+    def test_pack_stock_is_reserved_separately_from_loose_fish(self):
+        units = {'loose': 'Nos', 'six-pack': 'Pack', 'fifteen-pack': 'Pack'}
+        self.frappe.db.get_value.side_effect = lambda dt, item, field: units[item]
+        self.module.lots.side_effect = lambda shop, item=None: [Row(
+            name=item + '-lot', item=item, remaining=10 if item != 'loose' else 30,
+            expires_at=self.now + timedelta(hours=1))]
+        order = Row(name='order', shop='shop')
+        self.module.reserve(order, [Row(item_code='six-pack', stock_qty=1),
+                                    Row(item_code='loose', stock_qty=3)])
+        allocations = {row['item']: row['quantity']
+                       for row in json.loads(order.fish_allocations_json)}
+        self.assertEqual(allocations, {'six-pack': 1, 'loose': 3})
+        self.assertNotIn('fifteen-pack', allocations)
+        pack = Row(name='six-pack', stock_uom='Pack')
+        self.assertTrue(self.module.enabled(self.shop, pack))
+        self.assertEqual(self.module.selling_options(self.shop, pack, []), [])
+        self.module.reservations.return_value = {'six-pack-lot': 1}
+        self.assertEqual(self.module.sellable(self.shop, pack, 10), 9)
+        self.assertEqual(self.module.sellable(self.shop, Row(name='loose', stock_uom='Nos'), 30), 30)
