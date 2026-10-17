@@ -65,7 +65,8 @@
     "refund_tracking_json",
     "refund_attention",
     "rider_fee_amount",
-    "rider_fee_recorded"
+    "rider_fee_recorded",
+    "gst_snapshot"
   ],
   "fields": [
     {
@@ -486,6 +487,13 @@
       "fieldtype": "Check",
       "read_only": 1,
       "default": 0
+    },
+    {
+      "fieldname": "gst_snapshot",
+      "label": "GST checkout snapshot",
+      "fieldtype": "Long Text",
+      "read_only": 1,
+      "hidden": 1
     }
   ],
   "permissions": [

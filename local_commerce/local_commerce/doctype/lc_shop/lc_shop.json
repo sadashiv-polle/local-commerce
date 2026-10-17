@@ -66,7 +66,19 @@
     "cashfree_fee_account",
     "cashfree_fee_tax_account",
     "cashfree_auto_reconcile",
-    "rider_delivery_fee"
+    "rider_delivery_fee",
+    "gst_section",
+    "gst_enabled",
+    "gst_mode",
+    "gst_registration",
+    "gst_legal_name",
+    "gst_number",
+    "gst_state",
+    "gst_address",
+    "gst_commission_rate",
+    "gst_commission_inclusive",
+    "gst_shop_payable",
+    "gst_shop_eco_account"
   ],
   "fields": [
     {
@@ -461,6 +473,75 @@
       "fieldtype": "Currency",
       "read_only": 1,
       "default": 0
+    },
+    {
+      "fieldname": "gst_section",
+      "label": "Marketplace GST",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "gst_enabled",
+      "label": "Enable reviewed GST model",
+      "fieldtype": "Check",
+      "default": "0"
+    },
+    {
+      "fieldname": "gst_mode",
+      "label": "Supply treatment",
+      "fieldtype": "Select",
+      "options": "Legacy\nExempt goods\nSeller GST\nRestaurant 9(5)",
+      "default": "Legacy"
+    },
+    {
+      "fieldname": "gst_registration",
+      "label": "Shop registration",
+      "fieldtype": "Select",
+      "options": "Unverified\nRegistered\nUnregistered",
+      "default": "Unverified"
+    },
+    {
+      "fieldname": "gst_legal_name",
+      "label": "Shop legal name",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "gst_number",
+      "label": "Shop GSTIN",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "gst_state",
+      "label": "Shop state code",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "gst_address",
+      "label": "Shop billing address",
+      "fieldtype": "Small Text"
+    },
+    {
+      "fieldname": "gst_commission_rate",
+      "label": "Commission percent",
+      "fieldtype": "Percent",
+      "default": "7"
+    },
+    {
+      "fieldname": "gst_commission_inclusive",
+      "label": "Commission includes GST",
+      "fieldtype": "Check",
+      "default": "1"
+    },
+    {
+      "fieldname": "gst_shop_payable",
+      "label": "Amount owed to platform",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_shop_eco_account",
+      "label": "Restaurant tax collected for ECO",
+      "fieldtype": "Link",
+      "options": "Account"
     }
   ],
   "permissions": [

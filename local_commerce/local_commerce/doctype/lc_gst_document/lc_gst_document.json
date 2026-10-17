@@ -1,0 +1,99 @@
+{
+  "doctype": "DocType",
+  "name": "LC GST Document",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "format:LG-{YY}-{#####}",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "event_key",
+      "label": "Unique event key",
+      "fieldtype": "Data",
+      "unique": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "order",
+      "label": "Order",
+      "fieldtype": "Link",
+      "options": "LC Order",
+      "reqd": 1
+    },
+    {
+      "fieldname": "shop",
+      "label": "Shop",
+      "fieldtype": "Link",
+      "options": "LC Shop",
+      "reqd": 1
+    },
+    {
+      "fieldname": "kind",
+      "label": "Document type",
+      "fieldtype": "Select",
+      "options": "Commission Invoice\nRestaurant Invoice\nCommission Credit Note\nRestaurant Credit Note",
+      "reqd": 1
+    },
+    {
+      "fieldname": "posting_date",
+      "label": "Date",
+      "fieldtype": "Date",
+      "reqd": 1
+    },
+    {
+      "fieldname": "original",
+      "label": "Original invoice",
+      "fieldtype": "Link",
+      "options": "LC GST Document"
+    },
+    {
+      "fieldname": "refund_id",
+      "label": "Verified refund ID",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "payload",
+      "label": "Immutable invoice data",
+      "fieldtype": "Long Text",
+      "reqd": 1
+    },
+    {
+      "fieldname": "platform_journal",
+      "label": "Platform journal",
+      "fieldtype": "Link",
+      "options": "Journal Entry"
+    },
+    {
+      "fieldname": "shop_journal",
+      "label": "Shop journal",
+      "fieldtype": "Link",
+      "options": "Journal Entry"
+    }
+  ],
+  "field_order": [
+    "event_key",
+    "order",
+    "shop",
+    "kind",
+    "posting_date",
+    "original",
+    "refund_id",
+    "payload",
+    "platform_journal",
+    "shop_journal"
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1,
+      "report": 1,
+      "export": 1
+    },
+    {
+      "role": "System Manager",
+      "read": 1,
+      "report": 1,
+      "export": 1
+    }
+  ]
+}

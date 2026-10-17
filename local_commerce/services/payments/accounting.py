@@ -145,7 +145,10 @@ def book_refunds(doc, rows):
             payment.submit()
             reversal = money(0)
             reversal_journal = None
-            if money(snap.get("commission") or 0):
+            if doc.get('gst_snapshot'):
+                from local_commerce.services.gst.accounting import reverse_refund
+                reverse_refund(doc, credit, row)
+            elif money(snap.get("commission") or 0):
                 splits = row.get("refund_splits") or []
                 vendor = [r for r in splits if r.get("vendor_id") == snap.get("vendor_id")]
                 if len(vendor) != 1 or any(

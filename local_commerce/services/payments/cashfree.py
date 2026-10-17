@@ -280,6 +280,10 @@ def snapshot(order, shop, so):
         if split
         else (money(0), money(0))
     )
+    tax_snapshot = json.loads(order.gst_snapshot) if order.get('gst_snapshot') else None
+    if tax_snapshot:
+        vendor = money(tax_snapshot['amounts']['vendor_amount'])
+        commission = money(tax_snapshot['amounts']['commission_gross'])
     if money(so.grand_total) < 1 or money(so.grand_total) != money(
         so.rounded_total or so.grand_total
     ):
@@ -294,6 +298,7 @@ def snapshot(order, shop, so):
             "vendor_id": shop.cashfree_vendor_id if split else None,
             "vendor_amount": str(vendor),
             "commission": str(commission),
+            "gst": tax_snapshot,
             "clearing_account": shop.cashfree_clearing_account,
             "commission_account": shop.cashfree_commission_account if split else None,
             "mode_of_payment": shop.cashfree_mode_of_payment,
@@ -582,7 +587,7 @@ def book_payment(doc):
         payment.insert(ignore_permissions=True)
         payment.submit()
         commission = float(snap["commission"])
-        if commission:
+        if commission and not doc.get('gst_snapshot'):
             frappe.get_doc(
                 {
                     "doctype": "Journal Entry",
@@ -604,6 +609,8 @@ def book_payment(doc):
                 }
             ).insert(ignore_permissions=True).submit()
         doc.sales_invoice, doc.payment_entry = invoice.name, payment.name
+        from local_commerce.services.gst.accounting import post as post_gst
+        post_gst(doc, invoice)
     finally:
         frappe.set_user(user)
         orders._order_operation.reset(token)

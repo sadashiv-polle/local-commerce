@@ -278,6 +278,8 @@ def post_payment(doc, reference):
         ):
             reject("Invoice total changed; contact the administrator before confirming payment")
         invoice.submit()
+        from local_commerce.services.gst.accounting import post as post_gst
+        post_gst(doc, invoice)
         payment = get_payment_entry(
             "Sales Invoice",
             invoice.name,

@@ -17,7 +17,7 @@ def settings():
         "profiles": frappe.get_all("LC Payment Gateway", fields=["name", "enabled", "environment"]),
         "shops": frappe.get_all(
             "LC Shop",
-            fields=["name", "shop_name", "company", *cashfree.SHOP_FIELDS],
+            fields=["name", "shop_name", "company", "gst_enabled", *cashfree.SHOP_FIELDS],
             limit_page_length=0,
         ),
         "accounts": frappe.get_all(

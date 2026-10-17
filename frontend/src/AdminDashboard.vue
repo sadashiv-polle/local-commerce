@@ -2,6 +2,7 @@
 import NeedsAttention from './NeedsAttention.vue'
 import RiderRateSettings from './RiderRateSettings.vue'
 import CashfreeSettings from './CashfreeSettings.vue'
+import GstSettings from './GstSettings.vue'
 import ProfileAvatar from './ProfileAvatar.vue'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -22,6 +23,7 @@ const modules = [
   { id: 'customers', title: 'Customers', description: 'Customer accounts and business records' },
   { id: 'payments', title: 'Payments', description: 'COD collections and cash handovers' },
   { id: 'storefront', title: 'Storefront', description: 'Categories, artwork and featured products' },
+  { id: 'gst', title: 'GST & commission', description: 'Tax setup, invoices, filing reports and platform settlements' },
   { id: 'cashfree', title: 'Cashfree', description: 'Online payments, vendor splits and commission' },
   { id: 'settings', title: 'Settings', description: 'Accounting, communication and platform setup' },
 ]
@@ -106,7 +108,7 @@ function when(value) { return value ? new Date(String(value).replace(' ', 'T')).
 function record(type, name) { return `/app/${type}/${encodeURIComponent(name)}` }
 async function loadRows(delta = 0) {
   const current = ++generation
-  if (!session.value.platform_admin || ['overview', 'attention', 'storefront', 'settings', 'cashfree'].includes(section.value) || embedded.value) { rows.value = []; rowsLoading.value = false; return }
+  if (!session.value.platform_admin || ['overview', 'attention', 'storefront', 'settings', 'cashfree', 'gst'].includes(section.value) || embedded.value) { rows.value = []; rowsLoading.value = false; return }
   start.value = Math.max(0, start.value + delta); rowsLoading.value = true; rowError.value = ''
   try {
     const result = await call('admin.listing', { section: section.value, shop: selectedShop.value, search: search.value, status: status.value, start: start.value })
@@ -151,6 +153,7 @@ onBeforeUnmount(() => { generation++; window.clearTimeout(searchTimer); window.c
         </template>
       </template>
       <template v-else-if="section === 'attention'"><NeedsAttention /></template>
+      <template v-else-if="section === 'gst'"><GstSettings /></template>
       <template v-else-if="section === 'cashfree'"><CashfreeSettings /></template>
       <template v-else-if="section === 'storefront'"><StoreSettings embedded /></template>
       <template v-else-if="section === 'settings'"><RiderRateSettings /><div class="admin-settings-grid"><section v-for="group in systemLinks" :key="group.title" class="admin-card"><header><h2>{{ group.title }}</h2></header><a v-for="link in group.links" :key="link[1]" :href="link[1]" class="admin-settings-link">{{ link[0] }}<span>↗</span></a></section></div></template>

@@ -33,4 +33,7 @@ def prepare_sales_order(shop, items, customer, delivery_date, delivery_fee, **ex
     if delivery_fee:
         so.append('taxes', dict(charge_type='Actual', account_head=shop.delivery_account,
                                description='Delivery charge', tax_amount=delivery_fee))
+    if getattr(shop, 'gst_enabled', 0):
+        from local_commerce.services.gst.config import apply_tax
+        apply_tax(shop, so, delivery_fee)
     return so

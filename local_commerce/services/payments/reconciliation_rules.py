@@ -52,6 +52,8 @@ def settlement_evidence(payload, snap, order_id, payment_id):
             raise ValueError("Vendor settlement amount or currency changed")
         fee = money(r["vendor_pg_service_charge"]) + money(r["vendor_split_service_charges"])
         tax = money(r["vendor_pg_service_tax"]) + money(r["vendor_split_service_tax"])
+        if snap.get('gst') and (fee or tax):
+            raise ValueError('Gateway charged fees to the vendor despite platform-borne fees; correct Cashfree fee allocation before reconciling')
         gross = money(r["amount"])
         net = gross - fee - tax
         reference, utr, date = (

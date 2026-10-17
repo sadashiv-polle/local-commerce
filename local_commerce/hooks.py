@@ -155,3 +155,5 @@ doc_events["LC Shop"]["validate"].append("local_commerce.services.manual_upi.val
 has_permission["File"] = "local_commerce.services.manual_upi.file_permission"
 
 doc_events["LC Shop"]["validate"].append("local_commerce.services.payments.cashfree.validate_shop")
+
+doc_events["LC Shop"]["validate"].append("local_commerce.services.gst.config.validate_shop")

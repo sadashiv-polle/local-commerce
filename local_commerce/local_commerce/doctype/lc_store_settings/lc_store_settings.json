@@ -15,7 +15,28 @@
     "categories",
     "promotions_json",
     "pinned_shop",
-    "app_favicon"
+    "app_favicon",
+    "gst_section",
+    "gst_company",
+    "gst_legal_name",
+    "gst_number",
+    "gst_state",
+    "gst_address",
+    "gst_sac",
+    "gst_rate",
+    "gst_cost_center",
+    "gst_clearing",
+    "gst_receivable",
+    "gst_income",
+    "gst_cgst",
+    "gst_sgst",
+    "gst_igst",
+    "gst_eco_cgst",
+    "gst_eco_sgst",
+    "gst_eco_igst",
+    "gst_bank",
+    "gst_fee",
+    "gst_fee_tax"
   ],
   "fields": [
     {
@@ -92,6 +113,127 @@
       "label": "App Favicon",
       "fieldtype": "Attach Image",
       "read_only": 1
+    },
+    {
+      "fieldname": "gst_section",
+      "label": "Platform GST",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "gst_company",
+      "label": "Platform Company",
+      "fieldtype": "Link",
+      "options": "Company"
+    },
+    {
+      "fieldname": "gst_legal_name",
+      "label": "Platform legal name",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "gst_number",
+      "label": "Platform GSTIN",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "gst_state",
+      "label": "Platform state code",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "gst_address",
+      "label": "Platform billing address",
+      "fieldtype": "Small Text"
+    },
+    {
+      "fieldname": "gst_sac",
+      "label": "Commission SAC",
+      "fieldtype": "Data",
+      "default": ""
+    },
+    {
+      "fieldname": "gst_rate",
+      "label": "Commission GST percent",
+      "fieldtype": "Percent",
+      "default": "18"
+    },
+    {
+      "fieldname": "gst_cost_center",
+      "label": "Platform cost center",
+      "fieldtype": "Link",
+      "options": "Cost Center"
+    },
+    {
+      "fieldname": "gst_clearing",
+      "label": "Gateway retained-funds clearing",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_receivable",
+      "label": "Amounts due from shops",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_income",
+      "label": "Commission income",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_cgst",
+      "label": "Commission CGST payable",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_sgst",
+      "label": "Commission SGST payable",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_igst",
+      "label": "Commission IGST payable",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_eco_cgst",
+      "label": "Section 9(5) CGST payable",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_eco_sgst",
+      "label": "Section 9(5) SGST payable",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_eco_igst",
+      "label": "Section 9(5) IGST payable",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_bank",
+      "label": "Platform bank",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_fee",
+      "label": "Gateway and Easy Split expense",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "gst_fee_tax",
+      "label": "Gateway fee GST expense",
+      "fieldtype": "Link",
+      "options": "Account"
     }
   ],
   "permissions": [

@@ -775,6 +775,9 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
 
         fish.reserve(order, so.items)
         order.sales_order = so.name
+        from local_commerce.services.gst.config import snapshot as gst_snapshot
+        tax_snapshot = gst_snapshot(doc, so, payment_method)
+        order.gst_snapshot = json.dumps(tax_snapshot) if tax_snapshot else None
         if payment_method == "Cashfree":
             cashfree.snapshot(order, doc, so)
         order.save(ignore_permissions=True)
@@ -852,6 +855,9 @@ def serialize(doc):
         "name": doc.name,
         "modified": str(doc.modified),
         "estimated": estimated,
+        "gst_documents": (frappe.get_all("LC GST Document",
+            filters={"order": doc.name, "kind": ["in", ["Restaurant Invoice", "Restaurant Credit Note"]]},
+            fields=["name", "kind"], order_by="creation asc") if doc.get("gst_snapshot") else []),
         "delivery_mode": doc.get("delivery_mode") or "Normal",
         "scheduled_slot": doc.get("scheduled_slot"),
         "scheduled_period": (frappe.db.get_value("LC Delivery Slot", doc.scheduled_slot,
@@ -1311,6 +1317,8 @@ def create_cod_collection(doc, collected_amount, driver_note=""):
         invoice.flags.ignore_permissions = True
         invoice.insert(ignore_permissions=True)
         invoice.submit()
+        from local_commerce.services.gst.accounting import post as post_gst
+        post_gst(doc, invoice)
         if checked_number(invoice.grand_total, "Invoice total") != expected:
             reject("The ERPNext invoice total changed; the shop must review this order")
     finally:
