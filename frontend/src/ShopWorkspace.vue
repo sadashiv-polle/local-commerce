@@ -69,7 +69,7 @@ async function save() {
   const current = request
   try {
     const s = shop.value
-    const values = { shop: s.name, shop_name: s.shop_name, status: s.status, description: s.description || '', order_response_minutes: s.order_response_minutes || 10, accepting_orders: s.accepting_orders ? 1 : 0, opening_hours: s.opening_hours }
+    const values = { shop: s.name, shop_name: s.shop_name, shop_email: s.shop_email || '', status: s.status, description: s.description || '', order_response_minutes: s.order_response_minutes || 10, accepting_orders: s.accepting_orders ? 1 : 0, opening_hours: s.opening_hours }
     if (canEditLocation.value) Object.assign(values, { address_line1: s.address_line1 || '', city: s.city || '', postal_code: s.postal_code || '', latitude: s.latitude ?? '', longitude: s.longitude ?? '', service_radius_km: s.service_radius_km || 5, live_tracking_enabled: s.live_tracking_enabled ? 1 : 0 })
     if (canSettings.value) Object.assign(values, { order_acceptance: s.order_acceptance || 'Manual', shop_type: s.shop_type || 'General', fish_wastage_account: s.fish_wastage_account || '', minimum_order_amount: s.minimum_order_amount || 0, free_delivery_above: s.free_delivery_above || 0, delivery_fee_per_km: s.delivery_fee_per_km || 0, delivery_included_km: s.delivery_included_km || 0, delivery_fee: s.delivery_fee || 0 })
     const result = await call('shops.update_shop', values, true)
@@ -136,6 +136,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
           <h2>Shop settings</h2><p class="muted">Keep your shop details and availability up to date.</p>
           <fieldset :disabled="!canEdit || saving" class="workspace-fields">
             <label>Name<input v-model="shop.shop_name" required></label>
+            <label>Shop email<input v-model="shop.shop_email" type="email" maxlength="140" placeholder="accounts@shop.com"><small>For invoices and shop correspondence. Saving does not send an email.</small></label>
             <label>Company<input :value="shop.company" disabled></label>
             <label>Shop type<select v-model="shop.shop_type" :disabled="!canSettings"><option>General</option><option>Fish</option></select><small>Only Fish shops use stock expiry, market prices and wastage tracking.</small></label>
             <label v-if="shop.shop_type === 'Fish'">Wastage expense account<select v-model="shop.fish_wastage_account" :disabled="!canSettings"><option value="">Select expense account</option><option v-if="shop.fish_wastage_account && !expenseAccounts.includes(shop.fish_wastage_account)">{{ shop.fish_wastage_account }}</option><option v-for="account in expenseAccounts" :key="account">{{ account }}</option></select><small>Choose an expense account from this Company.</small></label>

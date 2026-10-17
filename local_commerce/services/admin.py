@@ -180,7 +180,7 @@ def setup_options(search=""):
     }
 
 
-def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number=""):
+def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email=""):
     require_platform()
     shop_name = str(shop_name or "").strip()
     if not 1 <= len(shop_name) <= 140:
@@ -203,7 +203,7 @@ def create_shop(shop_name, company="", country="", currency="", gst_registration
                           "company_currency": currency or None, "status": "Draft",
                           "gst_registration": gst_registration, "gst_number": gst_number,
                           "gst_state": gst_number[:2] if gst_number else "",
-                          "gst_enabled": 0})
+                          "gst_enabled": 0, "shop_email": str(shop_email or "").strip()})
     doc.insert()
     return {"name": doc.name, "company": doc.company}
 

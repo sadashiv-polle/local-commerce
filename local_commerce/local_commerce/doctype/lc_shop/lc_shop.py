@@ -111,6 +111,13 @@ class LCShop(Document):
                     "Only platform administrators can change shop location settings",
                     frappe.PermissionError,
                 )
+        email = str(self.get("shop_email") or "").strip()
+        if email:
+            if any(char.isspace() or char in ",;" for char in email):
+                frappe.throw("Enter one valid shop email address")
+            frappe.utils.validate_email_address(email, throw=True)
+        self.shop_email = email
+
         from local_commerce.services.shop_map import synchronize
 
         try:

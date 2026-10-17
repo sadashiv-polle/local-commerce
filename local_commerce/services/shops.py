@@ -48,6 +48,7 @@ def get_shop(shop):
             "shop_type",
             "fish_wastage_account",
             "shop_name",
+            "shop_email",
             "company",
             "status",
             "description",
@@ -100,6 +101,7 @@ def update_shop(
     shop_type=None,
     fish_wastage_account=None,
     order_acceptance=None,
+    shop_email=None,
 ):
     require_shop(shop, "write")
     doc = frappe.get_doc("LC Shop", shop)
@@ -116,6 +118,8 @@ def update_shop(
     if fish_wastage_account is not None:
         require_settings(shop)
         doc.fish_wastage_account = fish_wastage_account
+    if shop_email is not None:
+        doc.shop_email = str(shop_email).strip()
     doc.shop_name, doc.status, doc.description = shop_name, status, description
     try:
         response_minutes = int(order_response_minutes)
