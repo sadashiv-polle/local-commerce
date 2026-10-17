@@ -180,14 +180,30 @@ def setup_options(search=""):
     }
 
 
-def create_shop(shop_name, company="", country="", currency=""):
+def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number=""):
     require_platform()
     shop_name = str(shop_name or "").strip()
     if not 1 <= len(shop_name) <= 140:
         reject("Enter a shop name (up to 140 characters)")
+    if gst_registration not in {"Unverified", "Registered", "Unregistered"}:
+        reject("Choose a valid GST registration status")
+    gst_number = str(gst_number or "").strip().upper()
+    if gst_registration == "Registered":
+        from local_commerce.services.gst.rules import gstin
+        try:
+            gst_number = gstin(gst_number)
+        except ValueError as exc:
+            reject(str(exc))
+        if not 1 <= int(gst_number[:2]) <= 38:
+            reject("GSTIN must contain a valid state code")
+    elif gst_number:
+        reject("Select Registered before entering a GSTIN")
     doc = frappe.get_doc({"doctype": "LC Shop", "shop_name": shop_name,
                           "company": company or "", "company_country": country or None,
-                          "company_currency": currency or None, "status": "Draft"})
+                          "company_currency": currency or None, "status": "Draft",
+                          "gst_registration": gst_registration, "gst_number": gst_number,
+                          "gst_state": gst_number[:2] if gst_number else "",
+                          "gst_enabled": 0})
     doc.insert()
     return {"name": doc.name, "company": doc.company}
 
