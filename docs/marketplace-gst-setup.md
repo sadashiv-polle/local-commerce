@@ -153,3 +153,70 @@ Choose a date period and download the GST workpaper CSV. Commission is classifie
 Local automated checks cover calculations, cumulative partial refunds, journal direction/balance, idempotent document posting and existing application regressions. A live ERPNext site, provider settlements and GST portal filings cannot be validated by these local tests.
 
 Reference: CBIC Circular 167/23/2021-GST (restaurant services through ECOs); GSTN Table 15 GSTR-1 and Section 9(5) GSTR-3B advisories. Confirm current applicability before activation.
+
+## Automatic installation setup (Local dot)
+
+Fresh `bench --site SITE install-app local_commerce` installs now attempt the basic
+structure automatically, using ERPNext's Company, Account, Cost Center, Warehouse
+and Price List documents. ERPNext must be installed first. The standard Company
+creation process creates its normal chart of accounts; Local dot adds dedicated
+shop resources and marketplace ledgers. It never creates a Company named Local dot
+or Daily Basket.
+
+Open **Platform administration → Local dot Setup** (`#/admin/setup`), also linked
+from Settings. Only platform administrators can read or run this setup.
+
+- New legal Company: **Shiv Tech Works**, India, INR.
+- Marketplace: **Local dot**, stored in LC Store Settings; `gst_company` is reused
+  as the legal Company link even before GST registration.
+- Default owned shop: **Daily Basket**, General, Draft, ordering and payment methods
+  off. Its workspace, warehouse, price list, cost centre, retail income, delivery
+  income, stock adjustment and wastage accounts are prepared.
+- Separate marketplace cost centre, commission income/receivable, clearing, gateway
+  expense, gateway GST expense and vendor settlement liability ledgers are prepared.
+  The clearing ledger is not a real bank account. The liability ledger is a base
+  ledger for settlement accounting, not an automatic payout or ledger posting rule.
+  Existing commission/settlement workflows still require configuration.
+- No GSTIN, registration address, bank account, gateway profile or vendor credentials
+  are generated. No third-party commission rate or settlement agreement is selected.
+  Existing tax settings and native defaults remain subject to administrator review.
+
+If Shiv Tech Works already exists without an app-recorded Company link, review the
+Company and explicitly confirm it in the setup page. A pre-existing Daily Basket
+also requires selecting its record; it must already be an Owned shop linked to the
+platform Company. Setup does not convert a vendor or historical shop. Existing
+configured platform Company links are respected, even if the Company was renamed.
+
+The saved default-shop Link survives shop renames. Repeat runs preserve populated
+settings, reuse compatible ledgers, and never activate payments or overwrite bank
+configuration. Incompatible existing resources stop setup for review. Creation is
+transactional and serialized; a failed automatic attempt rolls back its changes,
+logs an Error Log entry, and leaves setup pending. After the ERPNext setup wizard,
+a pending fresh installation retries automatically. Administrators can retry from
+the same page without reinstalling.
+
+**Upgrades do not automatically create business records.** Existing sites can opt
+in from Local dot Setup after migrating. Back up first. No existing invoices,
+Companies or stock movements are migrated.
+
+The nine checklist rows report saved configuration, not external verification.
+GST identity still needs valid tax accounts and correct treatment; an enabled
+Cashfree profile still needs a successful test transaction. Easy Split and commission
+remain pending when no third-party vendors have been configured; they are not
+prerequisites for own-shop direct-merchant sales. Add actual bank details through
+shop settings and configure Cashfree/GST through their existing admin screens.
+
+### Staging verification before a new production installation
+
+1. Install on a fresh ERPNext 15 test site. Confirm exactly one Shiv Tech Works
+   Company, one owned Daily Basket, separate warehouse/cost centres and INR ledgers.
+2. Confirm GSTIN/banking/credentials remain blank, the shop is Draft and ordering off.
+3. Repeat setup through the admin API or page: record IDs and account counts must
+   remain unchanged. Rename the default shop and repeat; no new Daily Basket should
+   appear.
+4. Test a site with an existing, unlinked Shiv Tech Works: nothing is adopted until
+   the administrator confirms it. Test incompatible Company currency/resources:
+   the request must fail without replacing them.
+5. Check the page and API as a shop owner/customer: both must deny access.
+6. Configure real sandbox settings, then test orders and settlement accounting
+   separately. Automated local tests do not replace an ERPNext database smoke test.

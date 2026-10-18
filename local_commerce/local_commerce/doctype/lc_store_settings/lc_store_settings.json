@@ -36,7 +36,14 @@
     "gst_eco_igst",
     "gst_bank",
     "gst_fee",
-    "gst_fee_tax"
+    "gst_fee_tax",
+    "setup_section",
+    "marketplace_name",
+    "setup_shop",
+    "setup_complete",
+    "setup_pending",
+    "setup_message",
+    "setup_vendor_payable"
   ],
   "fields": [
     {
@@ -234,6 +241,48 @@
       "label": "Gateway fee GST expense",
       "fieldtype": "Link",
       "options": "Account"
+    },
+    {
+      "fieldname": "setup_section",
+      "fieldtype": "Section Break",
+      "label": "Local dot Setup"
+    },
+    {
+      "fieldname": "marketplace_name",
+      "fieldtype": "Data",
+      "label": "Marketplace name"
+    },
+    {
+      "fieldname": "setup_shop",
+      "fieldtype": "Link",
+      "label": "Default owned shop",
+      "options": "LC Shop",
+      "read_only": 1
+    },
+    {
+      "fieldname": "setup_complete",
+      "fieldtype": "Check",
+      "label": "Basic structure initialized",
+      "read_only": 1
+    },
+    {
+      "fieldname": "setup_pending",
+      "fieldtype": "Check",
+      "label": "Installation setup pending",
+      "read_only": 1
+    },
+    {
+      "fieldname": "setup_message",
+      "fieldtype": "Small Text",
+      "label": "Setup status",
+      "read_only": 1
+    },
+    {
+      "fieldname": "setup_vendor_payable",
+      "fieldtype": "Link",
+      "label": "Vendor settlement liability",
+      "options": "Account",
+      "read_only": 1
     }
   ],
   "permissions": [

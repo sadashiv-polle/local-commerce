@@ -39,6 +39,8 @@ def before_install():
 
 def after_install():
     after_migrate()
+    from local_commerce.services.installation_setup import install
+    install()
 
 
 def after_setup(args=None):
@@ -48,6 +50,8 @@ def after_setup(args=None):
 
     ensure_item_groups()
     seed_menu()
+    from local_commerce.services.installation_setup import resume
+    resume()
 
 
 def after_migrate():
