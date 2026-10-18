@@ -180,7 +180,7 @@ def setup_options(search=""):
     }
 
 
-def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email=""):
+def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email="", auto_setup=0, onboarding=None):
     require_platform()
     shop_name = str(shop_name or "").strip()
     if not 1 <= len(shop_name) <= 140:
@@ -204,8 +204,17 @@ def create_shop(shop_name, company="", country="", currency="", gst_registration
                           "gst_registration": gst_registration, "gst_number": gst_number,
                           "gst_state": gst_number[:2] if gst_number else "",
                           "gst_enabled": 0, "shop_email": str(shop_email or "").strip()})
+    if str(auto_setup) not in ("0", "1", "True", "False", "true", "false"):
+        reject("Choose whether to set up accounts automatically")
+    automatic = str(auto_setup) in ("1", "True", "true")
+    if automatic:
+        from local_commerce.services.shop_onboarding import apply_details
+        apply_details(doc, onboarding)
     doc.insert()
-    return {"name": doc.name, "company": doc.company}
+    if automatic:
+        from local_commerce.services.shop_onboarding import provision
+        provision(doc)
+    return {"name": doc.name, "company": doc.company, "accounts_configured": automatic}
 
 
 def save_membership(shop, user, membership_role="Delivery Person", name="", enabled=1):

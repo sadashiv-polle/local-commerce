@@ -28,8 +28,8 @@ def setup_options(search=""):
 
 
 @frappe.whitelist(methods=["POST"])
-def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email=""):
-    return admin.create_shop(shop_name, company, country, currency, gst_registration, gst_number, shop_email)
+def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email="", auto_setup=0, onboarding=None):
+    return admin.create_shop(shop_name, company, country, currency, gst_registration, gst_number, shop_email, auto_setup, onboarding)
 
 
 @frappe.whitelist(methods=["POST"])

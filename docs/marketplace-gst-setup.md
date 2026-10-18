@@ -6,6 +6,16 @@ Open **Admin → GST & commission**. You can save platform and shop drafts witho
 
 Existing shops/orders keep their previous payment and tax behaviour. This feature does not turn off taxes already configured in ERPNext. Do not enter a placeholder GSTIN. Add the actual registration after it is issued and your accountant confirms the supply treatment.
 
+## Automatic setup when adding a shop
+
+In **Admin → Shops → Add shop**, leave **Automatically create and assign shop accounts** checked. Enter the shop's registration/GSTIN (if registered), legal name, email, business address, city, postal code, two-digit GST state, shop type, intended GST treatment and GST-inclusive commission percentage.
+
+For an INR Company, creation provisions company-scoped LC-prefixed ledgers for commission expense, platform amounts payable, ECO GST collected, Cashfree clearing, shop bank, cash, delivery income, gateway expenses and stock adjustment. Fish shops also receive a wastage expense ledger. Compatible LC accounts are reused; conflicting/disabled accounts stop creation for review instead of being overwritten. The Company must have an active non-group default cost center, which standard ERPNext Company setup normally supplies.
+
+Each shop receives a dedicated warehouse and selling price list. Cash, UPI and Cashfree payment modes are reused or created without changing global Company-account mappings. All operations share the shop-creation transaction: a validation failure rolls the request back.
+
+The shop stays Draft, ordering paused, and payment methods/GST disabled. The created bank account is a ledger only. Review real banking details, gateway credentials/vendor onboarding, location pin and owner membership before opening. Platform GST accounts remain a separate one-time setup; creating a vendor shop never changes platform identity or accounts. Uncheck automatic setup for manual/non-INR onboarding.
+
 ## Platform accounts
 
 Use the INR Company that earns Local's commission. Set up separate, active, non-group ledgers:
