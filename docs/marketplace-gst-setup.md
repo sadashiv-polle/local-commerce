@@ -14,7 +14,23 @@ For an INR Company, creation provisions company-scoped LC-prefixed ledgers for c
 
 Each shop receives a dedicated warehouse and selling price list. Cash, UPI and Cashfree payment modes are reused or created without changing global Company-account mappings. All operations share the shop-creation transaction: a validation failure rolls the request back.
 
-The shop stays Draft, ordering paused, and payment methods/GST disabled. The created bank account is a ledger only. Review real banking details, gateway credentials/vendor onboarding, location pin and owner membership before opening. Platform GST accounts remain a separate one-time setup; creating a vendor shop never changes platform identity or accounts. Uncheck automatic setup for manual/non-INR onboarding.
+The shop stays Draft, ordering paused, and payment methods/GST disabled. If bank setup is deferred, the generated bank account is a ledger only. Review real banking details, gateway credentials/vendor onboarding, location pin and owner membership before opening. Platform GST accounts remain a separate one-time setup; creating a vendor shop never changes platform identity or accounts. Uncheck automatic setup for manual/non-INR onboarding.
+
+## Bank details during shop creation
+
+The **Shop bank account** section offers **Add later**, **Add a new bank account**, and **Use an existing Company Bank Account** (when selecting an existing Company).
+
+For a new account enter the bank name, account-holder name, account number twice, and IFSC. Account numbers remain strings so leading zeroes are retained. IFSC receives a format check, not an external branch/ownership verification. Use the exact bank name when reusing an existing Bank master.
+
+Creation uses ERPNext's native **Bank**, **Bank Account** and **Account** records. The Bank Account is marked as a Company account and linked to an active INR Asset ledger with Account Type Bank. The selected ledger becomes the shop's Manual UPI bank and Cashfree settlement bank; Cashfree clearing remains separate. The account holder is included in the native Account Name label together with a non-sensitive identifier to avoid name collisions.
+
+Existing accounts must belong to the selected Company, be enabled, and have account number/IFSC details and a valid Bank ledger. Bank options show only the last four account-number digits. Company defaults and global Mode of Payment mappings are not changed. Saving the form does not update Cashfree vendor payout details or verify bank ownership; complete those separately in Cashfree.
+
+This workflow supports Indian INR accounts. Standard ERPNext stores routing information in `branch_code`; if the installed Bank Account metadata exposes `ifsc_code` or `ifsc`, that field is populated too. Normal document validation and installed application hooks run on insert; they are not bypassed. Extra mandatory custom fields may require completion in ERPNext followed by choosing the existing account.
+
+**India Compliance boundary:** correct banking masters do not make the custom marketplace GST invoices/CSV native India Compliance returns. Company GST registration/address, transaction tax configuration, and the custom commission/ECO reporting integration still require verification against your installed version. No automatic GSTR filing, IRN or bank verification is claimed. Synthetic demo GSTINs may be rejected by native compliance validations; do not disable validation to force them through.
+
+References: [ERPNext Bank Account](https://docs.frappe.io/erpnext/bank-account), [ERPNext v15 Bank Account controller](https://github.com/frappe/erpnext/blob/version-15/erpnext/accounts/doctype/bank_account/bank_account.py), [India Compliance transaction setup](https://docs.indiacompliance.app/docs/configuration/sales_transaction).
 
 ## Platform accounts
 

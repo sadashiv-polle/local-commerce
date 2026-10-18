@@ -51,13 +51,17 @@ def payment_mode(name, kind):
     return name
 
 
-def provision(shop):
+def provision(shop, bank_details=None):
     require_platform()
     # Serialize provisioning for shops sharing a Company; the request transaction owns this lock.
     company = frappe.get_doc('Company', shop.company, for_update=True)
     if company.default_currency != 'INR':
         reject('Automatic marketplace account setup currently requires an INR Company')
+    from local_commerce.services.shop_banking import configure as configure_bank
+    selected_bank = configure_bank(shop, bank_details)
     for field, (label, root, kind) in ACCOUNTS.items():
+        if field == "cashfree_bank_account" and selected_bank:
+            continue
         if field == 'fish_wastage_account' and shop.shop_type != 'Fish':
             continue
         shop.set(field, ensure_account(shop.company,label,root,kind))

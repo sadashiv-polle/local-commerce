@@ -159,8 +159,11 @@ def set_accepting(shop, enabled):
 
 def setup_options(search=""):
     require_platform()
+    from local_commerce.services.shop_banking import options as bank_options
     linked = frappe.get_all("LC Shop", pluck="company", limit_page_length=0)
     return {
+        "bank_accounts": bank_options(),
+        "banks": frappe.get_all("Bank", pluck="name", order_by="name", limit_page_length=0),
         "country": frappe.db.get_single_value("Global Defaults", "country"),
         "currency": frappe.db.get_single_value("Global Defaults", "default_currency"),
         "countries": frappe.get_all("Country", pluck="name", order_by="name",
@@ -180,7 +183,7 @@ def setup_options(search=""):
     }
 
 
-def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email="", auto_setup=0, onboarding=None):
+def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email="", auto_setup=0, onboarding=None, bank_details=None):
     require_platform()
     shop_name = str(shop_name or "").strip()
     if not 1 <= len(shop_name) <= 140:
@@ -213,7 +216,11 @@ def create_shop(shop_name, company="", country="", currency="", gst_registration
     doc.insert()
     if automatic:
         from local_commerce.services.shop_onboarding import provision
-        provision(doc)
+        provision(doc, bank_details)
+    elif bank_details:
+        from local_commerce.services.shop_banking import configure as configure_bank
+        configure_bank(doc, bank_details)
+        doc.save()
     return {"name": doc.name, "company": doc.company, "accounts_configured": automatic}
 
 
