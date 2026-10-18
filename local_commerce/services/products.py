@@ -208,7 +208,12 @@ def create_item(
             "stock_uom": stock_uom,
             "lc_shop": shop_doc.name,
             "is_stock_item": 1,
-            "item_defaults": [{"company": shop_doc.company}],
+            "item_defaults": [{"company": shop_doc.company,
+                "default_warehouse": shop_doc.warehouse,
+                "selling_cost_center": shop_doc.cost_center,
+                "buying_cost_center": shop_doc.cost_center,
+                **({"income_account": shop_doc.get("retail_income_account")}
+                   if shop_doc.get("retail_income_account") else {})}],
         }
     )
     if selling_options is not None:

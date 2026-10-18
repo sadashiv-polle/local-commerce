@@ -46,3 +46,20 @@ class PreparedOrderTests(unittest.TestCase):
                                                        description='Delivery charge', tax_amount=20))
         so.insert.assert_not_called()
         so.save.assert_not_called()
+
+    def test_owned_shop_uses_its_cost_center_for_items_and_delivery(self):
+        import sys
+        from unittest.mock import Mock, patch
+        from local_commerce.services.checkout_summary import prepare_sales_order
+        frappe = Mock()
+        so = frappe.get_doc.return_value
+        so.items = [SimpleNamespace()]
+        so.taxes = [SimpleNamespace(description='Delivery charge')]
+        modules = {'frappe': frappe, 'frappe.utils': SimpleNamespace(nowdate=lambda:'2026-10-18'),
+                   'erpnext.controllers.accounts_controller': SimpleNamespace(get_taxes_and_charges=Mock())}
+        shop = SimpleNamespace(company='Legal company',selling_price_list='Shop prices',warehouse='Shop stock',
+            order_tax_template=None,delivery_account='Delivery',business_model='Owned shop',cost_center='Shop centre')
+        with patch.dict(sys.modules,modules):
+            prepare_sales_order(shop,[],None,'2026-10-18',0)
+        self.assertEqual(so.cost_center,'Shop centre')
+        self.assertTrue(all(row.cost_center=='Shop centre' for row in [*so.items,*so.taxes]))

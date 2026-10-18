@@ -8,10 +8,12 @@
 
 - New shops must select an existing legal Company; brand names no longer create Companies.
 - Owned shops do not charge themselves commission and cannot enable marketplace GST or Easy Split.
-- Automatic owned-shop setup creates a dedicated warehouse, cost centre and price list.
+- Automatic owned-shop setup creates a dedicated warehouse, cost centre, retail-income ledger and price list. New product defaults and checkout use that shop’s cost centre.
 - Existing shops retain Legacy accounting. Existing orders and posted documents are not migrated.
 - Third-party vendor creation in the new model is unavailable pending the vendor accounting implementation.
-- The existing one-shop-per-Company constraint is retained until that migration is implemented.
+- Multiple shop records can now select the same Company. Migration removes only the former single-column Company uniqueness index. Warehouse assignment is checked separately; only admins may change inventory-account assignments.
+- Owned-shop order receipts show the shop brand and legal supplier separately. Receipts remain order summaries, not tax invoices.
+- A Frappe/ERPNext staging site is still required to exercise the schema migration and actual ledger posting.
 
 Still required before enabling third-party vendors under Shiv Tech Works:
 

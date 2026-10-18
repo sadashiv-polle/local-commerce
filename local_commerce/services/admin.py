@@ -160,7 +160,6 @@ def set_accepting(shop, enabled):
 def setup_options(search=""):
     require_platform()
     from local_commerce.services.shop_banking import options as bank_options
-    linked = frappe.get_all("LC Shop", pluck="company", limit_page_length=0)
     return {
         "bank_accounts": bank_options(),
         "banks": frappe.get_all("Bank", pluck="name", order_by="name", limit_page_length=0),
@@ -170,8 +169,7 @@ def setup_options(search=""):
                                     limit_page_length=300),
         "currencies": frappe.get_all("Currency", filters={"enabled": 1}, pluck="name",
                                      order_by="name", limit_page_length=300),
-        "companies": frappe.get_all("Company", filters={"name": ["not in", linked]}
-                                    if linked else {}, pluck="name", order_by="name",
+        "companies": frappe.get_all("Company", pluck="name", order_by="name",
                                     limit_page_length=500),
         "users": frappe.get_all(
             "User", filters={"enabled": 1, "name": ["not in", ["Guest", "Administrator"]]},

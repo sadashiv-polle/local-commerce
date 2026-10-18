@@ -70,11 +70,16 @@ def provision(shop, bank_details=None):
     shop.upi_mode_of_payment = payment_mode('UPI', 'Bank')
     shop.cashfree_mode_of_payment = payment_mode('Cashfree', 'Bank')
     shop.cashfree_commission_type = 'Percentage'
-    shop.cashfree_commission = 0 if shop.get('business_model') == 'Owned shop' else shop.gst_commission_rate
+    shop.cashfree_commission = 0 if getattr(shop, 'business_model', None) == 'Owned shop' else shop.gst_commission_rate
+    if getattr(shop, 'business_model', None) == 'Owned shop':
+        shop.gst_commission_rate = 0
+        shop.gst_mode = 'Legacy'
+        shop.cashfree_settlement_mode = 'Direct merchant'
+        shop.retail_income_account = ensure_account(shop.company, 'LC Retail Sales ' + shop.name, 'Income', '')
     cost_center = company.cost_center
     if not cost_center or not frappe.db.exists('Cost Center',dict(name=cost_center,company=shop.company,is_group=0,disabled=0)):
         reject('Set an active non-group default Cost Center on the Company before automatic setup')
-    if shop.get('business_model') == 'Owned shop':
+    if getattr(shop, 'business_model', None) == 'Owned shop':
         root = frappe.db.get_value('Cost Center', dict(company=shop.company, is_group=1,
             disabled=0), 'name')
         if not root:
@@ -131,7 +136,9 @@ def apply_details(shop, values):
         reject('Seller GST requires a registered shop')
     try:
         rate = money(values.get('commission',7))
-        if not 0 < rate < 100:
+        if getattr(shop, 'business_model', None) == 'Owned shop':
+            rate = money(0)
+        elif not 0 < rate < 100:
             raise ValueError()
     except ValueError:
         reject('Commission must be greater than zero and below 100')

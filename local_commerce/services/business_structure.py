@@ -10,8 +10,9 @@ def validate_shop_structure(shop):
         frappe.throw('Choose a valid business model')
     if previous and (previous.get('business_model') or 'Legacy') != model:
         require_platform()
-        if frappe.db.exists('LC Order', {'shop': shop.name}):
-            frappe.throw('A shop with orders needs an accounting migration before changing its business model')
+        if (frappe.db.exists('LC Order', {'shop': shop.name})
+                or frappe.db.exists('Item', {'lc_shop': shop.name})):
+            frappe.throw('A shop with products or orders needs an accounting migration before changing its business model')
     if model == 'Third-party vendor':
         frappe.throw('Single-company vendor accounting is not available yet; do not post vendor sales through the retail flow')
     if model == 'Owned shop':
