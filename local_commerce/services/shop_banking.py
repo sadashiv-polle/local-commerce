@@ -43,7 +43,7 @@ def ifsc_field():
 
 def checked_account(name, company):
     bank = frappe.get_doc('Bank Account', name)
-    if bank.disabled or not bank.is_company_account or bank.company != company or not bank.account or bank.is_credit_card:
+    if bank.disabled or not bank.is_company_account or bank.company != company or not bank.account or bank.get('is_credit_card'):
         reject('Select an enabled Company Bank Account belonging to this shop Company')
     ledger = frappe.get_doc('Account', bank.account)
     if (ledger.company != company or ledger.disabled or ledger.is_group or ledger.root_type != 'Asset'
@@ -96,7 +96,11 @@ def configure(shop, values):
 
 def options():
     require_platform()
-    rows = frappe.get_all('Bank Account',filters={'is_company_account':1,'disabled':0,'is_credit_card':0},
+    filters = {'is_company_account': 1, 'disabled': 0}
+    # Older ERPNext v15 schemas do not have the optional credit-card column.
+    if frappe.db.has_column('Bank Account', 'is_credit_card'):
+        filters['is_credit_card'] = 0
+    rows = frappe.get_all('Bank Account',filters=filters,
         fields=['name','bank','company','account','bank_account_no'],limit_page_length=0)
     # Full account numbers never enter the options response or public shop responses.
     return [dict(name=r.name,bank=r.bank,company=r.company,account=r.account,

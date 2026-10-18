@@ -78,7 +78,7 @@ class BankingTests(TestCase):
 
     def test_choices_mask_account_number(self):
         row=SimpleNamespace(name='Bank',company='Company',account='Ledger',bank='Demo',bank_account_no='00123456789')
-        fn=load('options',require_platform=Mock(),frappe=SimpleNamespace(get_all=Mock(return_value=[row])))
+        fn=load('options',require_platform=Mock(),frappe=SimpleNamespace(db=SimpleNamespace(has_column=lambda *args:False), get_all=Mock(return_value=[row])))
         result=fn()[0]
         self.assertEqual(result['last_four'],'6789')
         self.assertNotIn('bank_account_no',result)
@@ -141,3 +141,30 @@ class BankSwitchTests(TestCase):
             fn=load(name,require_platform=Mock(side_effect=PermissionError()))
             with self.assertRaises(PermissionError):
                 fn('Shop',{}) if name=='save_shop_bank' else fn('Shop')
+
+
+class BankSchemaCompatibilityTests(TestCase):
+    def test_options_work_with_old_and_new_database_schemas(self):
+        for has_column in (False, True):
+            get_all = Mock(return_value=[])
+            db = SimpleNamespace(has_column=Mock(return_value=has_column))
+            fn = load('options', require_platform=Mock(), frappe=SimpleNamespace(db=db,get_all=get_all))
+            self.assertEqual(fn(), [])
+            filters = get_all.call_args.kwargs['filters']
+            self.assertEqual(filters['is_company_account'], 1)
+            self.assertEqual(filters['disabled'], 0)
+            self.assertEqual('is_credit_card' in filters, has_column)
+            if has_column:
+                self.assertEqual(filters['is_credit_card'], 0)
+            db.has_column.assert_called_once_with('Bank Account', 'is_credit_card')
+
+    def test_selecting_legacy_bank_without_optional_field(self):
+        data = dict(disabled=0,is_company_account=1,company='Company',account='Ledger',
+                    bank_account_no='00123456789',branch_code='ABCD0123456')
+        bank = SimpleNamespace(**data)
+        bank.get = data.get
+        ledger = SimpleNamespace(company='Company',disabled=0,is_group=0,root_type='Asset',
+                                 account_type='Bank',account_currency='INR')
+        fn = load('checked_account', ifsc_field=lambda:'branch_code',
+                  frappe=SimpleNamespace(get_doc=Mock(side_effect=[bank,ledger])))
+        self.assertIs(fn('Bank','Company'),bank)
