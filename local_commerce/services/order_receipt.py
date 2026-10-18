@@ -37,7 +37,9 @@ def render_receipt(data):
         return row
     logo = Path(__file__).resolve().parents[1] / 'public/icons/local-wordmark.png'
     image = Image(str(logo), width=72, height=39)
-    story = [image, text(data['shop'], 'title'), text('ORDER RECEIPT', 'center'),
+    story = [image, text(data['shop'], 'title'),
+             *([text('on Local dot', 'center'), text('Legal supplier: ' + data['legal_supplier'], 'center')]
+               if data.get('legal_supplier') else []), text('ORDER RECEIPT', 'center'),
              Spacer(1, 6), rule(), Spacer(1, 6),
              text('Order ref: ' + data['order'][:8].upper(), 'bold'),
              text(data['created']), text('Status: ' + data['status']),
@@ -76,7 +78,9 @@ def download(order):
     require_shop(doc.shop)
     so = frappe.get_doc('Sales Order', doc.sales_order)
     address = frappe.parse_json(doc.address_snapshot or '{}')
+    shop = frappe.get_doc('LC Shop', doc.shop)
     data = {
+        'legal_supplier': so.company if shop.get('business_model') == 'Owned shop' else None,
         'shop': frappe.db.get_value('LC Shop', doc.shop, 'shop_name'),
         'order': doc.name, 'created': str(doc.creation), 'status': doc.status,
         'customer': doc.recipient, 'address': ', '.join(str(address.get(k) or '') for k in

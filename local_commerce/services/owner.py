@@ -58,6 +58,14 @@ def validate_configuration(doc, method=None):
         and frappe.db.exists("Item", {"lc_shop": doc.name})
     ):
         reject("Company cannot change after shop products have been created")
+    # Membership in one shop is not authority over every warehouse in its Company.
+    if previous and any(previous.get(field) != doc.get(field) for field in
+                        ('warehouse', 'cost_center', 'stock_adjustment_account', 'retail_income_account')):
+        from local_commerce.permissions.scope import require_platform
+        require_platform()
+    if doc.get('warehouse') and frappe.db.exists('LC Shop',
+            {'warehouse': doc.warehouse, 'name': ['!=', doc.name]}):
+        reject('This warehouse is already assigned to another shop')
     for dt, field, extra in [
         ("Warehouse", "warehouse", {"is_group": 0, "disabled": 0}),
         (
@@ -69,6 +77,9 @@ def validate_configuration(doc, method=None):
     ]:
         if doc.get(field):
             company_link(dt, doc.get(field), doc.company, extra)
+    if doc.get('retail_income_account'):
+        company_link('Account', doc.retail_income_account, doc.company,
+                     {'is_group': 0, 'disabled': 0, 'root_type': 'Income'})
     if doc.get("fish_wastage_account"):
         company_link("Account", doc.fish_wastage_account, doc.company,
                      {"is_group": 0, "disabled": 0, "root_type": "Expense"})
@@ -99,6 +110,13 @@ def validate_configuration(doc, method=None):
 
 def setup_options(shop):
     doc = shop_doc(shop, True)
+    if tenant_user()[2]:
+        return dict(warehouse=doc.warehouse, account=doc.stock_adjustment_account,
+            cost_center=doc.cost_center, price_list=doc.selling_price_list,
+            currency=frappe.db.get_value('Company', doc.company, 'default_currency'),
+            warehouses=[doc.warehouse] if doc.warehouse else [],
+            accounts=[doc.stock_adjustment_account] if doc.stock_adjustment_account else [],
+            cost_centers=[doc.cost_center] if doc.cost_center else [])
     return {
         "warehouse": doc.warehouse,
         "account": doc.stock_adjustment_account,
@@ -133,6 +151,9 @@ def setup_options(shop):
 
 def configure(shop, warehouse, account, cost_center):
     doc = shop_doc(shop, True)
+    if (warehouse, account, cost_center) != (doc.warehouse, doc.stock_adjustment_account, doc.cost_center):
+        from local_commerce.permissions.scope import require_platform
+        require_platform()
     doc.warehouse, doc.stock_adjustment_account, doc.cost_center = warehouse, account, cost_center
     validate_configuration(doc)
     token = _owner_operation.set(True)

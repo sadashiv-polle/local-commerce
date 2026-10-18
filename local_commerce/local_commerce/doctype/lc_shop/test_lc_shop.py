@@ -80,114 +80,79 @@ class TestLCShop(FrappeTestCase):
             frappe.db.exists("Version", {"ref_doctype": "LC Shop", "docname": self.a.name})
         )
 
-    def test_company_is_unique(self):
-        with self.assertRaises(frappe.UniqueValidationError):
-            frappe.get_doc(
-                {"doctype": "LC Shop", "shop_name": "Duplicate", "company": self.a.company}
-            ).insert()
+    def test_shops_can_share_a_company_without_sharing_access(self):
+        second = frappe.get_doc(dict(doctype='LC Shop', shop_name='Another brand',
+                                     company=self.a.company)).insert()
+        frappe.set_user(self.owner.name)
+        with self.assertRaises(frappe.PermissionError):
+            get_shop(second.name)
+        self.assertEqual([row.name for row in list_shops()], [self.a.name])
 
 
-class TestShopCompanyCreation(FrappeTestCase):
+class TestShopCompanySelection(FrappeTestCase):
     def setUp(self):
-        frappe.set_user("Administrator")
+        frappe.set_user('Administrator')
+        self.original_platform = frappe.db.get_single_value('LC Store Settings', 'gst_company')
 
     def tearDown(self):
-        frappe.set_user("Administrator")
+        frappe.set_user('Administrator')
         frappe.db.rollback()
 
-    def new_shop(self):
-        return frappe.get_doc(
-            {
-                "doctype": "LC Shop",
-                "shop_name": "LC Auto " + frappe.generate_hash(length=10),
-                "company_country": "United States",
-                "company_currency": "USD",
-            }
-        )
-
-    def test_platform_creates_company_without_company_role(self):
-        user = create_user("LC Platform Administrator")
-        frappe.set_user(user.name)
-        shop = self.new_shop()
-        shop.selling_price_list = "Standard Selling"
-        shop.insert()
-        self.assertFalse(shop.selling_price_list)
-        self.assertEqual(shop.company, shop.shop_name)
-        company = frappe.get_doc("Company", shop.company)
-        self.assertEqual(company.country, "United States")
-        self.assertEqual(company.default_currency, "USD")
-        self.assertTrue(frappe.db.exists("Account", {"company": company.name}))
-        self.assertTrue(frappe.db.exists("Warehouse", {"company": company.name}))
-        original = shop.company
-        shop.shop_name = "Changed display name"
-        shop.save()
-        self.assertEqual(shop.company, original)
-
-    def test_existing_name_requires_explicit_link(self):
-        first = self.new_shop().insert()
-        duplicate = self.new_shop()
-        duplicate.shop_name = first.shop_name
+    def test_missing_company_never_creates_legal_entity(self):
+        from local_commerce.services.admin import create_shop as create
+        name = 'Brand ' + frappe.generate_hash(length=10)
+        frappe.db.set_single_value('LC Store Settings','gst_company','')
         with self.assertRaises(frappe.ValidationError):
-            duplicate.insert()
+            create(name)
+        self.assertFalse(frappe.db.exists('Company', name))
 
-    def test_frontend_new_company_ignores_insertion_company_default(self):
-        from unittest.mock import patch
-
-        from local_commerce.services.admin import create_shop as admin_create_shop
+    def test_existing_company_reused_for_two_owned_brands(self):
+        from local_commerce.services.admin import create_shop as create
         from local_commerce.tests.helpers import create_company
-
-        existing = create_company()
-        original = frappe.new_doc
-
-        def inherited_defaults(doctype, *args, **kwargs):
-            doc = original(doctype, *args, **kwargs)
-            if doctype == "LC Shop" and kwargs.get("as_dict"):
-                doc = frappe._dict(doc.copy())
-                doc.company = existing.name
-            return doc
-
-        name = "LC Default Regression " + frappe.generate_hash(length=8)
-        with patch.object(frappe, "new_doc", side_effect=inherited_defaults):
-            result = admin_create_shop(name, country="United States", currency="USD")
-            self.assertEqual(result["company"], name)
-            self.assertEqual(frappe.db.get_value("LC Shop", result["name"], "company"), name)
-            direct = self.new_shop().insert()
-            self.assertEqual(direct.company, direct.shop_name)
-            linked = admin_create_shop("LC Linked " + frappe.generate_hash(length=8),
-                                       company=existing.name)
-            self.assertEqual(linked["company"], existing.name)
-
-    def test_owner_cannot_trigger_company_creation_even_with_permission_bypass(self):
-        owner = create_user("LC Shop Owner")
-        shop = self.new_shop()
-        frappe.set_user(owner.name)
-        with self.assertRaises(frappe.PermissionError):
-            shop.insert(ignore_permissions=True)
-        self.assertFalse(frappe.db.exists("Company", shop.shop_name))
-
-    def test_site_defaults_are_used(self):
-        from unittest.mock import patch
-
-        shop = self.new_shop()
-        shop.company_country = shop.company_currency = None
-        original = frappe.db.get_single_value
-
-        def defaults(doctype, field, *args, **kwargs):
-            if doctype == "Global Defaults" and field in {"country", "default_currency"}:
-                return {"country": "United States", "default_currency": "USD"}[field]
-            return original(doctype, field, *args, **kwargs)
-
-        with patch.object(frappe.db, "get_single_value", side_effect=defaults):
-            shop.insert()
-        self.assertEqual(shop.company, shop.shop_name)
+        company = create_company()
+        frappe.db.set_single_value('LC Store Settings','gst_company',company.name)
+        first = create('Owned first', company=company.name)
+        second = create('Owned second', company=company.name)
+        self.assertEqual(first['company'], second['company'])
+        self.assertNotEqual(first['name'], second['name'])
+        self.assertEqual(frappe.db.get_value('LC Shop',first['name'],'business_model'), 'Owned shop')
 
     def test_existing_company_ignores_inherited_price_list(self):
         from local_commerce.tests.helpers import create_company
-
         company = create_company()
-        shop = self.new_shop()
-        shop.company = company.name
-        shop.selling_price_list = "Standard Selling"
-        shop.insert()
+        shop = frappe.get_doc(dict(doctype='LC Shop', shop_name='Brand', company=company.name,
+                                   selling_price_list='Standard Selling')).insert()
         self.assertFalse(shop.selling_price_list)
-        self.assertFalse(frappe.db.get_value("LC Shop", shop.name, "selling_price_list"))
+
+    def test_owner_cannot_change_warehouse_to_another_shop(self):
+        from local_commerce.services.owner import configure
+        from local_commerce.tests.helpers import create_company
+        company = create_company()
+        first = frappe.get_doc(dict(doctype='LC Shop',shop_name='First',company=company.name)).insert()
+        second = frappe.get_doc(dict(doctype='LC Shop',shop_name='Second',company=company.name)).insert()
+        owner = create_user('LC Shop Owner')
+        add_member(first, owner)
+        warehouse = frappe.get_doc(dict(doctype='Warehouse', warehouse_name='Shared test '+frappe.generate_hash(length=8),
+                                        company=company.name, is_group=0)).insert()
+        second.warehouse = warehouse.name
+        second.save()
+        frappe.set_user(owner.name)
+        with self.assertRaises(frappe.PermissionError):
+            configure(first.name, warehouse.name, None, None)
+
+    def test_vendor_creation_creates_separate_company_transactionally(self):
+        from local_commerce.services.admin import create_shop as create
+        from local_commerce.tests.helpers import create_company
+        platform = create_company()
+        frappe.db.set_single_value('LC Store Settings','gst_company',platform.name)
+        legal = 'LC Vendor Legal ' + frappe.generate_hash(length=8)
+        result = create('Vendor brand', business_model='Third-party vendor',
+                        platform_company=platform.name, company_name=legal,
+                        country='India', currency='INR', gst_registration='Unregistered')
+        self.assertEqual(result['company'],legal)
+        self.assertNotEqual(result['company'],platform.name)
+        self.assertTrue(frappe.db.exists('Account',{'company':legal}))
+        with self.assertRaises(frappe.ValidationError):
+            create('Another vendor',business_model='Third-party vendor',company=platform.name)
+        with self.assertRaises(frappe.ValidationError):
+            create('Duplicate vendor',business_model='Third-party vendor',company=legal)

@@ -36,4 +36,8 @@ def prepare_sales_order(shop, items, customer, delivery_date, delivery_fee, **ex
     if getattr(shop, 'gst_enabled', 0):
         from local_commerce.services.gst.config import apply_tax
         apply_tax(shop, so, delivery_fee)
+    if getattr(shop, 'business_model', None) == 'Owned shop':
+        so.cost_center = shop.cost_center
+        for row in [*so.items, *so.taxes]:
+            row.cost_center = shop.cost_center
     return so

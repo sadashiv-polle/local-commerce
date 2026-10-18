@@ -51,6 +51,8 @@ def after_setup(args=None):
 
 
 def after_migrate():
+    from local_commerce.schema.business_structure import allow_shared_company
+    allow_shared_company()
     if not frappe.db.exists("Role", "LC Scheduled Delivery Manager"):
         frappe.get_doc({"doctype": "Role", "role_name": "LC Scheduled Delivery Manager",
                         "desk_access": 0}).insert(ignore_permissions=True)

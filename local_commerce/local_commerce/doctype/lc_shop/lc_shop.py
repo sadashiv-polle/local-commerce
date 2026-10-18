@@ -17,44 +17,11 @@ class LCShop(Document):
         self.selling_price_list = None
         if self.company:
             return
-        user, roles = identity()
-        if not is_platform(user, roles):
-            frappe.throw("Only platform administrators can create shops", frappe.PermissionError)
-        self.shop_name = (self.shop_name or "").strip()
-        if not self.shop_name:
-            frappe.throw("Shop name is required")
-        if frappe.db.exists("Company", self.shop_name):
-            frappe.throw(
-                "A Company with this Shop Name already exists. Select it explicitly in Company "
-                "if it belongs to this shop, or use a different Shop Name."
-            )
-        country = self.company_country or frappe.db.get_single_value("Global Defaults", "country")
-        currency = self.company_currency or frappe.db.get_single_value(
-            "Global Defaults", "default_currency"
-        )
-        if not country or not currency:
-            frappe.throw("Select New Company Country and New Company Currency before saving")
-        # A unique abbreviation avoids collisions between shops with the same initials.
-        abbr = "LC" + frappe.generate_hash(length=8).upper()
-        while frappe.db.exists("Company", {"abbr": abbr}):
-            abbr = "LC" + frappe.generate_hash(length=8).upper()
-        company = frappe.get_doc(
-            {
-                "doctype": "Company",
-                "company_name": self.shop_name,
-                "abbr": abbr,
-                "country": country,
-                "default_currency": currency,
-                "create_chart_of_accounts_based_on": "Standard Template",
-                "chart_of_accounts": "Standard",
-            }
-        )
-        # Scoped elevation after platform authorization; normal ERP validations still run.
-        # No commit: Company and Shop are saved in the same request transaction.
-        company.insert(ignore_permissions=True)
-        self.company = company.name
+        from local_commerce.services.business_structure import create_vendor_company
+        create_vendor_company(self)
 
     def validate(self):
+
         if self.get("order_acceptance") not in (None, "", "Manual", "Automatic"):
             frappe.throw("Choose Manual or Automatic order acceptance")
         user, roles = identity()
@@ -111,6 +78,8 @@ class LCShop(Document):
                     "Only platform administrators can change shop location settings",
                     frappe.PermissionError,
                 )
+        from local_commerce.services.business_structure import validate_shop_structure
+        validate_shop_structure(self)
         email = str(self.get("shop_email") or "").strip()
         if email:
             if any(char.isspace() or char in ",;" for char in email):

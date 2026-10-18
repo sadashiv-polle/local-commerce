@@ -70,10 +70,31 @@ def provision(shop, bank_details=None):
     shop.upi_mode_of_payment = payment_mode('UPI', 'Bank')
     shop.cashfree_mode_of_payment = payment_mode('Cashfree', 'Bank')
     shop.cashfree_commission_type = 'Percentage'
-    shop.cashfree_commission = shop.gst_commission_rate
+    shop.cashfree_commission = 0 if getattr(shop, 'business_model', None) == 'Owned shop' else shop.gst_commission_rate
+    if getattr(shop, 'business_model', None) == 'Owned shop':
+        shop.gst_commission_rate = 0
+        shop.gst_mode = 'Legacy'
+        shop.cashfree_settlement_mode = 'Direct merchant'
+        shop.retail_income_account = ensure_account(shop.company, 'LC Retail Sales ' + shop.name, 'Income', '')
     cost_center = company.cost_center
     if not cost_center or not frappe.db.exists('Cost Center',dict(name=cost_center,company=shop.company,is_group=0,disabled=0)):
         reject('Set an active non-group default Cost Center on the Company before automatic setup')
+    if getattr(shop, 'business_model', None) == 'Owned shop':
+        root = frappe.db.get_value('Cost Center', dict(company=shop.company, is_group=1,
+            disabled=0), 'name')
+        if not root:
+            reject('Create an active group Cost Center for the legal Company first')
+        cc_label = 'LC Shop ' + shop.name
+        owned_cc = frappe.db.get_value('Cost Center', dict(company=shop.company,
+            cost_center_name=cc_label), 'name')
+        if owned_cc:
+            if not frappe.db.exists('Cost Center', dict(name=owned_cc, company=shop.company,
+                    is_group=0, disabled=0)):
+                reject('The shop Cost Center must be an active non-group Cost Center')
+        else:
+            owned_cc = frappe.get_doc(dict(doctype='Cost Center', company=shop.company,
+                cost_center_name=cc_label, parent_cost_center=root, is_group=0)).insert(ignore_permissions=True).name
+        cost_center = owned_cc
     # Each shop gets a dedicated warehouse, even when several shops share a Company.
     label = 'LC Shop ' + shop.name
     warehouse = frappe.db.get_value('Warehouse',dict(company=shop.company,warehouse_name=label),'name')
@@ -115,7 +136,9 @@ def apply_details(shop, values):
         reject('Seller GST requires a registered shop')
     try:
         rate = money(values.get('commission',7))
-        if not 0 < rate < 100:
+        if getattr(shop, 'business_model', None) == 'Owned shop':
+            rate = money(0)
+        elif not 0 < rate < 100:
             raise ValueError()
     except ValueError:
         reject('Commission must be greater than zero and below 100')

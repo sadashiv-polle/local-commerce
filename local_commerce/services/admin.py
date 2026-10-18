@@ -160,8 +160,8 @@ def set_accepting(shop, enabled):
 def setup_options(search=""):
     require_platform()
     from local_commerce.services.shop_banking import options as bank_options
-    linked = frappe.get_all("LC Shop", pluck="company", limit_page_length=0)
     return {
+        "platform_company": frappe.db.get_single_value("LC Store Settings", "gst_company"),
         "bank_accounts": bank_options(),
         "banks": frappe.get_all("Bank", pluck="name", order_by="name", limit_page_length=0),
         "country": frappe.db.get_single_value("Global Defaults", "country"),
@@ -170,8 +170,7 @@ def setup_options(search=""):
                                     limit_page_length=300),
         "currencies": frappe.get_all("Currency", filters={"enabled": 1}, pluck="name",
                                      order_by="name", limit_page_length=300),
-        "companies": frappe.get_all("Company", filters={"name": ["not in", linked]}
-                                    if linked else {}, pluck="name", order_by="name",
+        "companies": frappe.get_all("Company", pluck="name", order_by="name",
                                     limit_page_length=500),
         "users": frappe.get_all(
             "User", filters={"enabled": 1, "name": ["not in", ["Guest", "Administrator"]]},
@@ -183,8 +182,20 @@ def setup_options(search=""):
     }
 
 
-def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email="", auto_setup=0, onboarding=None, bank_details=None):
+def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email="", auto_setup=0, onboarding=None, bank_details=None, business_model="Owned shop", platform_company="", company_name=""):
     require_platform()
+    if business_model not in ("Owned shop", "Third-party vendor"):
+        reject("Choose Owned shop or Third-party vendor")
+    from local_commerce.services.business_structure import select_platform
+    platform = select_platform(platform_company or (company if business_model == 'Owned shop' else ''))
+    if business_model == 'Owned shop':
+        if company and company != platform:
+            reject('Owned shops must use the platform Company')
+        company = platform
+    elif company == platform:
+        reject('Select a separate vendor Company')
+    if company and not frappe.db.exists('Company', company):
+        reject('Select a valid Company')
     shop_name = str(shop_name or "").strip()
     if not 1 <= len(shop_name) <= 140:
         reject("Enter a shop name (up to 140 characters)")
@@ -201,11 +212,12 @@ def create_shop(shop_name, company="", country="", currency="", gst_registration
             reject("GSTIN must contain a valid state code")
     elif gst_number:
         reject("Select Registered before entering a GSTIN")
-    doc = frappe.get_doc({"doctype": "LC Shop", "shop_name": shop_name,
+    doc = frappe.get_doc({"doctype": "LC Shop", "shop_name": shop_name, "business_model": business_model,
                           "company": company or "", "company_country": country or None,
                           "company_currency": currency or None, "status": "Draft",
                           "gst_registration": gst_registration, "gst_number": gst_number,
                           "gst_state": gst_number[:2] if gst_number else "",
+                          "gst_legal_name": str(company_name or "").strip(),
                           "gst_enabled": 0, "shop_email": str(shop_email or "").strip()})
     if str(auto_setup) not in ("0", "1", "True", "False", "true", "false"):
         reject("Choose whether to set up accounts automatically")
