@@ -17,7 +17,8 @@ class LCShop(Document):
         self.selling_price_list = None
         if self.company:
             return
-        frappe.throw("Select the existing legal Company. Shop brands do not create Companies automatically.")
+        from local_commerce.services.business_structure import create_vendor_company
+        create_vendor_company(self)
 
     def validate(self):
 

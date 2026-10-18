@@ -96,8 +96,8 @@
       "label": "Company",
       "fieldtype": "Link",
       "options": "Company",
-      "description": "Legal accounting entity. Shop and marketplace brands do not require separate Companies.",
-      "reqd": 1
+      "description": "Owned shops use the platform Company. For a third-party shop, select its Company or leave blank to create one using its legal name.",
+      "reqd": 0
     },
     {
       "fieldname": "company_country",
@@ -562,7 +562,7 @@
       "options": "Legacy\nOwned shop\nThird-party vendor",
       "default": "Legacy",
       "reqd": 1,
-      "description": "Legacy preserves existing accounting. Third-party vendor onboarding is draft-only until vendor accounting is available."
+      "description": "Owned shops share the platform Company. Third-party shops use separate vendor Companies. Legacy preserves existing records."
     },
     {
       "fieldname": "retail_income_account",

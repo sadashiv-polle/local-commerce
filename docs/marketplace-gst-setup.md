@@ -1,28 +1,49 @@
-> **Business-structure migration in progress:** Shiv Tech Works is the legal Company;
-> Local dot is the marketplace brand and Daily Basket is its owned retail shop.
-> The existing third-party accounting below still uses separate vendor Companies.
-> Do not relink existing vendors or treat these instructions as support for the
-> new single-company vendor-payable model.
+# Business structure
 
-## Single-company rollout status
+- **Shiv Tech Works** is the platform legal Company. **Local dot** is its brand.
+- **Daily Basket** is an Owned shop linked to Shiv Tech Works, with its own warehouse,
+  cost centre, retail-income ledger and price list. It pays no commission to itself.
+- Each **Third-party shop** creates or selects its own separate ERPNext Company.
+  Its products, stock, customer invoices and settlement entries remain in that Company.
+- The platform commission is accounted for separately under Shiv Tech Works using
+  the existing marketplace GST workflow described below.
+- The proposed single-company third-party-vendor accounting model has been abandoned.
 
-- New shops must select an existing legal Company; brand names no longer create Companies.
-- Owned shops do not charge themselves commission and cannot enable marketplace GST or Easy Split.
-- Automatic owned-shop setup creates a dedicated warehouse, cost centre, retail-income ledger and price list. New product defaults and checkout use that shop’s cost centre.
-- Existing shops retain Legacy accounting. Existing orders and posted documents are not migrated.
-- Third-party vendor creation in the new model is unavailable pending the vendor accounting implementation.
-- Multiple shop records can now select the same Company. Migration removes only the former single-column Company uniqueness index. Warehouse assignment is checked separately; only admins may change inventory-account assignments.
-- Owned-shop order receipts show the shop brand and legal supplier separately. Receipts remain order summaries, not tax invoices.
-- A Frappe/ERPNext staging site is still required to exercise the schema migration and actual ledger posting.
+## Creating shops
 
-Still required before enabling third-party vendors under Shiv Tech Works:
+1. Create Shiv Tech Works in ERPNext with its actual legal details and chart of accounts.
+2. Open Admin → Create a shop. Select **My own shop** for Daily Basket and select
+   Shiv Tech Works as **Platform legal Company**. This selection reuses the existing
+   platform GST Company field; it does not enable tax collection or require a GSTIN yet.
+3. Enable automatic account setup for INR accounting, enter the address and other
+   requested details, and optionally add a Company Bank Account. Review the Draft shop
+   before enabling delivery/payment methods. Owned shops use product tax templates;
+   do not enable marketplace commission GST or Easy Split for them.
+4. For another business select **Third-party shop**. Choose its existing Company or
+   **Create a new vendor Company**, then enter the vendor's legal business name,
+   country, currency and GST registration status. Automatic setup builds the normal
+   vendor accounts, warehouse and price list. Commission defaults to 7% in the form.
+5. Complete GST, bank, payment gateway and membership configuration before opening.
+   If India Compliance supplies a Company GSTIN field, new registered vendor Companies
+   receive the entered GSTIN through normal ERPNext validation. Company addresses,
+   tax templates and other native compliance requirements still need review.
+6. Add shop members. Inventory account/warehouse assignments are admin-only; members
+   cannot select another shop's warehouse even if an owned shop shares the Company.
 
-1. Supplier-backed vendor identity, vendor-owned inventory and supplier invoice provenance.
-2. Vendor collection/payable subledger, commission invoice posting and tax handling without retail revenue inflation.
-3. COD, UPI and Cashfree collections, Easy Split, fees, settlements and refunds against that subledger.
-4. Report and access-control verification when several shops share a Company.
-5. Brand-specific customer receipts and legal invoice disclosures; CA review of the invoicing arrangement.
-6. A reviewed migration of legacy records, without rewriting submitted financial documents.
+A vendor cannot use the platform Company or a Company already assigned to another
+shop. Owned shops can share the platform Company. Existing Legacy shops and posted
+financial documents are not relinked or reclassified automatically. Changing the
+business model of a shop with products/orders requires a reviewed migration.
+
+The schema update removes only the old single-column unique Company index from
+LC Shop. It does not delete Companies or change any invoice/ledger entries.
+
+## Validation before live use
+
+Local unit tests and frontend checks are not an ERPNext ledger certification. On a
+staging site test an owned-shop order and a third-party order through payment,
+delivery, invoice printing, commission, refund and settlement. Check both Company
+ledgers, bank reconciliation and cross-shop access. Use Cashfree sandbox for this.
 
 # Marketplace GST setup and acceptance checks
 

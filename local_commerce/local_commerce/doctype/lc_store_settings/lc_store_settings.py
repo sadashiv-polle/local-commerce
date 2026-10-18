@@ -7,6 +7,8 @@ from local_commerce.services.storefront import validate_settings
 class LCStoreSettings(Document):
     def validate(self):
         require_platform()
+        from local_commerce.services.business_structure import validate_platform_change
+        validate_platform_change(self)
         validate_settings(self)
         from local_commerce.services.category_menu import validate_menu
 

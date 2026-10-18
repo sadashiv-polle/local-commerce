@@ -35,10 +35,9 @@ attempt after deployment.
 
 ## Scope
 
-This print release does **not** enable the single-company third-party-vendor
-accounting model. Its development branch still needs the vendor-payable,
-settlement, refund and inventory-accounting implementation and staging validation.
-It does not reclassify vendor revenue or migrate existing Companies.
+Third-party shops use their own ERPNext Companies; owned shops share the platform
+Company. The single-company vendor-payable proposal was abandoned. Printing does
+not reclassify vendor revenue or migrate existing Companies.
 
 The confirmed target arrangement is that third-party shops are the sellers of
 their goods; Shiv Tech Works earns marketplace commission. Restaurant Section

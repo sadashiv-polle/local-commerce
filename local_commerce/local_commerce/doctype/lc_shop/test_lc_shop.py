@@ -92,6 +92,7 @@ class TestLCShop(FrappeTestCase):
 class TestShopCompanySelection(FrappeTestCase):
     def setUp(self):
         frappe.set_user('Administrator')
+        self.original_platform = frappe.db.get_single_value('LC Store Settings', 'gst_company')
 
     def tearDown(self):
         frappe.set_user('Administrator')
@@ -100,6 +101,7 @@ class TestShopCompanySelection(FrappeTestCase):
     def test_missing_company_never_creates_legal_entity(self):
         from local_commerce.services.admin import create_shop as create
         name = 'Brand ' + frappe.generate_hash(length=10)
+        frappe.db.set_single_value('LC Store Settings','gst_company','')
         with self.assertRaises(frappe.ValidationError):
             create(name)
         self.assertFalse(frappe.db.exists('Company', name))
@@ -108,6 +110,7 @@ class TestShopCompanySelection(FrappeTestCase):
         from local_commerce.services.admin import create_shop as create
         from local_commerce.tests.helpers import create_company
         company = create_company()
+        frappe.db.set_single_value('LC Store Settings','gst_company',company.name)
         first = create('Owned first', company=company.name)
         second = create('Owned second', company=company.name)
         self.assertEqual(first['company'], second['company'])
@@ -136,3 +139,20 @@ class TestShopCompanySelection(FrappeTestCase):
         frappe.set_user(owner.name)
         with self.assertRaises(frappe.PermissionError):
             configure(first.name, warehouse.name, None, None)
+
+    def test_vendor_creation_creates_separate_company_transactionally(self):
+        from local_commerce.services.admin import create_shop as create
+        from local_commerce.tests.helpers import create_company
+        platform = create_company()
+        frappe.db.set_single_value('LC Store Settings','gst_company',platform.name)
+        legal = 'LC Vendor Legal ' + frappe.generate_hash(length=8)
+        result = create('Vendor brand', business_model='Third-party vendor',
+                        platform_company=platform.name, company_name=legal,
+                        country='India', currency='INR', gst_registration='Unregistered')
+        self.assertEqual(result['company'],legal)
+        self.assertNotEqual(result['company'],platform.name)
+        self.assertTrue(frappe.db.exists('Account',{'company':legal}))
+        with self.assertRaises(frappe.ValidationError):
+            create('Another vendor',business_model='Third-party vendor',company=platform.name)
+        with self.assertRaises(frappe.ValidationError):
+            create('Duplicate vendor',business_model='Third-party vendor',company=legal)

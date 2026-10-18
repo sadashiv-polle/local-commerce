@@ -2,7 +2,8 @@ import ast
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+import sys
 
 
 class ShopGstCreationTests(TestCase):
@@ -15,6 +16,10 @@ class ShopGstCreationTests(TestCase):
         tree = ast.parse(Path('local_commerce/services/admin.py').read_text())
         node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'create_shop')
         exec(compile(ast.Module(body=[node], type_ignores=[]), 'admin', 'exec'), scope)
+        select = lambda value: value or 'Company'
+        self.module_patch = patch.dict(sys.modules, {'local_commerce.services.business_structure': SimpleNamespace(select_platform=select)})
+        self.module_patch.start()
+        self.addCleanup(self.module_patch.stop)
         self.create = scope['create_shop']
 
     def test_registered_shop_saves_normalized_gstin_without_enabling_tax(self):
@@ -49,12 +54,11 @@ class ShopGstCreationTests(TestCase):
             self.create('Shop', company='Company')
         self.get_doc.assert_not_called()
 
-    def test_missing_company_does_not_create_legal_entity(self):
-        with self.assertRaises(ValueError):
-            self.create('Daily Basket')
-        self.get_doc.assert_not_called()
+    def test_owned_shop_defaults_to_configured_platform(self):
+        self.create('Daily Basket')
+        self.assertEqual(self.get_doc.call_args.args[0]['company'], 'Company')
 
-    def test_vendor_retail_posting_is_not_enabled(self):
+    def test_vendor_cannot_use_platform_company(self):
         with self.assertRaises(ValueError):
             self.create('Vendor', company='Company', business_model='Third-party vendor')
         self.get_doc.assert_not_called()
