@@ -70,10 +70,26 @@ def provision(shop, bank_details=None):
     shop.upi_mode_of_payment = payment_mode('UPI', 'Bank')
     shop.cashfree_mode_of_payment = payment_mode('Cashfree', 'Bank')
     shop.cashfree_commission_type = 'Percentage'
-    shop.cashfree_commission = shop.gst_commission_rate
+    shop.cashfree_commission = 0 if shop.get('business_model') == 'Owned shop' else shop.gst_commission_rate
     cost_center = company.cost_center
     if not cost_center or not frappe.db.exists('Cost Center',dict(name=cost_center,company=shop.company,is_group=0,disabled=0)):
         reject('Set an active non-group default Cost Center on the Company before automatic setup')
+    if shop.get('business_model') == 'Owned shop':
+        root = frappe.db.get_value('Cost Center', dict(company=shop.company, is_group=1,
+            disabled=0), 'name')
+        if not root:
+            reject('Create an active group Cost Center for the legal Company first')
+        cc_label = 'LC Shop ' + shop.name
+        owned_cc = frappe.db.get_value('Cost Center', dict(company=shop.company,
+            cost_center_name=cc_label), 'name')
+        if owned_cc:
+            if not frappe.db.exists('Cost Center', dict(name=owned_cc, company=shop.company,
+                    is_group=0, disabled=0)):
+                reject('The shop Cost Center must be an active non-group Cost Center')
+        else:
+            owned_cc = frappe.get_doc(dict(doctype='Cost Center', company=shop.company,
+                cost_center_name=cc_label, parent_cost_center=root, is_group=0)).insert(ignore_permissions=True).name
+        cost_center = owned_cc
     # Each shop gets a dedicated warehouse, even when several shops share a Company.
     label = 'LC Shop ' + shop.name
     warehouse = frappe.db.get_value('Warehouse',dict(company=shop.company,warehouse_name=label),'name')

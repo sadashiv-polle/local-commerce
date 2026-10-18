@@ -8,6 +8,7 @@
   "field_order": [
     "shop_name",
     "shop_email",
+    "business_model",
     "company",
     "company_country",
     "company_currency",
@@ -550,6 +551,15 @@
       "fieldtype": "Data",
       "options": "Email",
       "description": "Email for commission invoices and shop correspondence. Saving does not send an email."
+    },
+    {
+      "fieldname": "business_model",
+      "label": "Business model",
+      "fieldtype": "Select",
+      "options": "Legacy\nOwned shop\nThird-party vendor",
+      "default": "Legacy",
+      "reqd": 1,
+      "description": "Legacy preserves existing accounting. Third-party vendor onboarding is draft-only until vendor accounting is available."
     }
   ],
   "permissions": [

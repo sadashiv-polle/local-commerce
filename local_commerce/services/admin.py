@@ -183,8 +183,14 @@ def setup_options(search=""):
     }
 
 
-def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email="", auto_setup=0, onboarding=None, bank_details=None):
+def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email="", auto_setup=0, onboarding=None, bank_details=None, business_model="Owned shop"):
     require_platform()
+    if business_model not in ("Owned shop", "Third-party vendor"):
+        reject("Choose Owned shop or Third-party vendor")
+    if not company or not frappe.db.exists("Company", company):
+        reject("Select the existing legal Company; a shop brand is not a Company")
+    if business_model == "Third-party vendor":
+        reject("Single-company vendor accounting is not ready. Third-party shop creation is unavailable until it is implemented")
     shop_name = str(shop_name or "").strip()
     if not 1 <= len(shop_name) <= 140:
         reject("Enter a shop name (up to 140 characters)")
@@ -201,7 +207,7 @@ def create_shop(shop_name, company="", country="", currency="", gst_registration
             reject("GSTIN must contain a valid state code")
     elif gst_number:
         reject("Select Registered before entering a GSTIN")
-    doc = frappe.get_doc({"doctype": "LC Shop", "shop_name": shop_name,
+    doc = frappe.get_doc({"doctype": "LC Shop", "shop_name": shop_name, "business_model": business_model,
                           "company": company or "", "company_country": country or None,
                           "company_currency": currency or None, "status": "Draft",
                           "gst_registration": gst_registration, "gst_number": gst_number,

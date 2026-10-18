@@ -1,3 +1,27 @@
+> **Business-structure migration in progress:** Shiv Tech Works is the legal Company;
+> Local dot is the marketplace brand and Daily Basket is its owned retail shop.
+> The existing third-party accounting below still uses separate vendor Companies.
+> Do not relink existing vendors or treat these instructions as support for the
+> new single-company vendor-payable model.
+
+## Single-company rollout status
+
+- New shops must select an existing legal Company; brand names no longer create Companies.
+- Owned shops do not charge themselves commission and cannot enable marketplace GST or Easy Split.
+- Automatic owned-shop setup creates a dedicated warehouse, cost centre and price list.
+- Existing shops retain Legacy accounting. Existing orders and posted documents are not migrated.
+- Third-party vendor creation in the new model is unavailable pending the vendor accounting implementation.
+- The existing one-shop-per-Company constraint is retained until that migration is implemented.
+
+Still required before enabling third-party vendors under Shiv Tech Works:
+
+1. Supplier-backed vendor identity, vendor-owned inventory and supplier invoice provenance.
+2. Vendor collection/payable subledger, commission invoice posting and tax handling without retail revenue inflation.
+3. COD, UPI and Cashfree collections, Easy Split, fees, settlements and refunds against that subledger.
+4. Report and access-control verification when several shops share a Company.
+5. Brand-specific customer receipts and legal invoice disclosures; CA review of the invoicing arrangement.
+6. A reviewed migration of legacy records, without rewriting submitted financial documents.
+
 # Marketplace GST setup and acceptance checks
 
 ## Before registration
