@@ -1,0 +1,9 @@
+<div class="local-invoice-brand" style="text-align:center;margin-bottom:18px">
+  <div><img src="/assets/local_commerce/icons/local-wordmark.png" alt="Local dot" style="width:110px;max-height:65px;object-fit:contain"></div>
+  {% if doc.get('lc_shop_name') %}
+  <h2 style="margin:6px 0">{{ doc.lc_shop_name | e }}</h2>
+  <div>on Local dot</div>
+  {% endif %}
+  <div style="margin-top:8px">Legal supplier: {{ doc.company | e }}</div>
+</div>
+{% include "templates/print_formats/standard.html" %}

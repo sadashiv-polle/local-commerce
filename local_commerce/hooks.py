@@ -157,3 +157,6 @@ has_permission["File"] = "local_commerce.services.manual_upi.file_permission"
 doc_events["LC Shop"]["validate"].append("local_commerce.services.payments.cashfree.validate_shop")
 
 doc_events["LC Shop"]["validate"].append("local_commerce.services.gst.config.validate_shop")
+
+# Preserve the shop identity on the original invoice without changing its supplier.
+doc_events['Sales Invoice']['validate'].append('local_commerce.services.shop_invoices.attribute_invoice')

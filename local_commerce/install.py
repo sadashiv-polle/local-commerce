@@ -218,6 +218,12 @@ def after_migrate():
             ],
         }
     )
+    create_custom_fields({'Sales Invoice': [
+        dict(fieldname='lc_shop', label='Local Commerce Shop', fieldtype='Link',
+             options='LC Shop', read_only=1, no_copy=1, search_index=1, print_hide=1),
+        dict(fieldname='lc_shop_name', label='Shop name at issue', fieldtype='Data',
+             read_only=1, no_copy=1, print_hide=1),
+    ]})
     if frappe.db.has_column("LC Order", "payment_method"):
         frappe.db.sql(
             """update `tabLC Order`
