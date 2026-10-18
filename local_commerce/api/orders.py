@@ -189,3 +189,16 @@ def receipt(order):
 def rider_earnings():
     from local_commerce.services.operations import rider_totals
     return rider_totals()
+
+
+@frappe.whitelist(methods=['GET'])
+@rate_limit(limit=120, seconds=3600)
+def invoice(order):
+    from local_commerce.services.shop_invoices import download
+    return download(order)
+
+
+@frappe.whitelist(methods=['GET'])
+def shop_invoices(shop, start=0):
+    from local_commerce.services.shop_invoices import listing
+    return listing(shop, start)
