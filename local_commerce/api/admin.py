@@ -54,3 +54,15 @@ def rider_rates():
 def save_rider_rate(shop, amount):
     from local_commerce.services.operations import rider_rates
     return rider_rates(shop, amount)
+
+
+@frappe.whitelist(methods=['GET'])
+def shop_banks(shop):
+    from local_commerce.services.shop_banking import shop_settings
+    return shop_settings(shop)
+
+
+@frappe.whitelist(methods=['POST'])
+def save_shop_bank(shop, details, usage='store'):
+    from local_commerce.services.shop_banking import save_shop_bank as save
+    return save(shop, details, usage)

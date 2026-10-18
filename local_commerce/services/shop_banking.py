@@ -101,3 +101,36 @@ def options():
     # Full account numbers never enter the options response or public shop responses.
     return [dict(name=r.name,bank=r.bank,company=r.company,account=r.account,
                  last_four=str(r.bank_account_no or '')[-4:]) for r in rows]
+
+
+def shop_settings(shop):
+    require_platform()
+    doc = frappe.get_doc('LC Shop', shop)
+    return dict(company=doc.company, upi_ledger=doc.get('upi_bank_account'),
+        settlement_ledger=doc.get('cashfree_bank_account'),
+        accounts=[row for row in options() if row['company'] == doc.company],
+        banks=frappe.get_all('Bank',pluck='name',order_by='name',limit_page_length=0))
+
+
+def save_shop_bank(shop, details, usage='store'):
+    require_platform()
+    if usage not in ('store','upi','settlement','both'):
+        reject('Choose how this shop will use the bank account')
+    parsed = parse_details(details)
+    if parsed['mode'] == 'later':
+        reject('Enter bank details or select an existing account')
+    company = frappe.db.get_value('LC Shop', shop, 'company')
+    frappe.get_doc('Company', company, for_update=True)
+    doc = frappe.get_doc('LC Shop', shop, for_update=True)
+    if doc.company != company:
+        reject('The shop Company changed; reload and try again')
+    old_upi, old_settlement = doc.get('upi_bank_account'), doc.get('cashfree_bank_account')
+    # Pass original input so confirmation validation is retained for new accounts.
+    name = configure(doc, details)
+    if usage not in ('upi','both'):
+        doc.upi_bank_account = old_upi
+    if usage not in ('settlement','both'):
+        doc.cashfree_bank_account = old_settlement
+    if usage != 'store':
+        doc.save()
+    return dict(bank_account=name, usage=usage)

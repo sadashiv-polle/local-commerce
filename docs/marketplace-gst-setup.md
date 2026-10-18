@@ -32,6 +32,14 @@ This workflow supports Indian INR accounts. Standard ERPNext stores routing info
 
 References: [ERPNext Bank Account](https://docs.frappe.io/erpnext/bank-account), [ERPNext v15 Bank Account controller](https://github.com/frappe/erpnext/blob/version-15/erpnext/accounts/doctype/bank_account/bank_account.py), [India Compliance transaction setup](https://docs.indiacompliance.app/docs/configuration/sales_transaction).
 
+## Adding or changing bank accounts later
+
+Open the shop workspace as a platform admin, then **Settings → Shop bank accounts**. Shops created without bank details can use this section at any time. Add a new account and choose **Save only — choose later**, **Manual UPI**, **Cashfree settlement accounting**, or **UPI and settlement accounting**. Bank records and ledgers are created using the same native validation as onboarding.
+
+All enabled Company bank accounts are listed with masked numbers. Use **Use for UPI** or **Use for settlement** to change one selection without changing the other. This never deletes old bank records, rewrites historical order snapshots, or changes Company defaults. Full bank-number corrections/disable actions remain in ERPNext Bank Account maintenance.
+
+Changing a ledger does not update the shop's UPI ID/QR or the Cashfree vendor's real payout bank. Update those separately before accepting payments. Already-posted accounting entries remain unchanged. Pending shop Cashfree settlements currently use the selected shop bank ledger, including for older orders; reconcile or review those before switching. UPI order snapshots retain their original payment instructions.
+
 ## Platform accounts
 
 Use the INR Company that earns Local's commission. Set up separate, active, non-group ledgers:

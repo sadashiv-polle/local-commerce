@@ -93,3 +93,51 @@ class BankingTests(TestCase):
         for fields, expected in [({'ifsc_code'},'ifsc_code'),({'ifsc'},'ifsc'),(set(),'branch_code')]:
             fn=load('ifsc_field',frappe=SimpleNamespace(get_meta=lambda _:SimpleNamespace(has_field=lambda f:f in fields)))
             self.assertEqual(fn(),expected)
+
+class BankSwitchTests(TestCase):
+    def run_switch(self, usage):
+        values={'upi_bank_account':'Old UPI','cashfree_bank_account':'Old settlement'}
+        doc=SimpleNamespace(company='Shop',upi_bank_account=values['upi_bank_account'],
+                            cashfree_bank_account=values['cashfree_bank_account'],get=values.get,save=Mock())
+        def configure(shop, details):
+            shop.upi_bank_account='New Bank';shop.cashfree_bank_account='New Bank'
+            return 'New native record'
+        db=SimpleNamespace(get_value=Mock(return_value='Shop'))
+        fn=load('save_shop_bank',require_platform=Mock(),parse_details=lambda x:x,configure=configure,
+                frappe=SimpleNamespace(db=db,get_doc=Mock(side_effect=[SimpleNamespace(),doc])))
+        result=fn('Shop ID',{'mode':'existing','existing':'New native record'},usage)
+        return doc,result
+
+    def test_save_only_does_not_change_shop_accounts(self):
+        doc,result=self.run_switch('store')
+        self.assertEqual(doc.upi_bank_account,'Old UPI')
+        self.assertEqual(doc.cashfree_bank_account,'Old settlement')
+        doc.save.assert_not_called()
+        self.assertEqual(result['bank_account'],'New native record')
+
+    def test_switch_upi_preserves_settlement(self):
+        doc,_=self.run_switch('upi')
+        self.assertEqual(doc.upi_bank_account,'New Bank')
+        self.assertEqual(doc.cashfree_bank_account,'Old settlement')
+        doc.save.assert_called_once()
+
+    def test_switch_settlement_preserves_upi(self):
+        doc,_=self.run_switch('settlement')
+        self.assertEqual(doc.upi_bank_account,'Old UPI')
+        self.assertEqual(doc.cashfree_bank_account,'New Bank')
+
+    def test_both_switches_explicitly(self):
+        doc,_=self.run_switch('both')
+        self.assertEqual(doc.upi_bank_account,'New Bank')
+        self.assertEqual(doc.cashfree_bank_account,'New Bank')
+
+    def test_invalid_usage_rejected(self):
+        fn=load('save_shop_bank',require_platform=Mock())
+        with self.assertRaises(ValueError):
+            fn('Shop',{},'invalid')
+
+    def test_only_admin_can_manage_bank_accounts(self):
+        for name in ('shop_settings','save_shop_bank'):
+            fn=load(name,require_platform=Mock(side_effect=PermissionError()))
+            with self.assertRaises(PermissionError):
+                fn('Shop',{}) if name=='save_shop_bank' else fn('Shop')

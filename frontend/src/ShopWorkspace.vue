@@ -1,4 +1,5 @@
 <script setup>
+import ShopBankSettings from './ShopBankSettings.vue'
 import ShopReadiness from './ShopReadiness.vue'
 import PaymentReview from './PaymentReview.vue'
 import ManualUpiSettings from './ManualUpiSettings.vue'
@@ -15,6 +16,7 @@ import MapView from './MapView.vue'
 const session = inject('session'), route = useRoute()
 const shop = ref(null), loading = ref(false), error = ref(''), saved = ref(''), saving = ref(false)
 const expenseAccounts = ref([])
+const bankRevision = ref(0)
 const payment = ref(null), paymentSaved = ref(''), paymentSaving = ref(false)
 const hoursSaving = ref(false), hoursSaved = ref('')
 const tab = ref('overview')
@@ -123,7 +125,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
       <div v-if="error" class="lc-notice" role="alert">{{ error }} <button v-if="!shop" @click="load">Retry</button></div>
       <template v-if="shop">
         <header class="workspace-heading"><div><span class="eyebrow">YOUR SHOP</span><h1>{{ shop.shop_name }}</h1><p class="muted">{{ shop.company }}</p></div><span class="status-pill">{{ shop.status }}</span></header>
-        <ShopReadiness v-if="canEdit && tab === 'overview'" :key="shop.name" :shop="shop.name" />
+        <ShopReadiness v-if="canEdit && tab === 'overview'" :key="shop.name + bankRevision" :shop="shop.name" />
         <Dashboard v-if="tab === 'overview' && canEdit" :shop="shop.name" @open="tab = $event" />
         <Orders v-if="tab === 'orders'" :shop="shop.name" :editable="canEdit">
           <template #batches="{ refresh }"><ScheduledDelivery v-if="canSchedule" :shop="shop.name" batches-only @changed="refresh()" /></template>
@@ -162,7 +164,8 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
           </fieldset>
           <p v-if="saved" role="status">{{ saved }}</p>
         </form>
-        <ManualUpiSettings v-if="tab === 'settings' && canSettings" :key="shop.name" :shop="shop.name" />
+        <ShopBankSettings v-if="tab === 'settings' && session.platform_admin" :key="shop.name" :shop="shop.name" @changed="bankRevision++" />
+        <ManualUpiSettings v-if="tab === 'settings' && canSettings" :key="shop.name + bankRevision" :shop="shop.name" />
         <form v-if="tab === 'settings' && canSettings && payment" class="lc-form payment-settings" @submit.prevent="savePayment">
           <span class="eyebrow">PAYMENT</span><h2>Cash on Delivery</h2><p class="muted">The rider records the amount at delivery. The Payment Entry is created after the shop confirms the cash handover.</p>
           <fieldset :disabled="paymentSaving" class="workspace-fields">
