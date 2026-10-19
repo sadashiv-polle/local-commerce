@@ -1,6 +1,7 @@
 """Admin-only GST configuration and filing workpapers; no automatic portal filing."""
 import json
 import frappe
+from frappe.rate_limiter import rate_limit
 from local_commerce.permissions.scope import require_platform
 from local_commerce.services.owner import reject
 from local_commerce.services.gst import config
@@ -180,3 +181,10 @@ def record_manual_refund(order,credit_note,payment_entry):
         reject('Select the submitted credit note and matching refund Payment Entry for this order')
     reverse_refund(doc,credit,dict(cf_refund_id='manual-'+credit.name,refund_amount=abs(credit.grand_total)))
     return {'posted':True}
+
+
+@frappe.whitelist(methods=['POST'])
+@rate_limit(limit=30, seconds=3600)
+def lookup_gstin(number):
+    from local_commerce.services.gst.lookup import lookup
+    return lookup(number)

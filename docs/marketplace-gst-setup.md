@@ -220,3 +220,23 @@ shop settings and configure Cashfree/GST through their existing admin screens.
 5. Check the page and API as a shop owner/customer: both must deny access.
 6. Configure real sandbox settings, then test orders and settlement accounting
    separately. Automated local tests do not replace an ERPNext database smoke test.
+
+## GSTIN lookup in Local dot forms
+
+Entering a complete GSTIN in Create shop or GST & commission starts a debounced,
+admin-only lookup through the installed India Compliance PublicAPI adapter. Review
+legal name, trade name, registration status and address, then click **Use these
+details** to populate the unsaved form. Only active registrations can be applied.
+It does not rename an existing ERPNext Company, choose a GST supply treatment,
+enable GST, or save the form automatically. Late responses for a previous GSTIN
+are discarded. Opening a page does not fetch every shop's GSTIN.
+
+Install/configure India Compliance separately on the site and set up API access
+in ERPNext GST Settings. Provider credentials remain server-side. Provider API
+credits may be required. India Compliance public GST APIs do not support sandbox:
+use manual entry for demo GSTINs, never fabricated lookup results. Cashfree sandbox
+is independent of GST lookup configuration. Missing integration or lookup failure
+shows a message and leaves manual entry available.
+
+References: https://docs.indiacompliance.app/docs/miscellaneous/gstin_verification
+and https://docs.indiacompliance.app/docs/developer-guide/sandbox .

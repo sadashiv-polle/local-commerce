@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { call } from './api.js'
+import GstinLookup from './GstinLookup.vue'
 const data = ref(null), busy = ref(false), error = ref(''), message = ref(''), report = ref(null)
 const today = new Date().toISOString().slice(0,10)
 const start = ref(today.slice(0,8)+'01'), end = ref(today)
@@ -15,6 +16,10 @@ const platformFields = [
 const identityFields = [['gst_legal_name','Legal name'],['gst_number','GSTIN'],['gst_state','GST state code (Goa: 30)'],['gst_address','Complete billing address']]
 const settlement = ref({order:'',net:'',fee:'',fee_tax:'',utr:'',date:today,evidence:'',shop_bank:''})
 const refund = ref({order:'',credit_note:'',payment_entry:''})
+function applyIdentity(target, value) {
+  if (String(target.gst_number || '').trim().toUpperCase() !== value.gstin) return
+  Object.assign(target, { gst_number: value.gstin, gst_legal_name: value.legal_name, gst_state: value.state, gst_address: value.address })
+}
 function accounts(company,root) { return data.value.accounts.filter(a=>a.company===company && a.root_type===root && !['Receivable','Payable'].includes(a.account_type)) }
 async function run(action) { busy.value=true;error.value='';message.value='';try { await action();message.value='Saved successfully.' } catch(e) { error.value=e.message } finally {busy.value=false} }
 async function load() { data.value=await call('gst.settings') }
@@ -34,7 +39,7 @@ function bankAllocation() { const {shop_bank: _shopBank,...values}=settlement.va
         <fieldset :disabled="busy">
           <div class="form-columns">
             <label>Platform Company<select v-model="data.platform.gst_company"><option value="">Choose Company</option><option v-for="c in data.companies" :key="c">{{ c }}</option></select></label>
-            <label v-for="[key,label] in identityFields" :key="key">{{ label }}<input v-model="data.platform[key]" :maxlength="key==='gst_address'?1000:140"></label>
+            <label v-for="[key,label] in identityFields" :key="key">{{ label }}<input v-model="data.platform[key]" :maxlength="key==='gst_address'?1000:140"></label><GstinLookup :number="data.platform.gst_number || ''" @apply="applyIdentity(data.platform, $event)" />
             <label>Commission SAC confirmed by your accountant<input v-model="data.platform.gst_sac" maxlength="6"></label>
             <label>Commission GST rate (%)<input v-model.number="data.platform.gst_rate" type="number" min="18" max="18"></label>
             <label>Cost center<select v-model="data.platform.gst_cost_center"><option value="">Choose</option><option v-for="c in data.cost_centers.filter(c=>c.company===data.platform.gst_company)" :key="c.name">{{ c.name }}</option></select></label>
@@ -47,7 +52,7 @@ function bankAllocation() { const {shop_bank: _shopBank,...values}=settlement.va
         <fieldset :disabled="busy">
           <div class="form-columns">
             <label>Shop registration<select v-model="shop.gst_registration"><option>Unverified</option><option>Registered</option><option>Unregistered</option></select></label>
-            <label v-for="[key,label] in identityFields" :key="key">{{ label }}<input v-model="shop[key]" :disabled="key==='gst_number' && shop.gst_registration==='Unregistered'" :maxlength="key==='gst_address'?1000:140"></label>
+            <label v-for="[key,label] in identityFields" :key="key">{{ label }}<input v-model="shop[key]" :disabled="key==='gst_number' && shop.gst_registration==='Unregistered'" :maxlength="key==='gst_address'?1000:140"></label><GstinLookup :number="shop.gst_number || ''" @apply="applyIdentity(shop, $event)" />
             <label>Supply treatment<select v-model="shop.gst_mode"><option>Legacy</option><option>Exempt goods</option><option>Seller GST</option><option>Restaurant 9(5)</option></select></label>
             <label>Commission percentage<input v-model.number="shop.gst_commission_rate" type="number" min="0.01" max="99.99" step="0.01"></label>
             <label>Commission expense account<select v-model="shop.cashfree_commission_account"><option value="">Choose</option><option v-for="a in accounts(shop.company,'Expense')" :key="a.name">{{ a.name }}</option></select></label>
