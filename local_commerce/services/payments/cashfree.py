@@ -469,6 +469,8 @@ def sync(order, authorize=True):
         )
         refunded = sum((money(row["refund_amount"]) for row in verified_refunds.values()), money(0))
         refunded = max(refunded, money(doc.gateway_refunded_amount or 0))
+        from local_commerce.services.returns import observe
+        observe(doc, refunds)
         doc.gateway_refunded_amount = float(refunded)
         if refunded:
             doc.payment_status = "Refunded" if refunded >= money(snap["amount"]) else "Paid"

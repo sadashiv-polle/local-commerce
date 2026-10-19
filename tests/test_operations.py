@@ -30,9 +30,10 @@ class OperationsTests(unittest.TestCase):
         self.frappe.db.sql.assert_not_called()
 
     def test_counts_are_independent_and_listing_paged(self):
-        self.frappe.db.sql.side_effect = [[[7]], [[2]], [[3]], [[4]], [[5]], [dict(name=str(n)) for n in range(21)]]
+        self.frappe.db.sql.side_effect = [[[6]], [[7]], [[2]], [[3]], [[4]], [[5]], [dict(name=str(n)) for n in range(21)]]
         result = self.ops.attention('expired', 20, "shop' OR 1=1")
         self.assertEqual(result['counts']['unpaid'], 7)
+        self.assertEqual(result['counts']['returns'], 6)
         self.assertEqual(len(result['items']), 20)
         self.assertTrue(result['has_more'])
         query, params = self.frappe.db.sql.call_args.args

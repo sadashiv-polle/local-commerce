@@ -6,6 +6,7 @@ from local_commerce.permissions.scope import require_platform
 
 ACTIVE = "('Requested','Accepted','Preparing','Ready','Picked Up','Out for Delivery')"
 CONDITIONS = {
+    'returns': "o.return_status in ('Requested','Reviewed','Refund queued','Refund processing','Needs review')",
     'unpaid': f"o.status in {ACTIVE} and o.payment_method in ('Cashfree','Manual UPI') and o.payment_status not in ('Paid','Reconciled','Refunded')",
     'refunds': "o.refund_attention=1 or (o.status='Cancelled' and o.payment_status in ('Paid','Collected','Reconciled') and coalesce(o.gateway_refunded_amount,0)=0)",
     'unassigned': "o.status='Ready' and coalesce(o.delivery_user,'')=''",

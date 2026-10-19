@@ -1,6 +1,7 @@
 <script setup>
 import CheckoutSummary from './CheckoutSummary.vue'
 import RefundTimeline from './RefundTimeline.vue'
+import ReturnRequest from './ReturnRequest.vue'
 import { displayTime } from './display-time.js'
 import LocationFreshness from './LocationFreshness.vue'
 import GatewayPayment from './GatewayPayment.vue'
@@ -262,6 +263,7 @@ onBeforeUnmount(() => {
     <article v-for="order in visibleOrders" :key="order.name" class="order-card" :class="{ 'customer-order-cancelled': !shop && order.status === 'Cancelled' }">
       <OrderReference :order-id="order.name" />
       <RefundTimeline :rows="order.refund_tracking || []" :refunded="order.refunded_amount || 0" :payment-status="order.payment_status" />
+      <ReturnRequest :order="order" :customer="!shop" :reviewer="!!shop && editable" @updated="load" />
       <section v-if="!shop && needsPaymentReview(order)" class="payment-review-help" aria-label="Payment help"><strong>Payment needs review</strong><p v-if="order.payment_method === 'Cashfree' && order.payment_status !== 'Refunded'">Use “Refresh payment status” below to check for an update.</p><p>If your bank shows a debit and the order still shows failed, cancelled or unconfirmed, contact the shop with this order ID and your transaction reference before paying again.</p><p v-if="order.payment_status === 'Refunded'">This order is marked refunded. Check your bank statement and contact the shop if the credit has not arrived.</p><a v-if="supportNumber(order.shop_support_phone)" :href="`tel:${order.shop_support_phone}`">Call shop to check payment</a><p v-else>Share the order ID above with the shop owner to check the payment.</p></section>
       <div class="workspace-heading"><div><span class="eyebrow">{{ order.shop_name }}</span><h3>{{ order.recipient }}</h3><small>{{ displayTime(order.created) }}</small></div><span class="status-pill">{{ order.status }}</span></div>
       <p v-if="order.scheduled_period" class="lc-notice">Scheduled · {{ order.scheduled_period.title }} · {{ displayTime(order.scheduled_period.delivery_start) }} – {{ displayTime(order.scheduled_period.delivery_end) }} · Free delivery</p><div class="delivery-progress" :aria-label="`Order status: ${order.status}`"><span v-for="step in steps" :key="step" :class="{ complete: steps.indexOf(step) <= steps.indexOf(order.status) }">{{ step }}</span></div><div v-if="!shop" class="customer-tracking-summary"><span class="tracking-status-dot" aria-hidden="true"></span><div><small>DELIVERY UPDATE · ORDER {{ order.name.slice(0, 8).toUpperCase() }}</small><strong>{{ deliveryEstimate(order) }}</strong></div><span v-if="order.delivery_name" class="tracking-rider">{{ order.delivery_name }}</span></div>

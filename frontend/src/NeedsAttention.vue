@@ -1,8 +1,8 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { call } from './api.js'
-const categories = { unpaid: 'Unpaid / payment review', refunds: 'Refund issues', unassigned: 'Unassigned deliveries', expired: 'Expired reservations', accounting: 'Accounting issues' }
-const hints = { unpaid: 'Check payment evidence before processing. COD awaiting delivery is excluded.', refunds: 'Review failed refunds or cancelled paid orders. Use Cashfree to check refund status.', unassigned: 'Assign a rider to these ready orders.', expired: 'Open the order to review stock and repack with fresh stock.', accounting: 'Review Cashfree accounting or cash handover differences.' }
+const categories = { returns: 'Return requests', unpaid: 'Unpaid / payment review', refunds: 'Refund issues', unassigned: 'Unassigned deliveries', expired: 'Expired reservations', accounting: 'Accounting issues' }
+const hints = { returns: 'Review returned items and approve or reject the refund. Only administrators can send Cashfree refunds.', unpaid: 'Check payment evidence before processing. COD awaiting delivery is excluded.', refunds: 'Review failed refunds or cancelled paid orders. Use Cashfree to check refund status.', unassigned: 'Assign a rider to these ready orders.', expired: 'Open the order to review stock and repack with fresh stock.', accounting: 'Review Cashfree accounting or cash handover differences.' }
 const data = ref(null), category = ref('unpaid'), start = ref(0), busy = ref(false), error = ref('')
 async function load(key = category.value, offset = 0) {
   if (busy.value) return

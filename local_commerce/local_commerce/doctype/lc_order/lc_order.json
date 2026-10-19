@@ -66,7 +66,9 @@
     "refund_attention",
     "rider_fee_amount",
     "rider_fee_recorded",
-    "gst_snapshot"
+    "gst_snapshot",
+    "return_status",
+    "return_request_json"
   ],
   "fields": [
     {
@@ -492,6 +494,20 @@
       "fieldname": "gst_snapshot",
       "label": "GST checkout snapshot",
       "fieldtype": "Long Text",
+      "read_only": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "return_status",
+      "fieldtype": "Data",
+      "label": "Return status",
+      "read_only": 1,
+      "search_index": 1
+    },
+    {
+      "fieldname": "return_request_json",
+      "fieldtype": "Long Text",
+      "label": "Return request audit",
       "read_only": 1,
       "hidden": 1
     }
