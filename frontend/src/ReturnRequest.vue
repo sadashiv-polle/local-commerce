@@ -18,7 +18,7 @@ async function run(method, args) {
   finally { busy.value = false }
 }
 function approve() {
-  run('decide', { decision: 'Approve', decision_note: decisionNote.value, kind: kind.value, amount: amount.value || null })
+  run('decide', { decision: 'Approve', decision_note: decisionNote.value, kind: kind.value, amount: amount.value || null, credit_note: creditNote.value || null })
 }
 </script>
 <template>
@@ -50,7 +50,7 @@ function approve() {
           <label>Refund type<select v-model="kind" @change="confirm = false"><option>Full</option><option>Partial</option></select></label>
           <p v-if="kind === 'Full'">Refund the remaining paid balance: {{ displayMoney(remaining) }}. Includes paid delivery charges and taxes; prior refunds are deducted.</p>
           <label v-else>Refund amount<input v-model="amount" type="number" min="0.01" :max="remaining" step="0.01" required @input="confirm = false"></label>
-          <p v-if="kind === 'Partial'">Choose the items and charges in a partial credit note under Admin → Cashfree. Link it to the successful refund to finish accounting.</p>
+          <p v-if="kind === 'Partial' || Number(order.refunded_amount || 0) > 0">Create and submit an item-specific credit note under Admin → Cashfree before approving. GST orders use its items and charges to calculate the vendor refund correctly.</p><label v-if="kind === 'Partial' || Number(order.refunded_amount || 0) > 0">Submitted credit note<input v-model="creditNote" placeholder="Sales Invoice credit note reference"></label>
           <button type="submit" :disabled="busy">Review refund</button>
           <div v-if="confirm" class="return-confirm"><p>Send {{ displayMoney(kind === 'Full' ? remaining : amount) }} to the original Cashfree payment source? This starts a real refund for a production profile.</p><button type="button" :disabled="busy" @click="approve">Approve and send refund</button></div>
         </template>

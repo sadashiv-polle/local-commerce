@@ -7,9 +7,10 @@ app_license = "MIT"
 required_apps = ["erpnext"]
 
 scheduler_events = {
+    "daily": ["local_commerce.services.gst.commission_mail.daily"],
     "cron": {
         "17 * * * *": ["local_commerce.services.payments.accounting.reconcile_due"],
-        "*/5 * * * *": ["local_commerce.services.payments.cashfree.reconcile_pending",
+        "*/5 * * * *": ["local_commerce.services.gst.commission.recover", "local_commerce.services.payments.cashfree.reconcile_pending",
                          "local_commerce.services.returns.process_pending"],
         "* * * * *": ["local_commerce.services.orders.expire_requested_orders",
                          "local_commerce.services.scheduled.compile_due",
@@ -161,3 +162,10 @@ doc_events["LC Shop"]["validate"].append("local_commerce.services.gst.config.val
 
 # Preserve the shop identity on the original invoice without changing its supplier.
 doc_events['Sales Invoice']['validate'].append('local_commerce.services.shop_invoices.attribute_invoice')
+
+for _commission_dt in ('Sales Invoice', 'Payment Entry', 'Journal Entry'):
+    _commission_events = doc_events.setdefault(_commission_dt, {})
+    _commission_cancel = _commission_events.get('before_cancel', [])
+    if isinstance(_commission_cancel, str):
+        _commission_cancel = [_commission_cancel]
+    _commission_events['before_cancel'] = [*_commission_cancel, 'local_commerce.services.gst.commission.protect_cancel']

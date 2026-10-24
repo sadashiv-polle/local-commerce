@@ -15,8 +15,8 @@ def review(order, review_note):
 
 
 @frappe.whitelist(methods=['POST'])
-def decide(order, decision, decision_note, kind='Full', amount=None):
-    return returns.decide(order, decision, decision_note, kind, amount)
+def decide(order, decision, decision_note, kind='Full', amount=None, credit_note=None):
+    return returns.decide(order, decision, decision_note, kind, amount, credit_note)
 
 
 @frappe.whitelist(methods=['POST'])

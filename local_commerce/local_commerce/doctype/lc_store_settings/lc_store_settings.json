@@ -43,7 +43,13 @@
     "setup_complete",
     "setup_pending",
     "setup_message",
-    "setup_vendor_payable"
+    "setup_vendor_payable",
+    "commission_billing_enabled",
+    "commission_receivable",
+    "commission_deferred",
+    "commission_item",
+    "commission_due_days",
+    "commission_reminders"
   ],
   "fields": [
     {
@@ -283,6 +289,42 @@
       "label": "Vendor settlement liability",
       "options": "Account",
       "read_only": 1
+    },
+    {
+      "fieldname": "commission_billing_enabled",
+      "label": "Enable delivery commission billing",
+      "fieldtype": "Check",
+      "default": "0"
+    },
+    {
+      "fieldname": "commission_receivable",
+      "label": "Commission customer receivable",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "commission_deferred",
+      "label": "Commission advances liability",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "commission_item",
+      "label": "Marketplace service item",
+      "fieldtype": "Link",
+      "options": "Item"
+    },
+    {
+      "fieldname": "commission_due_days",
+      "label": "Commission payment terms (days)",
+      "fieldtype": "Int",
+      "default": "15"
+    },
+    {
+      "fieldname": "commission_reminders",
+      "label": "Email monthly statements and weekly overdue reminders",
+      "fieldtype": "Check",
+      "default": "0"
     }
   ],
   "permissions": [

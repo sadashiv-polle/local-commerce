@@ -11,7 +11,7 @@ CONDITIONS = {
     'refunds': "o.refund_attention=1 or (o.status='Cancelled' and o.payment_status in ('Paid','Collected','Reconciled') and coalesce(o.gateway_refunded_amount,0)=0)",
     'unassigned': "o.status='Ready' and coalesce(o.delivery_user,'')=''",
     'expired': "o.status in ('Requested','Accepted','Preparing','Ready') and exists (select 1 from `tabLC Fish Lot` l where l.shop=o.shop and l.expires_at<=%(now)s and JSON_SEARCH(IF(JSON_VALID(o.fish_allocations_json),o.fish_allocations_json,'[]'),'one',l.name,NULL,'$[*].lot') is not null)",
-    'accounting': "coalesce(o.gateway_accounting_error,'')!='' or coalesce(o.gateway_settlement_error,'')!='' or exists (select 1 from `tabLC COD Collection` c where c.`order`=o.name and c.status='Difference Pending') or (o.status='Delivered' and coalesce(o.sales_invoice,'')='')",
+    'accounting': "coalesce(o.commission_error,'')!='' or coalesce(o.gateway_accounting_error,'')!='' or coalesce(o.gateway_settlement_error,'')!='' or exists (select 1 from `tabLC COD Collection` c where c.`order`=o.name and c.status='Difference Pending') or (o.status='Delivered' and coalesce(o.sales_invoice,'')='')",
 }
 
 

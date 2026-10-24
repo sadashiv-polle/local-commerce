@@ -43,15 +43,18 @@ def existing(key):
     for field in ('platform_journal','shop_journal'):
         if doc.get(field):
             submitted('Journal Entry', doc.get(field))
+    if doc.get('sales_invoice'):
+        submitted('Sales Invoice', doc.sales_invoice)
     return doc
 
 
-def record(order, snapshot, values, kind, platform_journal, shop_journal, refund_id='', original=None, items=None):
+def record(order, snapshot, values, kind, platform_journal, shop_journal, refund_id='', original=None, items=None, sales_invoice=None):
     token = writing.set(True)
     try:
         return frappe.get_doc(dict(doctype='LC GST Document', event_key=f'{order.name}:{kind}:{refund_id}',
             order=order.name, shop=order.shop, kind=kind, original=original, refund_id=refund_id,
-            posting_date=frappe.utils.nowdate(), platform_journal=platform_journal, shop_journal=shop_journal,
+            posting_date=(frappe.db.get_value('Sales Invoice', sales_invoice, 'posting_date') if sales_invoice else frappe.utils.nowdate()),
+            sales_invoice=sales_invoice, delivered_at=order.get('delivered_at'), platform_journal=platform_journal, shop_journal=shop_journal,
             payload=json.dumps(dict(snapshot=snapshot, amounts=values, items=items or [],
                 customer=json.loads(order.address_snapshot), recipient=order.recipient, issued_by=frappe.session.user)))).insert(ignore_permissions=True)
     finally:
@@ -78,6 +81,12 @@ def post_documents(order, snap, values, refund_id='', invoice=None):
     shop_credit = (json.loads(order.gateway_snapshot)['clearing_account'] if cashfree else snap['shop_payable'])
     results = []
     for role in ('Commission', 'Restaurant'):
+        if role == 'Commission' and snap.get('version') == 2:
+            from .commission import post as post_commission
+            result = post_commission(order, snap, values, refund_id)
+            if result:
+                results.append(result)
+            continue
         if role == 'Restaurant' and snap['mode'] != 'Restaurant 9(5)':
             continue
         kind = role+' '+suffix
@@ -116,14 +125,30 @@ def post_documents(order, snap, values, refund_id='', invoice=None):
 def reverse_refund(order, credit, provider):
     snap = json.loads(order.gst_snapshot)
     refund_id = str(provider['cf_refund_id'])
-    old = existing(f'{order.name}:Commission Credit Note:{refund_id}')
+    from .commission import enabled, earn
+    if enabled(snap) and order.status == 'Delivered' and not existing(f'{order.name}:Commission Invoice:'):
+        earn(order.name)
+    old = existing(f'{order.name}:Commission Credit Note:{refund_id}') or existing(f'{order.name}:Commission Advance Reversal:{refund_id}')
     if old:
         if snap['mode'] == 'Restaurant 9(5)' and not existing(f'{order.name}:Restaurant Credit Note:{refund_id}'):
             reject('Restaurant credit note is missing; review GST accounting')
         if money(json.loads(old.payload)['amounts']['total']) != money(provider['refund_amount']):
             reject('Previously accounted refund changed')
         return
-    prior = frappe.get_all('LC GST Document', filters={'order':order.name, 'kind':'Commission Credit Note'}, pluck='payload')
+    parts = refund_allocation(order, credit)
+    if money(parts['total']) != money(provider['refund_amount']):
+        reject('GST refund allocation differs from verified Cashfree refund')
+    splits = provider.get('refund_splits') or []
+    gateway = json.loads(order.gateway_snapshot or '{}')
+    if snap['payment_method'] == 'Cashfree' and (len(splits) != 1 or splits[0].get('vendor_id') != gateway['vendor_id'] or money(splits[0].get('amount')) != money(parts['vendor_amount'])):
+        reject('Cashfree refund split does not match commission/GST reversals; review vendor allocation')
+    with posting():
+        post_documents(order,snap,parts,refund_id,credit)
+
+
+def refund_allocation(order, credit):
+    snap = json.loads(order.gst_snapshot)
+    prior = frappe.get_all('LC GST Document', filters={'order':order.name, 'kind':['in', ['Commission Credit Note','Commission Advance Reversal']]}, pluck='payload')
     cumulative = {}
     for payload in prior:
         for key,value in json.loads(payload)['amounts'].items():
@@ -137,11 +162,4 @@ def reverse_refund(order, credit, provider):
         reject('Refund components do not balance')
     parts = refund_parts(snap['amounts'], base + money(cumulative.get('base',0)),
         delivery + money(cumulative.get('delivery',0)), tax + money(cumulative.get('supply_tax',0)), cumulative)
-    if money(parts['total']) != money(provider['refund_amount']):
-        reject('GST refund allocation differs from verified Cashfree refund')
-    splits = provider.get('refund_splits') or []
-    gateway = json.loads(order.gateway_snapshot or '{}')
-    if snap['payment_method'] == 'Cashfree' and (len(splits) != 1 or splits[0].get('vendor_id') != gateway['vendor_id'] or money(splits[0].get('amount')) != money(parts['vendor_amount'])):
-        reject('Cashfree refund split does not match commission/GST reversals; review vendor allocation')
-    with posting():
-        post_documents(order,snap,parts,refund_id,credit)
+    return parts

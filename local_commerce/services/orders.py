@@ -778,6 +778,7 @@ def place(shop, items, address, request_key, payment_method="Cash on Delivery",
         from local_commerce.services.gst.config import snapshot as gst_snapshot
         tax_snapshot = gst_snapshot(doc, so, payment_method)
         order.gst_snapshot = json.dumps(tax_snapshot) if tax_snapshot else None
+        order.commission_pending = int(bool(tax_snapshot and tax_snapshot.get('version') == 2))
         if payment_method == "Cashfree":
             cashfree.snapshot(order, doc, so)
         order.save(ignore_permissions=True)
@@ -1457,6 +1458,8 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
         doc.save(ignore_permissions=True)
         doc.add_comment("Info", escape(f"{previous} → {target}."))
         order_notifications.status_changed(doc, previous)
+        if target == 'Delivered' and doc.get('commission_pending'):
+            frappe.enqueue('local_commerce.services.gst.commission.process', order=doc.name, enqueue_after_commit=True)
         return serialize(doc)
     finally:
         _owner_operation.reset(owner_token)
@@ -1704,6 +1707,8 @@ def change(order, target, reason=""):
         doc.save(ignore_permissions=True)
         doc.add_comment("Info", escape(f"{previous} → {target}. {doc.reason}"))
         order_notifications.status_changed(doc, previous)
+        if target == 'Delivered' and doc.get('commission_pending'):
+            frappe.enqueue('local_commerce.services.gst.commission.process', order=doc.name, enqueue_after_commit=True)
         return serialize(doc)
     finally:
         _owner_operation.reset(owner_token)

@@ -222,7 +222,17 @@ def after_migrate():
             ],
         }
     )
+    create_custom_fields({'Payment Entry': [
+        dict(fieldname='lc_commission_key', label='Commission receipt idempotency key', fieldtype='Data', unique=1, read_only=1, no_copy=1, print_hide=1),
+        dict(fieldname='lc_commission_shop_journal', label='Vendor commission payment journal', fieldtype='Link', options='Journal Entry', read_only=1, no_copy=1),
+        dict(fieldname='lc_commission_shop_bank', label='Vendor commission bank ledger', fieldtype='Link', options='Account', read_only=1, no_copy=1),
+        dict(fieldname='lc_commission_order', label='Commission order', fieldtype='Link', options='LC Order', read_only=1, no_copy=1),
+    ]})
+    create_custom_fields({'Sales Invoice Item': [
+        dict(fieldname='lc_commission_order',label='Commission order',fieldtype='Link',options='LC Order',read_only=1,no_copy=1,print_hide=1),
+    ]})
     create_custom_fields({'Sales Invoice': [
+        dict(fieldname='lc_commission_order',label='Commission order',fieldtype='Link',options='LC Order',read_only=1,no_copy=1,print_hide=1),
         dict(fieldname='lc_shop', label='Local Commerce Shop', fieldtype='Link',
              options='LC Shop', read_only=1, no_copy=1, search_index=1, print_hide=1),
         dict(fieldname='lc_shop_name', label='Shop name at issue', fieldtype='Data',

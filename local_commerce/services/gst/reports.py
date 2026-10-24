@@ -13,9 +13,9 @@ def report_row(doc):
     credit = 'Credit Note' in doc['kind']
     taxable = money(values['commission_base']) if commission else money(values['base']) + money(values['delivery'])
     tax = values['commission_tax'] if commission else values['eco_tax']
-    heads = split_tax(tax, snap['platform']['party']['state'] != snap['shop_party']['state'])
+    heads = doc.get('native_tax_heads') or split_tax(tax, snap['platform']['party']['state'] != snap['shop_party']['state'])
     sign = -1 if credit else 1
-    result = dict(invoice=doc['name'], date=str(doc['posting_date']), kind=doc['kind'],
+    result = dict(invoice=doc.get('sales_invoice') or doc['name'], date=str(doc['posting_date']), kind=doc['kind'],
         original=doc.get('original') or '', order=doc['order'], shop=doc['shop'],
         platform_gstin=snap['platform']['party']['gstin'],
         supplier_gstin=snap['shop_party']['gstin'] if not commission else snap['platform']['party']['gstin'],

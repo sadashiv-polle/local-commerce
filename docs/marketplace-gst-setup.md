@@ -240,3 +240,132 @@ shows a message and leaves manual entry available.
 
 References: https://docs.indiacompliance.app/docs/miscellaneous/gstin_verification
 and https://docs.indiacompliance.app/docs/developer-guide/sandbox .
+
+## Native commission billing (version 2; opt-in for new orders)
+
+Existing orders and journal-based GST documents are not migrated or re-invoiced.
+The setting is disabled by default. Configure and validate a staging Company
+before enabling it in **Admin → GST & commission → Native commission billing**.
+This is a new posting model, not a retrospective repair of historical balances.
+
+### Required setup
+
+1. Use Shiv Tech Works as the platform Company. Keep vendor Companies separate;
+   owned shops do not pay commission to their own Company.
+2. Retain the existing GST identity, supply treatment, rates, income accounts,
+   tax accounts, bank and clearing settings. Confirm the applicable SAC and GST
+   treatment with your accountant; no test GSTIN is created by this feature.
+3. Select a native INR **Receivable** control account for commission Customers.
+   Do not change the type of the old ordinary shop-receivable asset account.
+4. Select a separate **Liability** account for commission advances.
+5. Create/select a non-stock sales service Item with the reviewed SAC. Use a
+   fractional service UOM (not a whole-number-only UOM). Billing units are ₹1
+   each: ₹50 taxable commission is 50 service units; this permits exact native
+   partial credit quantities without exhausting a one-unit invoice on the first
+   partial refund.
+6. For each vendor, select a dedicated billing **Customer**, with matching GSTIN
+   or no GSTIN for an unregistered vendor. Complete its native billing address,
+   tax category and other India Compliance details in ERPNext. Never share a
+   billing Customer across shops.
+7. For each vendor Company, select a separate **Asset** account for prepaid
+   marketplace commission. Retain its commission expense and platform-payable
+   liability accounts. Input GST credit is not automatically claimed.
+8. Set payment terms (0–90 days). Enable native billing only after a staging
+   invoice, credit and collection pass ERPNext/India Compliance validation.
+9. Optional: enable monthly statement and weekly overdue emails. Set each shop’s
+   billing email. This is off by default; SMTP/Email Queue must be operational.
+
+New GST-enabled orders freeze the billing configuration and commission rate.
+Changing the toggle or rates later does not change those orders. Existing
+non-GST/Legacy shops continue their prior flow; this release does not silently
+convert their tax or commission model.
+
+### Posting and settlement
+
+- Cashfree verification: debit retained-funds clearing, credit deferred service
+  income and output GST on the advance. Vendor: debit prepaid commission,
+  credit its gateway clearing. No platform commission revenue yet.
+- Delivery: issue the platform’s native commission Sales Invoice. Allocate the
+  advance to its receivable, reverse the advance-tax posting to avoid charging
+  output tax twice, and recognize vendor commission expense against prepaid.
+- COD/Manual UPI delivery: issue the platform invoice and record vendor expense
+  against its payable. COD cash remains shop money. The agreed commission base
+  is discounted item value before tax, excluding delivery; cash shortages remain
+  collection exceptions and do not silently change this agreement.
+- Admin → Commission & statements → Record receipt: record a completed full or
+  partial shop bank transfer. Creates the native platform Payment Entry and a
+  matching vendor payable/bank journal. Same invoice + bank reference retries
+  are idempotent; differing retries are rejected. Do not enter a transfer twice
+  through this screen and native ERPNext.
+- Cashfree bank allocations remain the existing verified-statement workflow.
+  Invoice settlement through clearing does **not** imply a completed bank payout.
+- For version-2 restaurant COD/UPI orders, the legacy remittance button now
+  remits **only Section 9(5) GST**. Pay commission through native invoice receipts.
+- Delivery invoice failures appear in Needs attention → Accounting and retry in
+  the background. They do not undo delivery. Failed jobs rotate through the queue.
+- Linked native invoices/payments/journals cannot be cancelled independently;
+  use credit/refund flows or an accountant-reviewed reversal of both Companies.
+
+### Refunds and reports
+
+Approved full/partial refunds reverse the relevant commission. Partial GST
+refunds require a submitted unpaid product credit note **before** approval;
+its item/delivery/tax allocation determines the vendor split. Native commission
+credit quantities and cumulative GST-head rounding prevent over-reversal.
+Manual return completion invokes the same commission reversal service.
+Physical stock return remains separate; perishable goods are not automatically
+restocked.
+
+Shop owners see only their shop’s commission screen. Admin sees shop-wise
+balances, period totals, verified bank allocation references, native invoice
+PDFs, payment history and CSV statements. Legacy journal documents remain
+visible but do not pretend to have native invoice outstanding balances.
+
+Native invoices are issued per delivered order. Monthly statements summarise
+those invoices and never issue a second charge. On the first day of the month,
+opt-in emails queue the previous month’s statement; Monday reminders cover
+outstanding invoices from the previous 365 days. Older balances need native
+ERPNext Accounts Receivable aging. Dispatch is deduplicated under a shop lock;
+Email Queue retries remain Frappe’s responsibility.
+
+Download the **advance GST adjustments** workpaper alongside the invoice GST
+workpaper. It separates advance receipts, advance refunds and invoice offsets.
+These are accountant-review exports, not GST portal JSON or automatic filing.
+Native invoice GST totals and advance offsets must be reconciled by return
+period before filing.
+
+### Compliance boundaries and staging checks
+
+Commission GST, restaurant Section 9(5) and GST TCS are different liabilities.
+**TCS deduction/registration/GSTR-8 automation is not enabled by this change.**
+The admin TCS classification review CSV separates supply treatment, payment
+collection method, supplier registration and commission GST for accountant
+review. It uses order-creation dates, not collection/return filing periods, and
+does not calculate a TCS liability.
+Supply eligibility, consideration collected by the operator versus shop-collected
+COD, applicable registration and effective rates require a reviewed TCS design;
+never apply commission GST or restaurant tax as a substitute for TCS.
+This setup must not be treated as a complete GST filing implementation.
+
+Confirm invoice timing, tax on advances, place of supply, SAC, eligible input
+credit, vendor registrations and product-specific treatments with your CA.
+The default per-order invoice plus monthly statement avoids assuming that
+monthly collection permits delaying every tax invoice until month-end.
+
+References:
+- [CBIC invoice rules](https://cbic-gst.gov.in/gst-invoice-rules.html)
+- [Cashfree Easy Split](https://www.cashfree.com/docs/api-reference/payments/latest/split/easy-split-overview)
+- [GST portal Section 9(5) advisory](https://tutorial.gst.gov.in/downloads/news/gstr_3b_sec_9_5_advisory_19_07_22.pdf)
+
+Run native tests only on a disposable staging site, after migration:
+
+```bash
+bench --site staging-site run-tests --app local_commerce --module local_commerce.tests.test_commission_billing
+```
+
+The native test fixture checks ERPNext GL/receivables with a non-Indian INR
+platform Company; it does not certify India Compliance/GST classification.
+Separately test a configured Indian staging Company: online payment → delivery
+→ invoice → settlement; COD → partial and full receipts; full and repeated
+partial refunds; duplicate events; two vendor shops; invoice PDF; and both
+intrastate/interstate tax reporting. Do not use live credentials for this test.

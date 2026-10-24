@@ -15,6 +15,8 @@ def settings():
     return dict(platform={f:doc.get(f) for f in config.PLATFORM_FIELDS},
         shops=frappe.get_all('LC Shop',fields=['name','shop_name','company',*config.SHOP_FIELDS],limit_page_length=0),
         companies=frappe.get_all('Company',pluck='name'),
+        customers=frappe.get_all('Customer',filters={'disabled':0},fields=['name','customer_name'],limit_page_length=0),
+        service_items=frappe.get_all('Item',filters={'disabled':0,'is_stock_item':0,'is_sales_item':1},fields=['name','item_name'],limit_page_length=0),
         cost_centers=frappe.get_all('Cost Center',filters={'is_group':0},fields=['name','company'],limit_page_length=0),
         accounts=frappe.get_all('Account',filters={'disabled':0,'is_group':0,'account_currency':'INR'},
             fields=['name','company','root_type','account_type'],limit_page_length=0))
@@ -24,7 +26,7 @@ def values_arg(values, allowed):
     values=frappe.parse_json(values)
     if not isinstance(values,dict) or set(values)-set(allowed):
         reject('Invalid GST settings')
-    for key in ('gst_enabled','gst_commission_inclusive'):
+    for key in ('gst_enabled','gst_commission_inclusive','commission_billing_enabled','commission_reminders'):
         if key in values:
             if str(values[key]) not in ('0','1','True','False','true','false'):
                 reject('Invalid GST checkbox')
@@ -56,8 +58,8 @@ def documents(start,end):
     start,end=frappe.utils.getdate(start),frappe.utils.getdate(end)
     if end<start or (end-start).days>366:
         reject('Choose a reporting period of up to one year')
-    return frappe.get_all('LC GST Document', filters={'posting_date':['between',[start,end]]},
-        fields=['name','posting_date','kind','original','order','shop','payload','platform_journal','shop_journal'],
+    return frappe.get_all('LC GST Document', filters={'posting_date':['between',[start,end]], 'kind':['not in',['Commission Advance','Commission Advance Reversal']]},
+        fields=['name','posting_date','kind','original','order','shop','payload','platform_journal','shop_journal','sales_invoice'],
         order_by='posting_date asc, name asc',limit_page_length=0)
 
 
@@ -71,6 +73,14 @@ def report(start,end,download=0):
         for field in ('platform_journal', 'shop_journal'):
             if doc.get(field):
                 submitted('Journal Entry', doc[field])
+    for doc in docs:
+        if doc.get('sales_invoice'):
+            submitted('Sales Invoice', doc.sales_invoice)
+            native_invoice = frappe.get_doc('Sales Invoice', doc.sales_invoice)
+            accounts = json.loads(doc.payload)['snapshot']['platform']['accounts']
+            doc['native_tax_heads'] = {head:str(sum((money(abs(t.tax_amount)) for t in native_invoice.taxes if t.account_head == accounts[head]),money(0))) for head in ('cgst','sgst','igst')}
+            if native_invoice.return_against:
+                doc['original'] = native_invoice.return_against
     rows=[report_row(doc) for doc in docs]
     if str(download)=='1':
         frappe.local.response.update(type='download',filename='local-gst-workpaper.csv',filecontent=csv_bytes(rows))
@@ -86,6 +96,11 @@ def invoice(name):
     doc=frappe.get_doc('LC GST Document',name)
     order=frappe.get_doc('LC Order',doc.order)
     orders.authorize(order,write=doc.kind.startswith('Commission'))
+    if doc.get('sales_invoice'):
+        from frappe.utils.print_format import download_pdf
+        from local_commerce.services.payments.accounting import posting
+        with posting():
+            return download_pdf('Sales Invoice', doc.sales_invoice)
     frappe.local.response.update(type='pdf',filename=doc.name+'.pdf',filecontent=pdf(doc))
 
 
@@ -134,12 +149,15 @@ def record_shop_remittance(order, shop_bank, utr, date):
     if not existing(f'{order}:Commission Invoice:'):
         reject('The commission invoice has not been posted')
     snap=json.loads(doc.gst_snapshot);platform=snap['platform'];pa=platform['accounts']
+    native = snap.get('version') == 2
+    if native and snap['mode'] != 'Restaurant 9(5)':
+        reject('Use Commission billing to allocate partial payments to the native invoice')
     config.account(shop_bank,snap['shop_company'],'Asset',True)
     if not str(utr).strip():
         reject('Enter the completed bank-transfer UTR')
-    amount=money(snap['amounts']['commission_gross'])+money(snap['amounts']['eco_tax'])
+    amount=(money(0) if native else money(snap['amounts']['commission_gross']))+money(snap['amounts']['eco_tax'])
     for payload in frappe.get_all('LC GST Document',filters={'order':order,'kind':'Commission Credit Note'},pluck='payload'):
-        values=json.loads(payload)['amounts'];amount-=money(values['commission_gross'])+money(values['eco_tax'])
+        values=json.loads(payload)['amounts'];amount-=(money(0) if native else money(values['commission_gross']))+money(values['eco_tax'])
     data=state(doc);allocation=dict(amount=str(amount),shop_bank=shop_bank,utr=str(utr),date=str(frappe.utils.getdate(date)))
     if data.get('gst_remittance'):
         old=data['gst_remittance']

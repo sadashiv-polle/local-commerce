@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { call } from './api.js'
+import CommissionDashboard from './CommissionDashboard.vue'
 import GstinLookup from './GstinLookup.vue'
 const data = ref(null), busy = ref(false), error = ref(''), message = ref(''), report = ref(null)
 const today = new Date().toISOString().slice(0,10)
@@ -24,7 +25,7 @@ function accounts(company,root) { return data.value.accounts.filter(a=>a.company
 async function run(action) { busy.value=true;error.value='';message.value='';try { await action();message.value='Saved successfully.' } catch(e) { error.value=e.message } finally {busy.value=false} }
 async function load() { data.value=await call('gst.settings') }
 onMounted(()=>run(load))
-function saveShop(shop) { const values=Object.fromEntries(Object.entries(shop).filter(([key])=>key.startsWith('gst_') || key==='cashfree_commission_account')); return run(()=>call('gst.save_shop',{shop:shop.name,values},true)) }
+function saveShop(shop) { const values=Object.fromEntries(Object.entries(shop).filter(([key])=>key.startsWith('gst_') || key.startsWith('commission_') || key==='cashfree_commission_account')); return run(()=>call('gst.save_shop',{shop:shop.name,values},true)) }
 async function loadReport() { report.value=await call('gst.report',{start:start.value,end:end.value}) }
 function bankAllocation() { const {shop_bank: _shopBank,...values}=settlement.value;return run(()=>call('gst.record_platform_bank',values,true)) }
 </script>
@@ -34,6 +35,7 @@ function bankAllocation() { const {shop_bank: _shopBank,...values}=settlement.va
     <p>Save your setup now. Enable each shop only after your platform GSTIN, tax treatment and accounting ledgers are confirmed. Your own shop under the same Company should remain in Legacy mode.</p>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p><p v-if="message" role="status">{{ message }}</p>
     <template v-if="data">
+      <CommissionDashboard />
       <form class="admin-card" @submit.prevent="run(()=>call('gst.save_platform',{values:data.platform},true))">
         <h3>Platform identity and accounts</h3><p>Draft settings do not start collecting GST. Gateway fees and their tax are expensed here; input tax credit is not claimed automatically.</p>
         <fieldset :disabled="busy">
@@ -44,7 +46,17 @@ function bankAllocation() { const {shop_bank: _shopBank,...values}=settlement.va
             <label>Commission GST rate (%)<input v-model.number="data.platform.gst_rate" type="number" min="18" max="18"></label>
             <label>Cost center<select v-model="data.platform.gst_cost_center"><option value="">Choose</option><option v-for="c in data.cost_centers.filter(c=>c.company===data.platform.gst_company)" :key="c.name">{{ c.name }}</option></select></label>
             <label v-for="[key,label,root] in platformFields" :key="key">{{ label }}<select v-model="data.platform[key]"><option value="">Choose ledger</option><option v-for="a in accounts(data.platform.gst_company,root)" :key="a.name">{{ a.name }}</option></select></label>
-          </div><button class="lc-primary">Save platform draft</button>
+          </div><h4>Native commission billing — new orders only</h4>
+          <p>Use a non-stock service item with a fractional service UOM (₹1 per billing unit, allowing exact partial credits). Configure each vendor’s billing Customer and prepaid account first. Existing orders retain their original accounting. Commission is earned at delivery; GST on Cashfree advances is recorded separately. Confirm advance tax treatment and invoice configuration before enabling.</p>
+          <div class="form-columns">
+            <label>Receivable control account<select v-model="data.platform.commission_receivable"><option value="">Choose</option><option v-for="a in data.accounts.filter(a=>a.company===data.platform.gst_company && a.account_type==='Receivable')" :key="a.name">{{ a.name }}</option></select></label>
+            <label>Commission advances liability<select v-model="data.platform.commission_deferred"><option value="">Choose</option><option v-for="a in accounts(data.platform.gst_company,'Liability')" :key="a.name">{{ a.name }}</option></select></label>
+            <label>Marketplace service item<select v-model="data.platform.commission_item"><option value="">Choose</option><option v-for="i in data.service_items" :key="i.name" :value="i.name">{{ i.item_name }} · {{ i.name }}</option></select></label>
+            <label>Payment terms (days)<input v-model.number="data.platform.commission_due_days" type="number" min="0" max="90"></label>
+          </div>
+          <label class="check-label"><input v-model="data.platform.commission_billing_enabled" type="checkbox">Enable native delivery commission billing for new GST-enabled orders</label>
+          <label class="check-label"><input v-model="data.platform.commission_reminders" type="checkbox">Email monthly statements and weekly overdue reminders to configured shop emails</label>
+          <button class="lc-primary">Save platform draft</button>
         </fieldset>
       </form>
       <form v-for="shop in data.shops" :key="shop.name" class="admin-card" @submit.prevent="saveShop(shop)">
@@ -54,6 +66,8 @@ function bankAllocation() { const {shop_bank: _shopBank,...values}=settlement.va
             <label>Shop registration<select v-model="shop.gst_registration"><option>Unverified</option><option>Registered</option><option>Unregistered</option></select></label>
             <label v-for="[key,label] in identityFields" :key="key">{{ label }}<input v-model="shop[key]" :disabled="key==='gst_number' && shop.gst_registration==='Unregistered'" :maxlength="key==='gst_address'?1000:140"></label><GstinLookup :number="shop.gst_number || ''" @apply="applyIdentity(shop, $event)" />
             <label>Supply treatment<select v-model="shop.gst_mode"><option>Legacy</option><option>Exempt goods</option><option>Seller GST</option><option>Restaurant 9(5)</option></select></label>
+            <label>Platform billing Customer<select v-model="shop.commission_customer"><option value="">Choose</option><option v-for="c in data.customers" :key="c.name" :value="c.name">{{ c.customer_name }} · {{ c.name }}</option></select><small>A dedicated Customer in the platform’s accounts for this vendor.</small></label>
+            <label>Prepaid commission asset<select v-model="shop.commission_prepaid"><option value="">Choose</option><option v-for="a in accounts(shop.company,'Asset')" :key="a.name">{{ a.name }}</option></select></label>
             <label>Commission percentage<input v-model.number="shop.gst_commission_rate" type="number" min="0.01" max="99.99" step="0.01"></label>
             <label>Commission expense account<select v-model="shop.cashfree_commission_account"><option value="">Choose</option><option v-for="a in accounts(shop.company,'Expense')" :key="a.name">{{ a.name }}</option></select></label>
             <label>Amounts owed to platform<select v-model="shop.gst_shop_payable"><option value="">Choose liability ledger</option><option v-for="a in accounts(shop.company,'Liability')" :key="a.name">{{ a.name }}</option></select></label>
@@ -78,7 +92,7 @@ function bankAllocation() { const {shop_bank: _shopBank,...values}=settlement.va
         <h3>Platform bank reconciliation</h3><p>Record only this order’s allocation from the completed merchant settlement statement, not the entire batch. This records accounting; it does not send money. Do not use it if you already posted the transfer in ERPNext.</p>
         <fieldset :disabled="busy">
           <div class="form-columns"><label>Full order ID<input v-model="settlement.order"></label><label>Bank UTR<input v-model="settlement.utr"></label><label>Settlement date<input v-model="settlement.date" type="date"></label><label>Net received<input v-model="settlement.net" type="number" min="0" step="0.01"></label><label>Gateway + Split fees before GST<input v-model="settlement.fee" type="number" min="0" step="0.01"></label><label>GST on fees<input v-model="settlement.fee_tax" type="number" min="0" step="0.01"></label><label>Statement/invoice allocation reference<input v-model="settlement.evidence"></label></div><button @click="bankAllocation">Record Cashfree platform receipt</button>
-          <h4>COD / Manual UPI remittance</h4><p>Record the shop’s completed transfer of commission and Section 9(5) GST. Use the order, UTR and date above.</p><label>Shop bank ledger<input v-model="settlement.shop_bank"></label><button @click="run(()=>call('gst.record_shop_remittance',{order:settlement.order,shop_bank:settlement.shop_bank,utr:settlement.utr,date:settlement.date},true))">Record shop remittance</button>
+          <h4>COD / Manual UPI remittance</h4><p>For legacy orders, record commission and Section 9(5) GST. For native-billing orders, this action records only Section 9(5) GST; record commission receipts in the dashboard above. Use the order, UTR and date above.</p><label>Shop bank ledger<input v-model="settlement.shop_bank"></label><button @click="run(()=>call('gst.record_shop_remittance',{order:settlement.order,shop_bank:settlement.shop_bank,utr:settlement.utr,date:settlement.date},true))">Record shop remittance</button>
         </fieldset>
       </section>
       <section class="admin-card"><h3>COD / Manual UPI refund adjustments</h3><p>First submit the item-specific credit note and refund Payment Entry in ERPNext. Cashfree refunds use verified provider evidence automatically.</p><fieldset :disabled="busy"><div class="form-columns"><label>Order ID<input v-model="refund.order"></label><label>Submitted credit note<input v-model="refund.credit_note"></label><label>Submitted refund Payment Entry<input v-model="refund.payment_entry"></label></div><button @click="run(()=>call('gst.record_manual_refund',refund,true))">Record commission and GST credit notes</button></fieldset></section>

@@ -70,7 +70,7 @@ def review(order, review_note):
     return public(doc)
 
 
-def decide(order, decision, decision_note, kind='Full', amount=None):
+def decide(order, decision, decision_note, kind='Full', amount=None, credit_note=None):
     require_platform()
     doc = lock(order)
     case = state(doc)
@@ -94,6 +94,28 @@ def decide(order, decision, decision_note, kind='Full', amount=None):
         reject(str(exc))
     case.update(kind=kind, amount=str(approved), refund_id='ret_' + frappe.generate_hash(length=28))
     case['payload'] = refund_payload(case, snap)
+    if doc.get('gst_snapshot'):
+        from local_commerce.services.gst.accounting import refund_allocation
+        gst = json.loads(doc.gst_snapshot)
+        if approved != money(snap['amount']):
+            if not credit_note:
+                reject('Select the submitted item-specific credit note before approving a partial GST refund')
+            credit = frappe.get_doc('Sales Invoice', credit_note)
+            original = frappe.get_doc('Sales Invoice', doc.sales_invoice)
+            if (credit.docstatus != 1 or not credit.is_return or credit.return_against != original.name
+                    or credit.company != original.company or credit.customer != original.customer
+                    or credit.currency != 'INR' or not credit.update_outstanding_for_self
+                    or credit.grand_total >= 0 or money(abs(credit.grand_total)) != approved
+                    or credit.outstanding_amount >= 0 or money(abs(credit.outstanding_amount)) != approved):
+                reject('Select an unpaid submitted credit note matching this order and approved refund amount')
+            parts = refund_allocation(doc, credit)
+            case['credit_note'] = credit.name
+        else:
+            parts = gst['amounts']
+        if money(parts['total']) != approved:
+            reject('Credit note components do not match the approved refund')
+        case['payload']['refund_splits'] = [dict(vendor_id=snap['vendor_id'], amount=float(money(parts['vendor_amount'])))]
+
     save(doc, case, 'Refund queued')
     frappe.enqueue('local_commerce.services.returns.process', order=doc.name, enqueue_after_commit=True)
     return public(doc)
@@ -135,6 +157,11 @@ def process(order):
         status = (row or {}).get('refund_status')
         doc = cashfree.locked(order)
         case = state(doc)
+        if status == 'SUCCESS' and case.get('credit_note'):
+            from local_commerce.services.payments.accounting import state as accounting_state, persist
+            data = accounting_state(doc)
+            data.setdefault('refund_credit_notes', {})[str(row['cf_refund_id'])] = case['credit_note']
+            persist(doc, data)
         if status == 'SUCCESS':
             save(doc, case, 'Refund processing')
         elif status in ('FAILED', 'CANCELLED'):
@@ -207,6 +234,9 @@ def record_manual(order, credit_note, payment_entry, decision_note):
             or len(refs) != 1 or refs[0].reference_doctype != 'Sales Invoice'
             or refs[0].reference_name != credit.name or money(abs(refs[0].allocated_amount)) != amount):
         reject('Select a submitted, fully paid return credit note for this order and its matching customer refund Payment Entry')
+    if doc.get('gst_snapshot'):
+        from local_commerce.services.gst.accounting import reverse_refund
+        reverse_refund(doc, credit, dict(cf_refund_id='manual-'+credit.name, refund_amount=float(amount)))
     case.update(amount=str(amount), kind='Full' if amount == money(invoice.grand_total) else 'Partial',
         approved_by=frappe.session.user, approved_at=str(frappe.utils.now_datetime()),
         decision_note=note(decision_note), credit_note=credit.name, payment_entry=payment.name)

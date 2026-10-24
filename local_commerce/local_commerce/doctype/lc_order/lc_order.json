@@ -68,7 +68,10 @@
     "rider_fee_recorded",
     "gst_snapshot",
     "return_status",
-    "return_request_json"
+    "return_request_json",
+    "commission_pending",
+    "commission_error",
+    "commission_attempted_at"
   ],
   "fields": [
     {
@@ -508,6 +511,26 @@
       "fieldname": "return_request_json",
       "fieldtype": "Long Text",
       "label": "Return request audit",
+      "read_only": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "commission_pending",
+      "label": "Commission billing pending",
+      "fieldtype": "Check",
+      "default": "0",
+      "read_only": 1
+    },
+    {
+      "fieldname": "commission_error",
+      "label": "Commission accounting issue",
+      "fieldtype": "Small Text",
+      "read_only": 1
+    },
+    {
+      "fieldname": "commission_attempted_at",
+      "label": "Last commission attempt",
+      "fieldtype": "Datetime",
       "read_only": 1,
       "hidden": 1
     }

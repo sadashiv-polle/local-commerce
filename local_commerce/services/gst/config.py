@@ -8,11 +8,13 @@ from local_commerce.services.payments.rules import money
 
 SHOP_FIELDS = ('gst_enabled', 'gst_mode', 'gst_registration', 'gst_legal_name', 'gst_number',
                'gst_state', 'gst_address', 'gst_commission_rate', 'gst_commission_inclusive',
-               'gst_shop_payable', 'gst_shop_eco_account', 'cashfree_commission_account')
+               'gst_shop_payable', 'gst_shop_eco_account', 'cashfree_commission_account',
+               'commission_customer', 'commission_prepaid')
 PLATFORM_FIELDS = ('gst_company', 'gst_legal_name', 'gst_number', 'gst_state', 'gst_address',
     'gst_sac', 'gst_rate', 'gst_cost_center', 'gst_clearing', 'gst_receivable', 'gst_income',
     'gst_cgst', 'gst_sgst', 'gst_igst', 'gst_eco_cgst', 'gst_eco_sgst', 'gst_eco_igst',
-    'gst_bank', 'gst_fee', 'gst_fee_tax')
+    'gst_bank', 'gst_fee', 'gst_fee_tax', 'commission_billing_enabled',
+    'commission_receivable', 'commission_deferred', 'commission_item', 'commission_due_days', 'commission_reminders')
 
 
 def active(shop):
@@ -106,6 +108,8 @@ def validate_shop(shop, method=None):
         account(shop.get('gst_shop_eco_account'), shop.company, 'Liability')
         if shop.order_tax_template:
             reject('Remove the seller tax template for Section 9(5); the app adds restaurant GST once')
+    from .commission import billing_snapshot
+    billing_snapshot(shop, platform)
     if shop.get('cashfree_enabled') and shop.get('cashfree_settlement_mode') != 'Easy Split':
         reject('Use Easy Split for a third-party shop with marketplace GST')
 
@@ -126,7 +130,9 @@ def snapshot(shop, so, payment_method):
                          platform['rate'], bool(shop.gst_commission_inclusive), shop.gst_mode)
     except ValueError as exc:
         reject(str(exc))
-    return dict(version=1, mode=shop.gst_mode, registration=shop.gst_registration,
+    from .commission import billing_snapshot
+    billing = billing_snapshot(shop, platform)
+    return dict(version=2 if billing else 1, billing=billing, mode=shop.gst_mode, registration=shop.gst_registration,
         shop_party=identity(shop), platform=platform, amounts=values,
         commission_rate=str(money(shop.gst_commission_rate)),
         inclusive=bool(shop.gst_commission_inclusive), shop_company=shop.company,

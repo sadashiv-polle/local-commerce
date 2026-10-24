@@ -18,27 +18,30 @@
       "label": "Order",
       "fieldtype": "Link",
       "options": "LC Order",
-      "reqd": 1
+      "reqd": 1,
+      "search_index": 1
     },
     {
       "fieldname": "shop",
       "label": "Shop",
       "fieldtype": "Link",
       "options": "LC Shop",
-      "reqd": 1
+      "reqd": 1,
+      "search_index": 1
     },
     {
       "fieldname": "kind",
       "label": "Document type",
       "fieldtype": "Select",
-      "options": "Commission Invoice\nRestaurant Invoice\nCommission Credit Note\nRestaurant Credit Note",
+      "options": "Commission Invoice\nRestaurant Invoice\nCommission Credit Note\nRestaurant Credit Note\nCommission Advance\nCommission Advance Reversal",
       "reqd": 1
     },
     {
       "fieldname": "posting_date",
       "label": "Date",
       "fieldtype": "Date",
-      "reqd": 1
+      "reqd": 1,
+      "search_index": 1
     },
     {
       "fieldname": "original",
@@ -68,6 +71,20 @@
       "label": "Shop journal",
       "fieldtype": "Link",
       "options": "Journal Entry"
+    },
+    {
+      "fieldname": "sales_invoice",
+      "label": "Native platform commission invoice",
+      "fieldtype": "Link",
+      "options": "Sales Invoice",
+      "read_only": 1,
+      "search_index": 1
+    },
+    {
+      "fieldname": "delivered_at",
+      "label": "Delivered at",
+      "fieldtype": "Datetime",
+      "read_only": 1
     }
   ],
   "field_order": [
@@ -80,7 +97,9 @@
     "refund_id",
     "payload",
     "platform_journal",
-    "shop_journal"
+    "shop_journal",
+    "sales_invoice",
+    "delivered_at"
   ],
   "permissions": [
     {

@@ -98,6 +98,9 @@ def book_refunds(doc, rows):
                     submitted("Journal Entry", recorded[key]["commission_journal"])
                 continue
             credit_name = data.get("refund_credit_notes", {}).get(key)
+            approved_return = json.loads(doc.get('return_request_json') or '{}')
+            if not credit_name and approved_return.get('refund_id') == row.get('refund_id'):
+                credit_name = approved_return.get('credit_note')
             if credit_name:
                 credit = frappe.get_doc("Sales Invoice", credit_name)
             elif amount == money(snap["amount"]) and not recorded:

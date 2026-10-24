@@ -81,7 +81,10 @@
     "gst_commission_rate",
     "gst_commission_inclusive",
     "gst_shop_payable",
-    "gst_shop_eco_account"
+    "gst_shop_eco_account",
+    "commission_customer",
+    "commission_prepaid",
+    "commission_dispatch_json"
   ],
   "fields": [
     {
@@ -570,6 +573,25 @@
       "fieldtype": "Link",
       "options": "Account",
       "description": "Retail sales ledger for this owned shop; separate from marketplace commission income."
+    },
+    {
+      "fieldname": "commission_customer",
+      "label": "Platform billing customer",
+      "fieldtype": "Link",
+      "options": "Customer"
+    },
+    {
+      "fieldname": "commission_prepaid",
+      "label": "Prepaid marketplace commission",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "fieldname": "commission_dispatch_json",
+      "label": "Commission statement dispatch history",
+      "fieldtype": "Long Text",
+      "read_only": 1,
+      "hidden": 1
     }
   ],
   "permissions": [
