@@ -173,3 +173,5 @@ for _commission_dt in ('Sales Invoice', 'Payment Entry', 'Journal Entry'):
 # Personal stock funding remains linked to its immutable stock operation.
 doc_events.setdefault("Journal Entry", {}).setdefault("before_cancel", []).append(
     "local_commerce.services.stock_funding.protect_journal")
+
+on_login = "local_commerce.services.social_login.on_login"

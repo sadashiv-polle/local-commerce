@@ -82,6 +82,12 @@ def after_migrate():
     # installer because older or restored sites can be missing the Custom Field records.
     create_address_and_contact_custom_fields()
 
+    create_custom_fields({'User': [{
+        'fieldname': 'lc_google_welcome_queued_at',
+        'label': 'Local dot Google welcome queued at',
+        'fieldtype': 'Datetime', 'read_only': 1, 'no_copy': 1, 'hidden': 1,
+    }]})
+
     existing = frappe.get_meta("Item").get_field("lc_shop")
     if existing and (existing.fieldtype != "Link" or existing.options != "LC Shop"):
         frappe.throw("Item.lc_shop field collision: expected a Link to LC Shop")

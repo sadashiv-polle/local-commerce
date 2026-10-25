@@ -40,3 +40,56 @@ class SocialLoginTests(TestCase):
         authorize.assert_called_once_with('google', '/local-commerce#/orders')
         self.assertEqual(set(result), {'url'})
         self.frappe.get_doc.assert_not_called()
+
+    def test_welcome_scheduled_only_after_successful_google_login_commits(self):
+        self.frappe.local.request.path = '/api/method/frappe.integrations.oauth2_logins.login_via_google'
+        self.scope['on_login'](SimpleNamespace(user='customer@example.com'))
+        self.frappe.enqueue.assert_called_once_with(
+            'local_commerce.services.social_login.queue_welcome', user='customer@example.com',
+            queue='short', enqueue_after_commit=True)
+        self.frappe.enqueue.reset_mock()
+        self.frappe.local.request.path = '/api/method/login'
+        self.scope['on_login'](SimpleNamespace(user='customer@example.com'))
+        self.frappe.enqueue.assert_not_called()
+
+    def welcome_account(self):
+        account = Mock(enabled=1, user_type='Website User', first_name='<Customer>', email='customer@example.com')
+        account.get.return_value = None
+        account.get_social_login_userid.return_value = 'google-id'
+        self.frappe.get_doc.return_value = account
+        return account
+
+    def run_welcome(self):
+        from html import escape
+        utils = SimpleNamespace(escape_html=escape, get_url=lambda p: 'https://example.com' + p,
+                                now_datetime=lambda: '2026-10-25 20:00:00')
+        with patch.dict(sys.modules, {'frappe.utils': utils}):
+            self.scope['queue_welcome']('customer@example.com')
+
+    def test_welcome_escapes_name_and_queues_without_saving_user(self):
+        account = self.welcome_account()
+        self.run_welcome()
+        kwargs = self.frappe.sendmail.call_args.kwargs
+        self.assertIn('&lt;Customer&gt;', kwargs['message'])
+        self.assertFalse(kwargs['now'])
+        self.assertEqual(kwargs['recipients'], ['customer@example.com'])
+        self.frappe.db.set_value.assert_called_once()
+        account.save.assert_not_called()
+        self.frappe.db.commit.assert_not_called()
+
+    def test_repeat_login_staff_disabled_and_non_google_are_skipped(self):
+        for case in ('already_queued', 'staff', 'disabled', 'no_google'):
+            account = self.welcome_account()
+            if case == 'already_queued': account.get.return_value = '2026-10-25'
+            if case == 'staff': account.user_type = 'System User'
+            if case == 'disabled': account.enabled = 0
+            if case == 'no_google': account.get_social_login_userid.return_value = None
+            self.run_welcome()
+        self.frappe.sendmail.assert_not_called()
+        self.frappe.db.set_value.assert_not_called()
+
+    def test_failed_email_queue_creation_does_not_mark_welcome_complete(self):
+        self.welcome_account()
+        self.frappe.sendmail.side_effect = RuntimeError('No outgoing email account')
+        with self.assertRaises(RuntimeError): self.run_welcome()
+        self.frappe.db.set_value.assert_not_called()

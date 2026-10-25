@@ -45,3 +45,9 @@ References:
 - https://developers.google.com/identity/protocols/oauth2/web-server
 - https://github.com/frappe/frappe/blob/version-15/frappe/utils/oauth.py
 - https://github.com/frappe/frappe/blob/version-15/frappe/integrations/doctype/social_login_key/social_login_key.py
+
+## Customer welcome email
+
+After a successful Google callback, Local dot queues a welcome email once per Website User with a Google identity. Existing Google customers receive it on their first Google login after deploying this feature. Staff/System Users are excluded. It does not disable or replace genuine password-change alerts.
+
+Configure a default outgoing Email Account and keep the short worker and email scheduler running. Check Email Queue for delivery failures. A durable User timestamp records queuing (not proof of delivery); Email Queue handles retries without creating a new welcome on every login. No password is included in the email. Run site migration before testing the feature.
