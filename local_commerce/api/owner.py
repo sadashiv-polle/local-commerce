@@ -1,4 +1,5 @@
 import frappe
+from local_commerce.api.workspace_errors import workspace_validation
 
 from local_commerce.services import owner
 
@@ -24,6 +25,7 @@ def configure(shop, warehouse, account, cost_center):
 
 
 @frappe.whitelist(methods=["POST"])
+@workspace_validation
 def update_product(
     shop, item, modified, item_name, description="", low_stock=0, sold_out=0, archived=0,
     price=None, selling_options=None, validity_hours=None
@@ -40,6 +42,7 @@ def upload_product_image(shop, item):
 
 
 @frappe.whitelist(methods=["POST"])
+@workspace_validation
 def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
                  validity_hours=None, stock_source="", payment_account="", supplier=""):
     if action == 'Add' and not stock_source:
@@ -61,12 +64,14 @@ def dashboard(shop, period="today"):
 
 
 @frappe.whitelist(methods=["POST"])
+@workspace_validation
 def purchase_options(shop):
     from local_commerce.services.stock_funding import purchase_options as options
     return options(shop)
 
 
 @frappe.whitelist(methods=["POST"])
+@workspace_validation
 def add_purchase_supplier(shop, supplier_name):
     from local_commerce.services.stock_funding import add_supplier
     return add_supplier(shop, supplier_name)

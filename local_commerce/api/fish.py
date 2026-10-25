@@ -1,4 +1,5 @@
 import frappe
+from local_commerce.api.workspace_errors import workspace_validation
 
 from local_commerce.services import fish
 
@@ -9,6 +10,7 @@ def snapshot(shop):
 
 
 @frappe.whitelist(methods=['POST'])
+@workspace_validation
 def adjust(shop, item, action, quantity, reason, request_key, unit_cost=0,
            validity_hours=None, lot=None, stock_source="", payment_account="", supplier=""):
     if action == 'Add' and not stock_source:
