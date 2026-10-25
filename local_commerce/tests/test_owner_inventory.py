@@ -87,6 +87,37 @@ class TestOwnerInventory(FrappeTestCase):
         self.assertEqual(owner.balance(self.item, self.warehouse.name)["actual"], 3)
         self.assertEqual(len(owner.history(self.shop.name, self.item)), 2)
 
+    def test_personally_funded_purchase_posts_once_and_clears_adjustment(self):
+        from local_commerce.services import stock_funding
+        frappe.set_user("Administrator")
+        shop = frappe.get_doc("LC Shop", self.shop.name)
+        funding = stock_funding.provision(shop)
+        frappe.set_user(self.user.name)
+        args = (self.shop.name, self.item, "Add", 5, "Owner paid supplier personally",
+                "personal-receipt-00001", 10)
+        result = owner.adjust_stock(*args, stock_source="Personal funds")
+        duplicate = owner.adjust_stock(*args, stock_source="Personal funds")
+        self.assertTrue(duplicate["replayed"])
+        self.assertEqual(result["stock_entry"], duplicate["stock_entry"])
+        operation = frappe.get_doc("LC Stock Operation", frappe.db.get_value(
+            "LC Stock Operation", {"stock_entry": result["stock_entry"]}, "name"))
+        self.assertTrue(operation.funding_journal)
+        journal = frappe.get_doc("Journal Entry", operation.funding_journal)
+        self.assertEqual(journal.docstatus, 1)
+        gl = frappe.get_all("GL Entry", filters={"voucher_no": ["in",
+            [result["stock_entry"], journal.name]], "is_cancelled": 0},
+            fields=["account", "debit", "credit"])
+        self.assertAlmostEqual(sum(row.debit - row.credit for row in gl
+            if row.account == self.account), 0)
+        self.assertAlmostEqual(sum(row.credit - row.debit for row in gl
+            if row.account == funding), 50)
+        self.assertEqual(owner.balance(self.item, self.warehouse.name)["actual"], 5)
+        with self.assertRaises(frappe.ValidationError):
+            owner.adjust_stock(*args, stock_source="Stock adjustment")
+        frappe.set_user("Administrator")
+        with self.assertRaises(frappe.ValidationError):
+            journal.cancel()
+
     def test_reused_key_with_changed_payload_is_rejected(self):
         self.move()
         with self.assertRaises(frappe.ValidationError):

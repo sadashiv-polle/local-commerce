@@ -369,3 +369,8 @@ Separately test a configured Indian staging Company: online payment → delivery
 → invoice → settlement; COD → partial and full receipts; full and repeated
 partial refunds; duplicate events; two vendor shops; invoice PDF; and both
 intrastate/interstate tax reporting. Do not use live credentials for this test.
+
+
+## Fresh-site stock and funding setup
+
+See [Fresh-site stock accounting test](fresh-site-stock-accounting-test.md) for automatic Shiv Tech Works / Daily Basket setup, personally funded purchases, wastage accounts, and a repeatable test sequence. Purchase funding does not establish GST input-tax-credit eligibility or create a supplier tax invoice.

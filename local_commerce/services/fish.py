@@ -192,7 +192,7 @@ def price_changed(shop, item, previous):
 
 
 def adjust(shop, item, action, quantity, reason, request_key, unit_cost=0,
-           validity_hours=None, lot=None):
+           validity_hours=None, lot=None, stock_source=""):
     from local_commerce.services import owner
 
     shop_doc, product = own_item(shop, item, True)
@@ -239,9 +239,11 @@ def adjust(shop, item, action, quantity, reason, request_key, unit_cost=0,
                     reject(str(exc))
         # Keep hash stable on wastage retries as well as first postings.
         if action == 'Wastage':
+            from local_commerce.services.stock_funding import validate_wastage
+            validate_wastage(shop_doc.get('fish_wastage_account'))
             metadata['expense_account'] = shop_doc.get('fish_wastage_account')
         result = owner.adjust_stock(shop, item, 'Add' if action == 'Add' else 'Remove',
-                                    quantity, reason, request_key, unit_cost)
+                                    quantity, reason, request_key, unit_cost, stock_source=stock_source)
         if result['replayed']:
             return result
         if action == 'Add':

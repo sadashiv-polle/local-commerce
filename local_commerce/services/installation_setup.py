@@ -108,6 +108,8 @@ def initialize(confirm_company='', confirm_shop=''):
     else:
         warehouse = frappe.get_doc(dict(doctype='Warehouse', warehouse_name='LC Shop ' + shop.name,
             company=company.name, is_group=0)).insert(ignore_permissions=True).name
+    from local_commerce.services.stock_funding import provision as provision_funding
+    provision_funding(shop)
     shop.warehouse = warehouse
     shop.save(ignore_permissions=True)
     from local_commerce.services.owner import configure
@@ -156,6 +158,9 @@ def status():
             ('Cost Center', shop.cost_center if shop else None), ('Cost Center', settings.gst_cost_center)]:
         accounting = accounting and bool(value and frappe.db.exists(doctype,
             dict(name=value, company=company, disabled=0, is_group=0)))
+    from local_commerce.services.stock_funding import account_label
+    funding_ready = bool(shop and frappe.db.exists('Account', dict(company=company,
+        account_name=account_label(shop), root_type='Liability', disabled=0, is_group=0, account_currency='INR')))
     # Presence checks are deliberately separate from activation/CA approval.
     gst = all(settings.get(k) for k in ('gst_number','gst_legal_name','gst_state','gst_address','gst_sac'))
     bank = bool(company and frappe.db.exists('Bank Account', dict(company=company, is_company_account=1,
@@ -171,6 +176,7 @@ def status():
         ('Local dot marketplace created', bool(company_ok and settings.marketplace_name), settings.marketplace_name or 'Not configured', '/app/lc-store-settings'),
         ('Daily Basket shop created', shop_ok, shop.shop_name if shop else 'Not linked', '/admin/shops'),
         ('Warehouse and accounting checked', bool(accounting), 'Separate retail and marketplace ledgers; no bank details invented', '/admin/settings'),
+        ('Personally funded stock account ready', funding_ready, 'Money owed to the shop owner; no opening balances or capital invented', '/admin/setup'),
         ('GST details configured', bool(gst), 'Identity fields entered; review tax accounts and treatment before live invoices', '/admin/gst'),
         ('Bank accounts configured', bank, 'Add real company bank details from shop settings', '/admin/shops'),
         ('Cashfree configured', gateway, 'Enabled profile present; verify credentials and test checkout', '/admin/cashfree'),

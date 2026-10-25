@@ -104,6 +104,8 @@ def provision(shop, bank_details=None):
     else:
         warehouse = frappe.get_doc(dict(doctype='Warehouse',warehouse_name=label,
             company=shop.company,is_group=0)).insert(ignore_permissions=True).name
+    from local_commerce.services.stock_funding import provision as provision_funding
+    provision_funding(shop)
     shop.warehouse, shop.cost_center = warehouse, cost_center
     # Leave all payment methods, GST and storefront ordering inactive for review.
     shop.cod_enabled = shop.upi_enabled = shop.cashfree_enabled = shop.gst_enabled = 0

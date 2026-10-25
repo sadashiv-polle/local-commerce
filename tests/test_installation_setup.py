@@ -131,7 +131,8 @@ class SetupSafety(unittest.TestCase):
         self.db.exists.return_value = True
         self.scope['status'] = Mock(return_value={})
         owner = SimpleNamespace(configure=Mock())
-        with patch.dict('sys.modules', {'local_commerce.services.owner': owner}):
+        with patch.dict('sys.modules', {'local_commerce.services.owner': owner,
+                'local_commerce.services.stock_funding': SimpleNamespace(provision=Mock())}):
             self.scope['initialize']()
             self.scope['initialize']()
         self.assertEqual(dict(shop), before)

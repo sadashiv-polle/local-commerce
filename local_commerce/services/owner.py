@@ -81,6 +81,8 @@ def validate_configuration(doc, method=None):
         company_link('Account', doc.retail_income_account, doc.company,
                      {'is_group': 0, 'disabled': 0, 'root_type': 'Income'})
     if doc.get("fish_wastage_account"):
+        from local_commerce.services.stock_funding import validate_wastage
+        validate_wastage(doc.fish_wastage_account)
         company_link("Account", doc.fish_wastage_account, doc.company,
                      {"is_group": 0, "disabled": 0, "root_type": "Expense"})
     if previous and previous.get("shop_type") == "Fish" and (
@@ -583,14 +585,17 @@ def upload_product_image(shop, item):
 
 
 def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
-                 validity_hours=None):
+                 validity_hours=None, stock_source=""):
     doc, product = own_item(shop, item, True)
     from local_commerce.services import fish
 
+    from local_commerce.services import stock_funding
+    stock_funding.validate_source(action, stock_source)
     if fish.enabled(doc, product) and not fish._operation.get():
         return fish.adjust(shop, item, action, quantity, reason, request_key, unit_cost,
                            validity_hours=(validity_hours if validity_hours is not None
-                                           else product.get("lc_stock_validity_hours")))
+                                           else product.get("lc_stock_validity_hours")),
+                           stock_source=stock_source)
     if not isinstance(request_key, str) or not 16 <= len(request_key) <= 100:
         reject("A valid request key is required")
     if not isinstance(reason, str) or not 3 <= len(reason.strip()) <= 500:
@@ -610,6 +615,8 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
         "unit_cost": str(unit_cost),
         "reason": reason.strip(),
     }
+    if stock_source:
+        payload["stock_source"] = stock_source
     if fish._operation.get():
         payload["fish"] = {key: value for key, value in fish._metadata.get().items()
                            if key != "expense_account"}
@@ -688,6 +695,8 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
         operation.quantity = entry.items[0].qty
         operation.unit_cost = entry.items[0].basic_rate
         operation.stock_entry = entry.name
+        operation.stock_source = stock_source or "Stock adjustment"
+        operation.funding_journal = stock_funding.post(doc, entry, stock_source)
         operation.save(ignore_permissions=True)
     finally:
         _owner_operation.reset(token)
@@ -711,6 +720,8 @@ def history(shop, item, start=0):
             "warehouse",
             "reason",
             "stock_entry",
+            "stock_source",
+            "funding_journal",
         ],
         order_by="creation desc, name desc",
         start=start,

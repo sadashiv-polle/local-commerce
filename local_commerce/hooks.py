@@ -169,3 +169,7 @@ for _commission_dt in ('Sales Invoice', 'Payment Entry', 'Journal Entry'):
     if isinstance(_commission_cancel, str):
         _commission_cancel = [_commission_cancel]
     _commission_events['before_cancel'] = [*_commission_cancel, 'local_commerce.services.gst.commission.protect_cancel']
+
+# Personal stock funding remains linked to its immutable stock operation.
+doc_events.setdefault("Journal Entry", {}).setdefault("before_cancel", []).append(
+    "local_commerce.services.stock_funding.protect_journal")

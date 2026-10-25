@@ -26,12 +26,13 @@ onMounted(load)
     <p v-if="busy" role="status">Checking your setup…</p>
     <template v-if="data">
       <p>Shiv Tech Works operates Local dot. Daily Basket is your own shop. Third-party shops keep their separate Companies. Basic setup leaves your shop in Draft with ordering and payments off.</p>
+      <p>Personally funded stock purchases use a separate amount-payable-to-owner account. Fish wastage uses its own expense account. Setup does not post opening stock, owner capital or supplier balances.</p>
       <p v-if="data.message" class="lc-notice">{{ data.message }}</p>
-      <div v-if="!data.initialized" class="setup-start lc-form">
+      <div class="setup-start lc-form">
         <p>Create the missing basic structure. Existing linked settings are preserved. No GSTIN, bank details or payment credentials are generated.</p>
         <label v-if="data.company_confirmation"><input v-model="confirmed" type="checkbox"> I have checked that the existing {{ data.company_confirmation }} Company is the intended legal business.</label>
         <label v-if="data.shop_choices.length">Confirm the existing Daily Basket shop<select v-model="shop"><option value="">Select the intended owned shop</option><option v-for="row in data.shop_choices" :key="row.name" :value="row.name">{{ row.shop_name }} · {{ row.company }} · {{ row.business_model }} · {{ row.name }}</option></select></label>
-        <button :disabled="busy || (!!data.company_confirmation && !confirmed) || (!!data.shop_choices.length && !shop)" @click="initialize">Create or complete basic setup</button>
+        <button :disabled="busy || (!!data.company_confirmation && !confirmed) || (!!data.shop_choices.length && !shop)" @click="initialize">{{ data.initialized ? 'Check and complete missing setup' : 'Create or complete basic setup' }}</button>
       </div>
       <ol class="setup-checks">
         <li v-for="(item, index) in data.checks" :key="item.label">

@@ -16,7 +16,9 @@
     "unit_cost",
     "currency",
     "reason",
-    "stock_entry"
+    "stock_entry",
+    "stock_source",
+    "funding_journal"
   ],
   "fields": [
     {
@@ -110,6 +112,19 @@
       "read_only": 1,
       "options": "Stock Entry",
       "in_list_view": 1
+    },
+    {
+      "fieldname": "stock_source",
+      "label": "Stock funding",
+      "fieldtype": "Data",
+      "read_only": 1
+    },
+    {
+      "fieldname": "funding_journal",
+      "label": "Funding journal",
+      "fieldtype": "Link",
+      "read_only": 1,
+      "options": "Journal Entry"
     }
   ],
   "permissions": [

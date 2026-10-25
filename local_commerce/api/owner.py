@@ -41,9 +41,11 @@ def upload_product_image(shop, item):
 
 @frappe.whitelist(methods=["POST"])
 def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
-                 validity_hours=None):
+                 validity_hours=None, stock_source=""):
+    if action == 'Add' and not stock_source:
+        frappe.throw('Select how this stock was funded. Refresh the app to see the purchase funding options.')
     return owner.adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost,
-                              validity_hours)
+                              validity_hours, stock_source)
 
 
 @frappe.whitelist()
