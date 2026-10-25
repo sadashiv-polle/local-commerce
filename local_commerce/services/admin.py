@@ -218,6 +218,7 @@ def create_shop(shop_name, company="", country="", currency="", gst_registration
                           "gst_registration": gst_registration, "gst_number": gst_number,
                           "gst_state": gst_number[:2] if gst_number else "",
                           "gst_legal_name": str(company_name or "").strip(),
+                          "cashfree_settlement_mode": "Direct merchant" if business_model == "Owned shop" else "Easy Split",
                           "gst_enabled": 0, "shop_email": str(shop_email or "").strip()})
     if str(auto_setup) not in ("0", "1", "True", "False", "true", "false"):
         reject("Choose whether to set up accounts automatically")
