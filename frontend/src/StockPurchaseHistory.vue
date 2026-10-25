@@ -21,21 +21,21 @@ onMounted(() => load())
 <template>
   <section class="purchase-register">
     <h3>Purchases & stock history</h3>
-    <p>Track stock received through this app. Personally funded purchases have a stock receipt and a funding journal; they are not supplier Purchase Invoices. ERPNext Purchasing transactions are tracked separately.</p>
-    <label>Show <select v-model="purchases" :disabled="busy" @change="load(0, true)"><option :value="true">Purchases paid personally</option><option :value="false">All app stock movements</option></select></label>
+    <p>Track stock received through this app. Shop purchases have a stock receipt and an accounting journal; they are not supplier Purchase Invoices. ERPNext Purchasing transactions are tracked separately.</p>
+    <label>Show <select v-model="purchases" :disabled="busy" @change="load(0, true)"><option :value="true">All shop purchases</option><option :value="false">All app stock movements</option></select></label>
     <button :disabled="busy" @click="load()">Refresh</button>
     <p v-if="error" role="alert">{{ error }}</p>
     <p v-else-if="busy" role="status">Loading stock records…</p>
-    <p v-else-if="!rows.length">No records on this page. To record a purchase, open a product → Stock, choose Add and “Purchase paid personally by shop owner”, then enter quantity and purchase cost.</p>
+    <p v-else-if="!rows.length">No records on this page. To record a purchase, open a product → Stock, choose Add and a shop purchase payment source, then enter quantity and purchase cost.</p>
     <article v-for="row in rows" :key="row.name">
       <strong>{{ row.item }}</strong>
-      <span>{{ row.action === 'Add' && row.stock_source === 'Personal funds' ? 'Personally funded purchase' : row.action === 'Add' ? 'Stock receipt / adjustment' : 'Stock removal' }}</span>
+      <span>{{ row.action === 'Add' && ['Personal funds', 'Shop cash or bank', 'Supplier credit'].includes(row.stock_source) ? 'Shop purchase' : row.action === 'Add' ? 'Stock receipt / adjustment' : 'Stock removal' }}</span>
       <p>Quantity: {{ row.quantity }} <template v-if="row.action === 'Add'">· Purchase / receipt cost per unit: {{ money(row.unit_cost, row.currency) }} · Total: <strong>{{ money(Number(row.quantity) * Number(row.unit_cost), row.currency) }}</strong></template></p>
       <p>{{ row.reason }}</p>
       <small>{{ displayTime(row.creation) }} · Recorded by {{ row.owner }}</small>
       <small>Stock voucher: {{ row.stock_entry }} · Warehouse: {{ row.warehouse }}</small>
-      <small v-if="row.funding_journal">Funding journal: {{ row.funding_journal }} · Paid personally; recorded as money owed to the shop owner</small>
-      <small v-else>{{ row.stock_source || 'Legacy record — funding not recorded' }}</small>
+      <small v-if="row.funding_journal">Funding journal: {{ row.funding_journal }} · {{ row.stock_source }}</small>
+      <small v-if="row.payment_account">Paid from: {{ row.payment_account }}</small><small v-if="row.supplier">Supplier: {{ row.supplier }}</small><small v-if="!row.funding_journal">{{ row.stock_source || 'Legacy record — funding not recorded' }}</small>
     </article>
     <div class="lc-pagination"><button :disabled="busy || !start" @click="load(-20)">Previous</button><span>Page {{ Math.floor(start / 20) + 1 }}</span><button :disabled="busy || rows.length < 20" @click="load(20)">Next</button></div>
   </section>

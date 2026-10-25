@@ -18,7 +18,9 @@
     "reason",
     "stock_entry",
     "stock_source",
-    "funding_journal"
+    "funding_journal",
+    "payment_account",
+    "supplier"
   ],
   "fields": [
     {
@@ -125,6 +127,20 @@
       "fieldtype": "Link",
       "read_only": 1,
       "options": "Journal Entry"
+    },
+    {
+      "fieldname": "payment_account",
+      "label": "Purchase payment account",
+      "fieldtype": "Link",
+      "options": "Account",
+      "read_only": 1
+    },
+    {
+      "fieldname": "supplier",
+      "label": "Purchase supplier",
+      "fieldtype": "Link",
+      "options": "Supplier",
+      "read_only": 1
     }
   ],
   "permissions": [

@@ -41,11 +41,11 @@ def upload_product_image(shop, item):
 
 @frappe.whitelist(methods=["POST"])
 def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
-                 validity_hours=None, stock_source=""):
+                 validity_hours=None, stock_source="", payment_account="", supplier=""):
     if action == 'Add' and not stock_source:
         frappe.throw('Select how this stock was funded. Refresh the app to see the purchase funding options.')
     return owner.adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost,
-                              validity_hours, stock_source)
+                              validity_hours, stock_source, payment_account, supplier)
 
 
 @frappe.whitelist()
@@ -58,3 +58,15 @@ def dashboard(shop, period="today"):
     from local_commerce.services.dashboard import summary
 
     return summary(shop, period)
+
+
+@frappe.whitelist(methods=["POST"])
+def purchase_options(shop):
+    from local_commerce.services.stock_funding import purchase_options as options
+    return options(shop)
+
+
+@frappe.whitelist(methods=["POST"])
+def add_purchase_supplier(shop, supplier_name):
+    from local_commerce.services.stock_funding import add_supplier
+    return add_supplier(shop, supplier_name)

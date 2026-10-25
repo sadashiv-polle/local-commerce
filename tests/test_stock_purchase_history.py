@@ -20,7 +20,7 @@ class PurchaseHistoryTests(TestCase):
         self.scope['history']('shop-a', purchases_only='1')
         self.guard.assert_called_once_with('shop-a', 'read')
         args = self.frappe.get_all.call_args.kwargs
-        self.assertEqual(args['filters'], dict(shop='shop-a', action='Add', stock_source='Personal funds'))
+        self.assertEqual(args['filters'], dict(shop='shop-a', action='Add', stock_source=['in', ['Personal funds', 'Shop cash or bank', 'Supplier credit']]))
         self.assertIn('unit_cost', args['fields'])
         self.assertIn('currency', args['fields'])
         self.assertEqual(args['limit_page_length'], 20)

@@ -585,17 +585,21 @@ def upload_product_image(shop, item):
 
 
 def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
-                 validity_hours=None, stock_source=""):
+                 validity_hours=None, stock_source="", payment_account="", supplier=""):
     doc, product = own_item(shop, item, True)
     from local_commerce.services import fish
 
     from local_commerce.services import stock_funding
     stock_funding.validate_source(action, stock_source)
+    if payment_account and stock_source != "Shop cash or bank":
+        reject("A payment account applies only to shop cash/bank purchases")
+    if supplier and stock_source != "Supplier credit":
+        reject("A supplier applies only to supplier-credit purchases")
     if fish.enabled(doc, product) and not fish._operation.get():
         return fish.adjust(shop, item, action, quantity, reason, request_key, unit_cost,
                            validity_hours=(validity_hours if validity_hours is not None
                                            else product.get("lc_stock_validity_hours")),
-                           stock_source=stock_source)
+                           stock_source=stock_source, payment_account=payment_account, supplier=supplier)
     if not isinstance(request_key, str) or not 16 <= len(request_key) <= 100:
         reject("A valid request key is required")
     if not isinstance(reason, str) or not 3 <= len(reason.strip()) <= 500:
@@ -617,6 +621,8 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
     }
     if stock_source:
         payload["stock_source"] = stock_source
+    if payment_account or supplier:
+        payload.update(payment_account=payment_account, supplier=supplier)
     if fish._operation.get():
         payload["fish"] = {key: value for key, value in fish._metadata.get().items()
                            if key != "expense_account"}
@@ -696,7 +702,9 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
         operation.unit_cost = entry.items[0].basic_rate
         operation.stock_entry = entry.name
         operation.stock_source = stock_source or "Stock adjustment"
-        operation.funding_journal = stock_funding.post(doc, entry, stock_source)
+        operation.funding_journal = stock_funding.post(doc, entry, stock_source, payment_account, supplier)
+        operation.payment_account = payment_account
+        operation.supplier = supplier
         operation.save(ignore_permissions=True)
     finally:
         _owner_operation.reset(token)
@@ -712,7 +720,7 @@ def history(shop, item=None, start=0, purchases_only=0):
     if item:
         filters["item"] = item
     if str(purchases_only) == "1":
-        filters.update(action="Add", stock_source="Personal funds")
+        filters.update(action="Add", stock_source=["in", ["Personal funds", "Shop cash or bank", "Supplier credit"]])
     start = int(start)
     if start < 0:
         reject("Invalid page")
@@ -733,6 +741,8 @@ def history(shop, item=None, start=0, purchases_only=0):
             "stock_entry",
             "stock_source",
             "funding_journal",
+            "payment_account",
+            "supplier",
         ],
         order_by="creation desc, name desc",
         start=start,

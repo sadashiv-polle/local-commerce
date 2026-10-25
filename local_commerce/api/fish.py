@@ -10,11 +10,11 @@ def snapshot(shop):
 
 @frappe.whitelist(methods=['POST'])
 def adjust(shop, item, action, quantity, reason, request_key, unit_cost=0,
-           validity_hours=None, lot=None, stock_source=""):
+           validity_hours=None, lot=None, stock_source="", payment_account="", supplier=""):
     if action == 'Add' and not stock_source:
         frappe.throw('Select how this stock was funded. Refresh the app to see the purchase funding options.')
     return fish.adjust(shop, item, action, quantity, reason, request_key, unit_cost,
-                       validity_hours, lot, stock_source)
+                       validity_hours, lot, stock_source, payment_account, supplier)
 
 
 @frappe.whitelist(methods=['POST'])

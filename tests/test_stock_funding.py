@@ -78,3 +78,42 @@ class StockFundingTests(TestCase):
         with self.assertRaises(ValueError): self.scope['protect_journal'](SimpleNamespace(name='JV-1'))
         self.frappe.db.exists.return_value = False
         self.scope['protect_journal'](SimpleNamespace(name='JV-2'))
+
+
+    def test_cash_purchase_credits_selected_company_bank_without_party(self):
+        self.frappe.db.exists.return_value = True
+        self.scope['post'](self.shop, self.entry, 'Shop cash or bank', 'Bank A')
+        credit = self.frappe.get_doc.call_args.args[0]['accounts'][1]
+        self.assertEqual(credit['account'], 'Bank A')
+        self.assertEqual(credit['credit_in_account_currency'], 74.70)
+        self.assertNotIn('party', credit)
+        filters = self.frappe.db.exists.call_args.args[1]
+        self.assertEqual(filters['company'], 'Company A')
+        self.assertEqual(filters['account_currency'], 'INR')
+        self.assertEqual(filters['account_type'], ['in', ['Cash', 'Bank']])
+
+    def test_foreign_or_disabled_bank_is_rejected_before_journal(self):
+        self.frappe.db.exists.return_value = False
+        with self.assertRaises(ValueError):
+            self.scope['post'](self.shop, self.entry, 'Shop cash or bank', 'Foreign Bank')
+        self.frappe.get_doc.assert_not_called()
+
+    def test_supplier_credit_has_party_and_validated_payable(self):
+        self.frappe.db.exists.return_value = True
+        self.frappe.db.get_value.side_effect = [1, 'Payable A']
+        self.scope['post'](self.shop, self.entry, 'Supplier credit', supplier='supplier-a')
+        credit = self.frappe.get_doc.call_args.args[0]['accounts'][1]
+        self.assertEqual(credit['account'], 'Payable A')
+        self.assertEqual(credit['party_type'], 'Supplier')
+        self.assertEqual(credit['party'], 'supplier-a')
+        supplier_filters = self.frappe.db.exists.call_args_list[0].args[1]
+        self.assertEqual(supplier_filters['lc_purchase_shop'], 'shop-a')
+        account_filters = self.frappe.db.exists.call_args_list[1].args[1]
+        self.assertEqual(account_filters['company'], 'Company A')
+        self.assertEqual(account_filters['account_type'], 'Payable')
+
+    def test_other_shop_supplier_is_rejected(self):
+        self.frappe.db.exists.return_value = False
+        with self.assertRaises(ValueError):
+            self.scope['post'](self.shop, self.entry, 'Supplier credit', supplier='foreign-supplier')
+        self.frappe.get_doc.assert_not_called()

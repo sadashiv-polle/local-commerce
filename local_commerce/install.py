@@ -82,6 +82,7 @@ def after_migrate():
     # installer because older or restored sites can be missing the Custom Field records.
     create_address_and_contact_custom_fields()
 
+    create_custom_fields({'Supplier': [dict(fieldname='lc_purchase_shop', label='Local dot purchase shop', fieldtype='Link', options='LC Shop', read_only=1, no_copy=1)]})
     create_custom_fields({'User': [{
         'fieldname': 'lc_google_welcome_queued_at',
         'label': 'Local dot Google welcome queued at',
