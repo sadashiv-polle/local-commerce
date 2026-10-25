@@ -48,8 +48,8 @@ def after_setup(args=None):
     from local_commerce.services.category_menu import seed_menu
     from local_commerce.services.item_groups import ensure_item_groups
 
-    ensure_item_groups()
-    seed_menu()
+    if ensure_item_groups():
+        seed_menu()
     from local_commerce.services.installation_setup import resume
     resume()
 
@@ -66,10 +66,10 @@ def after_migrate():
 
     from local_commerce.services.item_groups import ensure_item_groups
 
-    ensure_item_groups()
     from local_commerce.services.category_menu import seed_menu
 
-    seed_menu()
+    if ensure_item_groups():
+        seed_menu()
 
     # Preserve the original featured row when adding list visibility to existing sites.
     if frappe.db.exists("DocType", "LC Store Settings") and not frappe.db.sql(

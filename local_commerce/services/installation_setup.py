@@ -131,6 +131,10 @@ def install():
 def resume():
     if not frappe.db.get_single_value('LC Store Settings', 'setup_pending'):
         return
+    if not frappe.db.exists('Item Group') and not frappe.db.get_single_value('System Settings', 'setup_complete'):
+        frappe.db.set_single_value('LC Store Settings', 'setup_message',
+            'Complete the ERPNext setup wizard, then open Local dot Setup to finish the business structure.')
+        return
     frappe.db.savepoint('local_dot_bootstrap')
     try:
         initialize()

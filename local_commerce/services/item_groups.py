@@ -24,6 +24,11 @@ def ensure_item_groups():
     # Find the actual tree root rather than assuming its name on restored sites.
     root = frappe.db.get_value("Item Group", {"lft": 1, "is_group": 1}, "name")
     if not root:
+        # ERPNext creates its standard tree during the initial setup wizard.
+        # Defer only a genuinely empty, not-yet-configured site; a damaged
+        # existing tree must still be reported rather than silently ignored.
+        if not frappe.db.exists("Item Group") and not frappe.db.get_single_value("System Settings", "setup_complete"):
+            return False
         frappe.throw("Set up the ERPNext Item Group tree before installing Local Commerce")
     for name in COMMERCE_ITEM_GROUPS:
         # Existing groups may already have items or a different parent. Preserve them.
@@ -37,3 +42,4 @@ def ensure_item_groups():
                 "is_group": 0,
             }
         ).insert(ignore_permissions=True)
+    return True
