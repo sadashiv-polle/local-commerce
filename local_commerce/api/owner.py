@@ -49,8 +49,8 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
 
 
 @frappe.whitelist()
-def history(shop, item, start=0):
-    return owner.history(shop, item, start)
+def history(shop, item=None, start=0, purchases_only=0):
+    return owner.history(shop, item, start, purchases_only)
 
 
 @frappe.whitelist(methods=["GET"])

@@ -703,15 +703,26 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
     return {"stock_entry": entry.name, "replayed": False}
 
 
-def history(shop, item, start=0):
-    own_item(shop, item)
+def history(shop, item=None, start=0, purchases_only=0):
+    if item:
+        own_item(shop, item)
+    else:
+        require_shop(shop, "read")
+    filters = {"shop": shop}
+    if item:
+        filters["item"] = item
+    if str(purchases_only) == "1":
+        filters.update(action="Add", stock_source="Personal funds")
     start = int(start)
     if start < 0:
         reject("Invalid page")
     return frappe.get_all(
         "LC Stock Operation",
-        filters={"shop": shop, "item": item},
+        filters=filters,
         fields=[
+            "item",
+            "unit_cost",
+            "currency",
             "name",
             "creation",
             "owner",
