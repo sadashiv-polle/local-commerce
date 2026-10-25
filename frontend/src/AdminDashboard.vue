@@ -60,7 +60,7 @@ const metrics = computed(() => summary.value ? [
 const systemLinks = [
   { title: 'Companies & accounts', links: [['Companies', '/app/company'], ['Chart of accounts', '/app/account'], ['Cost centers', '/app/cost-center'], ['Tax templates', '/app/sales-taxes-and-charges-template']] },
   { title: 'Stock & pricing', links: [['Warehouses', '/app/warehouse'], ['Item groups', '/app/item-group'], ['Price lists', '/app/price-list'], ['Selling settings', '/app/selling-settings']] },
-  { title: 'Accounts & communication', links: [['Users & roles', '/app/user'], ['Email accounts', '/app/email-account'], ['Website settings', '/app/website-settings'], ['Notification records', '/app/lc-notification']] },
+  { title: 'Accounts & communication', links: [['Users & roles', '/app/user'], ['Google sign-in settings', '/app/social-login-key'], ['Customer default role', '/app/portal-settings'], ['Email accounts', '/app/email-account'], ['Website settings', '/app/website-settings'], ['Notification records', '/app/lc-notification']] },
 ]
 const setupDialog = ref(null), setupKind = ref('shop'), setup = ref(null), setupLoading = ref(false), setupSaving = ref(false), setupError = ref('')
 const shopForm = ref({ shop_name: '', business_model: 'Owned shop', platform_company: '', company_name: '', company: '', country: '', currency: '', gst_registration: 'Unverified', gst_number: '', shop_email: '', bank_details: { mode: 'later', existing: '', bank: '', holder: '', number: '', confirm_number: '', ifsc: '' }, auto_setup: true, onboarding: { legal_name: '', address: '', city: '', postal_code: '', state: '', shop_type: 'General', gst_mode: 'Legacy', commission: 0 } })

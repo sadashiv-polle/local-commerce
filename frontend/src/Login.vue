@@ -1,4 +1,5 @@
 <script setup>
+import GoogleSignIn from './GoogleSignIn.vue'
 import { clearDeliverySelection } from './address-selection.js'
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -37,6 +38,7 @@ function reset() { challenge.value = null; otp.value = ''; password.value = ''; 
       <span class="eyebrow">YOUR ACCOUNT</span><h2>{{ forgot ? 'Reset your password' : challenge ? 'Verify your login' : 'Login' }}</h2>
       <p>{{ forgot ? 'Enter your email to receive reset instructions.' : challenge ? 'Enter the code from your authenticator, email or SMS.' : 'Sign in to continue to your order.' }}</p>
       <p v-if="error" class="lc-notice" role="alert">{{ error }}</p><p v-if="message" class="success-note" role="status">{{ message }}</p>
+      <GoogleSignIn v-if="!forgot && !challenge" :next="next" />
       <fieldset :disabled="busy">
         <template v-if="!challenge"><label>{{ forgot ? 'Registered email address' : 'Email or username' }}<input v-model="username" :type="forgot ? 'email' : 'text'" required :autocomplete="forgot ? 'email' : 'username'" autocapitalize="none" spellcheck="false" maxlength="140"></label><template v-if="!forgot"><label>Password<input v-model="password" :type="showPassword ? 'text' : 'password'" required autocomplete="current-password" maxlength="1000"></label><button type="button" :aria-pressed="showPassword" @click="showPassword = !showPassword">{{ showPassword ? 'Hide password' : 'Show password' }}</button></template></template>
         <template v-else><p v-if="challenge.verification.method === 'OTP App' && !challenge.verification.setup" class="lc-notice">Authenticator setup is incomplete. Contact your administrator.</p><label>Verification code<input v-model="otp" required autocomplete="one-time-code" inputmode="numeric" maxlength="20"></label></template>

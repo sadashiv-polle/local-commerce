@@ -1,4 +1,5 @@
 <script setup>
+import GoogleSignIn from './GoogleSignIn.vue'
 import { clearDeliverySelection } from './address-selection.js'
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -31,6 +32,7 @@ async function signup() {
     <form class="inventory-form" @submit.prevent="signup">
       <h1>Create your account</h1><p>Verify your email and choose a password. We’ll connect your customer record automatically and keep your cart saved.</p>
       <p v-if="error" class="lc-notice" role="alert">{{ error }}</p><p v-if="message" class="success-note" role="status">{{ message }}</p>
+      <GoogleSignIn v-if="!challenge" :next="next" />
       <fieldset :disabled="busy"><label>Full name<input v-model="fullName" :readonly="!!challenge" required maxlength="140" autocomplete="name"></label><label>Email<input v-model="email" :readonly="!!challenge" type="email" required maxlength="140" autocomplete="email"></label><label>Password<input v-model="password" type="password" required minlength="8" maxlength="1000" autocomplete="new-password"></label><label>Confirm password<input v-model="confirmation" type="password" required minlength="8" maxlength="1000" autocomplete="new-password"></label><label v-if="challenge">Email verification code<input v-model="code" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"></label><button class="lc-primary">{{ busy ? 'Please wait…' : challenge ? 'Verify & create account' : 'Send verification code' }}</button><button v-if="challenge" type="button" @click="challenge = ''; message = ''; code = ''">Use another email / Request new code</button></fieldset>
       <p>Already have an account? <a :href="loginUrl(next)">Login</a></p>
     </form>
