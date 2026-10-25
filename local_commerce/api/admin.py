@@ -29,7 +29,18 @@ def setup_options(search=""):
 
 @frappe.whitelist(methods=["POST"])
 def create_shop(shop_name, company="", country="", currency="", gst_registration="Unverified", gst_number="", shop_email="", auto_setup=0, onboarding=None, bank_details=None, business_model="Owned shop", platform_company="", company_name=""):
-    return admin.create_shop(shop_name, company, country, currency, gst_registration, gst_number, shop_email, auto_setup, onboarding, bank_details, business_model, platform_company, company_name)
+    from local_commerce.permissions.scope import require_platform
+    from frappe.utils import strip_html
+    require_platform()
+    try:
+        return admin.create_shop(shop_name, company, country, currency, gst_registration, gst_number, shop_email, auto_setup, onboarding, bank_details, business_model, platform_company, company_name)
+    except frappe.ValidationError as exc:
+        # ERPNext validates linked accounts and Company defaults too. Show its
+        # validation to the authorized administrator, never a traceback or HTML.
+        if not frappe.local.response.get("lc_message"):
+            detail = strip_html(str(exc)).strip()[:1800]
+            frappe.local.response["lc_message"] = "Shop setup: " + (detail or "ERPNext rejected the shop details. Review Company and account defaults.")
+        raise
 
 
 @frappe.whitelist(methods=["POST"])
