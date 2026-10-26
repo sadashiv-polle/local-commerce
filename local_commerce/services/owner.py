@@ -660,7 +660,10 @@ def adjust_stock(shop, item, action, quantity, reason, request_key, unit_cost=0,
         "cost_center": doc.cost_center,
     }
     if action == "Add":
-        row.update(t_warehouse=doc.warehouse, basic_rate=float(cost), set_basic_rate_manually=1)
+        # ERPNext 15.109 skips basic_amount calculation for manually rated rows.
+        # Supply it alongside the rate; ERPNext still applies its currency precision.
+        row.update(t_warehouse=doc.warehouse, basic_rate=float(cost),
+                   basic_amount=float(qty * cost), set_basic_rate_manually=1)
     else:
         row.update(s_warehouse=doc.warehouse)
     token = _owner_operation.set(True)
