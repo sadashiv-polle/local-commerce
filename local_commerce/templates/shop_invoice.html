@@ -1,9 +1,95 @@
-<div class="local-invoice-brand" style="text-align:center;margin-bottom:18px">
-  <div><img src="/assets/local_commerce/icons/local-wordmark.png" alt="Local dot" style="width:110px;max-height:65px;object-fit:contain"></div>
-  {% if doc.get('lc_shop_name') %}
-  <h2 style="margin:6px 0">{{ doc.lc_shop_name | e }}</h2>
-  <div>on Local dot</div>
-  {% endif %}
-  <div style="margin-top:8px">Legal supplier: {{ doc.company | e }}</div>
+{# Customer-facing layout. All money comes from the saved Sales Invoice. #}
+<style>
+.print-format { padding: 14mm; font-family: Arial, sans-serif; font-size: 11px; color: #243c34; }
+.lc-invoice { line-height: 1.5; }
+.lc-invoice table { width: 100%; border-collapse: collapse; }
+.lc-invoice td, .lc-invoice th { padding: 9px 8px !important; vertical-align: top; }
+.lc-invoice .lc-header { border-bottom: 3px solid #20744c; margin-bottom: 20px; }
+.lc-invoice .lc-header td { padding: 0 0 16px !important; }
+.lc-invoice .lc-logo { width: 112px; height: auto; margin-bottom: 12px; }
+.lc-invoice h1 { font-size: 25px; color: #174d35; margin: 0 0 4px; }
+.lc-invoice h2 { font-size: 20px; margin: 0; color: #174d35; }
+.lc-invoice .lc-muted { color: #65756d; }
+.lc-invoice .lc-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #65756d; margin-bottom: 6px; }
+.lc-invoice .lc-right { text-align: right; }
+.lc-invoice .lc-address { white-space: pre-line; }
+.lc-invoice .lc-parties { margin-bottom: 22px; }
+.lc-invoice .lc-parties td { width: 50%; background: #f3f7f4; padding: 14px !important; }
+.lc-invoice .lc-items thead { display: table-header-group; }
+.lc-invoice .lc-items th { background: #174d35 !important; color: #fff !important; font-size: 10px; }
+.lc-invoice .lc-items td { border-bottom: 1px solid #e1e8e3; }
+.lc-invoice .lc-items tr { page-break-inside: avoid; }
+.lc-invoice .lc-number { text-align: right; white-space: nowrap; }
+.lc-invoice .lc-summary { margin-top: 18px; page-break-inside: avoid; }
+.lc-invoice .lc-summary td { padding: 5px 8px !important; }
+.lc-invoice .lc-total td { background: #eaf3ec; font-size: 16px; font-weight: bold; color: #174d35; padding: 10px 8px !important; }
+.lc-invoice .lc-footer { margin-top: 26px; border-top: 1px solid #dce6df; padding-top: 14px; }
+.lc-invoice .lc-reference { overflow-wrap: anywhere; word-wrap: break-word; }
+</style>
+{% macro address(value) -%}
+<div class="lc-address">{{ (value or '') | replace('<br />', '\n') | replace('<br/>', '\n') | replace('<br>', '\n') | striptags | e }}</div>
+{%- endmacro %}
+<div class="lc-invoice">
+  <table class="lc-header"><tr>
+    <td style="width:58%">
+      <img class="lc-logo" src="/assets/local_commerce/icons/local-wordmark.png" alt="Local dot">
+      <h1>{{ (doc.get('lc_shop_name') or doc.company) | e }}</h1>
+      <div class="lc-muted">on Local dot</div>
+    </td>
+    <td class="lc-right lc-reference">
+      <h2>{{ 'Credit Note' if doc.get('is_return') else 'Invoice' }}</h2>
+      <strong>{{ doc.name | e }}</strong><br>
+      {{ doc.get_formatted('posting_date') }}
+      {% if doc.get('lc_order') %}<div class="lc-muted">Order {{ doc.lc_order | e }}</div>{% endif %}
+      {% if doc.docstatus == 0 %}<strong>DRAFT</strong>{% elif doc.docstatus == 2 %}<strong>CANCELLED</strong>{% endif %}
+      {% if doc.get('return_against') %}<div>Against {{ doc.return_against | e }}</div>{% endif %}
+    </td>
+  </tr></table>
+  <table class="lc-parties"><tr>
+    <td><div class="lc-label">Sold by · Legal supplier</div>
+      <strong>{{ doc.company | e }}</strong>
+      {{ address(doc.get('company_address_display')) }}
+      {% if doc.get('company_gstin') %}<div>GSTIN: {{ doc.company_gstin | e }}</div>{% endif %}
+    </td>
+    <td><div class="lc-label">Billed to</div>
+      <strong>{{ (doc.get('customer_name') or doc.customer) | e }}</strong>
+      {{ address(doc.get('address_display')) }}
+      {% if doc.get('billing_address_gstin') %}<div>GSTIN: {{ doc.billing_address_gstin | e }}</div>{% endif %}
+      {% if doc.get('place_of_supply') %}<div>Place of supply: {{ doc.place_of_supply | e }}</div>{% endif %}
+    </td>
+  </tr></table>
+  {% if doc.get('shipping_address') %}<div style="margin-bottom:18px"><div class="lc-label">Delivered to</div>{{ address(doc.shipping_address) }}</div>{% endif %}
+  <table class="lc-items">
+    <thead><tr><th style="width:6%">#</th><th>Item</th><th class="lc-number">Qty</th><th class="lc-number">Rate</th><th class="lc-number">Amount</th></tr></thead>
+    <tbody>{% for item in doc.items %}<tr>
+      <td class="lc-muted">{{ loop.index }}</td>
+      <td><strong>{{ item.item_name | e }}</strong>
+        {% if item.get('gst_hsn_code') %}<div class="lc-muted">HSN/SAC {{ item.gst_hsn_code | e }}</div>{% endif %}
+        {% if item.get('description') and item.description | striptags != item.item_name %}<div class="lc-muted">{{ item.description | striptags | e }}</div>{% endif %}
+      </td>
+      <td class="lc-number">{{ item.get_formatted('qty') }}<div class="lc-muted">{{ item.uom | e }}</div></td>
+      <td class="lc-number">{{ item.get_formatted('rate', doc) }}</td>
+      <td class="lc-number">{{ item.get_formatted('amount', doc) }}</td>
+    </tr>{% endfor %}</tbody>
+  </table>
+  <table class="lc-summary"><tr>
+    <td style="width:47%"><div class="lc-label">Amount in words</div>{{ (doc.get('in_words') or '') | e }}<div class="lc-muted">Currency: {{ doc.currency | e }}</div></td>
+    <td><table>
+      <tr><td>Items subtotal</td><td class="lc-number">{{ doc.get_formatted('total') }}</td></tr>
+      {% if doc.get('discount_amount') %}<tr><td>Additional discount</td><td class="lc-number">− {{ doc.get_formatted('discount_amount') }}</td></tr>{% endif %}
+      {% for tax in doc.get('taxes', []) %}{% if tax.get('tax_amount_after_discount_amount') and not tax.get('included_in_print_rate') %}<tr><td>{{ tax.description | striptags | e }}</td><td class="lc-number">{{ tax.get_formatted('tax_amount_after_discount_amount', doc) }}</td></tr>{% endif %}{% endfor %}
+      {% if doc.get('rounded_total') and not doc.get('disable_rounded_total') %}
+      {% if doc.get('rounding_adjustment') %}<tr><td>Rounding</td><td class="lc-number">{{ doc.get_formatted('rounding_adjustment') }}</td></tr>{% endif %}
+      {% endif %}
+      <tr class="lc-total"><td>Total</td><td class="lc-number">{{ doc.get_formatted('rounded_total') if doc.get('rounded_total') and not doc.get('disable_rounded_total') else doc.get_formatted('grand_total') }}</td></tr>
+      {% if doc.docstatus == 1 %}<tr><td>Outstanding balance</td><td class="lc-number">{{ doc.get_formatted('outstanding_amount') }}</td></tr>{% endif %}
+    </table></td>
+  </tr></table>
+  {% for tax in doc.get('taxes', []) %}{% if tax.get('included_in_print_rate') and tax.get('tax_amount_after_discount_amount') %}<div class="lc-muted">Included in item prices: {{ tax.description | striptags | e }} — {{ tax.get_formatted('tax_amount_after_discount_amount', doc) }}</div>{% endif %}{% endfor %}
+  <div class="lc-footer">
+    <strong>Thank you for shopping local.</strong>
+    <div class="lc-muted">For help with this purchase, share your order or invoice number with the shop.</div>
+    {% if doc.get('terms') %}<div style="margin-top:12px"><div class="lc-label">Terms</div>{{ address(doc.terms) }}</div>{% endif %}
+    <div class="lc-muted" style="margin-top:12px;font-size:9px">Local dot · Marketplace platform. The legal supplier for this invoice is {{ doc.company | e }}.</div>
+  </div>
 </div>
-{% include "templates/print_formats/standard.html" %}
