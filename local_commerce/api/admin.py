@@ -45,7 +45,16 @@ def create_shop(shop_name, company="", country="", currency="", gst_registration
 
 @frappe.whitelist(methods=["POST"])
 def save_membership(shop, user, membership_role="Delivery Person", name="", enabled=1):
-    return admin.save_membership(shop, user, membership_role, name, enabled)
+    from local_commerce.permissions.scope import require_platform
+    from frappe.utils import strip_html
+    require_platform()
+    try:
+        return admin.save_membership(shop, user, membership_role, name, enabled)
+    except frappe.ValidationError as exc:
+        if not frappe.local.response.get("lc_message"):
+            detail = strip_html(str(exc)).strip()[:1800]
+            frappe.local.response["lc_message"] = "Team membership: " + (detail or "Review the selected shop, user and role.")
+        raise
 
 
 @frappe.whitelist(methods=["GET"])

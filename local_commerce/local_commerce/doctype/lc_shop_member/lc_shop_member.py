@@ -21,7 +21,7 @@ class LCShopMember(Document):
         if frappe.db.exists(
             "LC Shop Member", {"shop": self.shop, "user": self.user, "name": ["!=", self.name]}
         ):
-            frappe.throw("This user already has a membership in this shop")
+            frappe.throw("This user already has a membership in this shop. Close this form and choose Edit membership on the existing team member row to change their role or enable access.")
         if role not in frappe.get_roles(self.user):
             # Platform access was verified above. Keep authentication roles and shop
             # membership in the same transaction so administrators cannot create a
