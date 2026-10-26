@@ -29,8 +29,8 @@ def readiness(shop):
         "Both Active status and Accept new orders must be enabled.")
     add("Owner assigned", member("Owner", "LC Shop Owner"),
         "Needs an enabled owner login, role and shop membership.", "people")
-    add("Delivery person assigned", member("Delivery Person", "LC Delivery Person"),
-        "Needs an enabled rider login, role and shop membership. Assign orders separately.", "people")
+    add("Delivery person assigned", member("Delivery Person", "LC Delivery Person") or member("Owner", "LC Shop Owner"),
+        "An enabled shop owner or rider can deliver. Assign orders separately.", "people")
     add("Location and delivery radius", shop_location(doc) and float(doc.service_radius_km or 0) > 0,
         "Save a valid shop map pin and a positive delivery radius.")
     warehouse = doc.warehouse and frappe.db.exists("Warehouse", {"name": doc.warehouse,

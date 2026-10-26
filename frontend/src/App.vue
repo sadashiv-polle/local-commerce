@@ -49,7 +49,7 @@ const labelView = computed(() => route.path.startsWith('/orders/verify/'))
 const deliveryView = computed(() => route.path === '/delivery')
 const customerNavigation = computed(() => !ownerView.value && !deliveryView.value && !['/login', '/signup'].includes(route.path))
 const canManage = computed(() => session.value && (session.value.platform_admin || session.value.memberships.some(m => ['Owner', 'Staff'].includes(m.membership_role))))
-const canDeliver = computed(() => session.value?.roles.includes('LC Delivery Person') && session.value.memberships.some(m => m.membership_role === 'Delivery Person'))
+const canDeliver = computed(() => session.value?.memberships.some(m => (m.membership_role === 'Owner' && session.value.roles.includes('LC Shop Owner')) || (m.membership_role === 'Delivery Person' && session.value.roles.includes('LC Delivery Person'))))
 const workView = computed(() => ownerView.value || deliveryView.value)
 const hasWorkspace = computed(() => canManage.value || canDeliver.value)
 const workHome = computed(() => canManage.value ? session.value.platform_admin ? '/admin' : '/shop' : '/delivery')
@@ -288,7 +288,7 @@ onBeforeUnmount(() => {
     </header>
     <section v-if="hasWorkspace" class="workspace-switch" aria-label="Workspace switch">
       <div><strong>{{ workView ? deliveryView ? 'Delivery workspace' : adminView ? 'Admin workspace' : 'Shop workspace' : 'Shopping as a customer' }}</strong><small>{{ workView ? 'Your orders, tasks and daily work' : 'Browse shops and place your own orders' }}</small></div>
-      <RouterLink v-if="workView && canManage && canDeliver" :to="deliveryView ? workHome : '/delivery'">{{ deliveryView ? 'Shop workspace' : 'Deliveries' }}</RouterLink>
+      <RouterLink v-if="workView && canManage && canDeliver" :to="deliveryView ? workHome : '/delivery'">{{ deliveryView ? 'Switch to Shop' : 'Switch to Delivery' }}</RouterLink>
       <RouterLink :to="workView ? '/store' : workHome">{{ workView ? 'Switch to shopping' : 'Back to work' }} <span aria-hidden="true">⇄</span></RouterLink>
     </section>
     <main>

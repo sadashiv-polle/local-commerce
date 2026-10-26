@@ -89,17 +89,15 @@ def customer_access():
 
 
 def is_shop_driver(user, shop):
-    return (
-        isinstance(user, str)
-        and bool(user)
-        and user != "Guest"
-        and "LC Delivery Person" in frappe.get_roles(user)
-        and bool(
-            frappe.db.exists(
-                "LC Shop Member",
-                {"shop": shop, "user": user, "membership_role": "Delivery Person", "enabled": 1},
-            )
-        )
+    if not isinstance(user, str) or not user or user == "Guest":
+        return False
+    roles = frappe.get_roles(user)
+    return any(
+        role in roles and bool(frappe.db.exists("LC Shop Member", {
+            "shop": shop, "user": user, "membership_role": membership_role, "enabled": 1,
+        }))
+        for membership_role, role in (("Owner", "LC Shop Owner"),
+                                      ("Delivery Person", "LC Delivery Person"))
     )
 
 
@@ -1069,7 +1067,7 @@ def drivers(shop):
     require_shop(shop, "write")
     members = frappe.get_all(
         "LC Shop Member",
-        filters={"shop": shop, "membership_role": "Delivery Person", "enabled": 1},
+        filters={"shop": shop, "membership_role": ["in", ["Owner", "Delivery Person"]], "enabled": 1},
         pluck="user",
         order_by="user asc",
         limit_page_length=0,
@@ -1078,7 +1076,7 @@ def drivers(shop):
     for user in members:
         if frappe.db.get_value(
             "User", user, "enabled"
-        ) and "LC Delivery Person" in frappe.get_roles(user):
+        ) and is_shop_driver(user, shop):
             result.append(
                 {"user": user, "full_name": frappe.db.get_value("User", user, "full_name") or user}
             )
@@ -1180,10 +1178,10 @@ def assign_driver(order, delivery_user):
 
 def driver_shops(user=None):
     user = user or frappe.session.user
-    if user == "Guest" or "LC Delivery Person" not in frappe.get_roles(user):
+    if user == "Guest" or not {"LC Delivery Person", "LC Shop Owner"}.intersection(frappe.get_roles(user)):
         frappe.throw("Delivery person access required", frappe.PermissionError)
     return sorted(
-        {member.shop for member in memberships(user) if member.membership_role == "Delivery Person"}
+        {member.shop for member in memberships(user) if is_shop_driver(user, member.shop)}
     )
 
 
