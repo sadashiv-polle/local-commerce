@@ -29,7 +29,7 @@ const trackingOrder = ref(''), locationMessage = ref(''), locationError = ref(''
 const routes = ref({}), routeErrors = ref({})
 const routeRequests = new Set()
 let locationWatch = null, locationTimer = null, latestPosition = null, sendingLocation = false
-const allowed = computed(() => session.value.roles.includes('LC Delivery Person') && session.value.memberships.some(member => member.membership_role === 'Delivery Person'))
+const allowed = computed(() => session.value.memberships.some(member => (member.membership_role === 'Owner' && session.value.roles.includes('LC Shop Owner')) || (member.membership_role === 'Delivery Person' && session.value.roles.includes('LC Delivery Person'))))
 const collectionVariance = computed(() => collectingOrder.value ? Number(collectedAmount.value || 0) - Number(collectingOrder.value.total) : 0)
 const next = { Ready: 'Picked Up', 'Picked Up': 'Out for Delivery', 'Out for Delivery': 'Delivered' }
 const labels = { Ready: 'Confirm pickup', 'Picked Up': 'Start delivery', 'Out for Delivery': 'Confirm delivered' }
@@ -228,7 +228,7 @@ onBeforeUnmount(() => stopTracking('', false))
 </script>
 
 <template>
-  <section v-if="!allowed" class="lc-empty delivery-empty"><h2>Delivery access is not configured</h2><p>Your account needs the LC Delivery Person role and an enabled Delivery Person membership for a shop.</p></section>
+  <section v-if="!allowed" class="lc-empty delivery-empty"><h2>Delivery access is not configured</h2><p>Your account needs an enabled Shop Owner or Delivery Person membership with its matching app role. Ask the platform administrator to check your shop membership.</p></section>
   <section v-else class="delivery-page">
     <header class="delivery-hero"><div><span class="eyebrow">RIDER WORKSPACE</span><h1>Hello, {{ session.full_name.split(' ')[0] }}.</h1><p>Your profile, assigned shops, and every delivery in one place.</p></div><ProfileAvatar class="rider-avatar" :name="session.full_name" :image="session.user_image" /></header>
 
