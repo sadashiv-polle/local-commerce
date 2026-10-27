@@ -86,3 +86,17 @@ def shop_banks(shop):
 def save_shop_bank(shop, details, usage='store'):
     from local_commerce.services.shop_banking import save_shop_bank as save
     return save(shop, details, usage)
+
+
+@frappe.whitelist(methods=["GET"])
+def app_icon():
+    from local_commerce.permissions.scope import require_platform
+    from local_commerce.services.branding import installed_icon
+    require_platform()
+    return {"icon": installed_icon()}
+
+
+@frappe.whitelist(methods=["POST"])
+def save_app_icon(icon):
+    from local_commerce.services.branding import save_installed_icon
+    return save_installed_icon(icon)

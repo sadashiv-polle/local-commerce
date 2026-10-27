@@ -56,3 +56,19 @@ def reset():
     doc.app_favicon = ""
     doc.save()
     return settings()
+
+
+def installed_icon():
+    value = frappe.get_single("LC Store Settings").get("installed_app_icon")
+    return value if value in {"Original", "Wordmark"} else "Wordmark"
+
+
+def save_installed_icon(icon):
+    require_platform()
+    if icon not in {"Original", "Wordmark"}:
+        frappe.throw("Choose Original or Wordmark")
+    doc = frappe.get_single("LC Store Settings")
+    doc.installed_app_icon = icon
+    doc.save()
+    frappe.clear_cache()
+    return {"icon": installed_icon()}

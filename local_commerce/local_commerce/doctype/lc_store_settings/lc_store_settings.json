@@ -49,7 +49,8 @@
     "commission_deferred",
     "commission_item",
     "commission_due_days",
-    "commission_reminders"
+    "commission_reminders",
+    "installed_app_icon"
   ],
   "fields": [
     {
@@ -325,6 +326,13 @@
       "label": "Email monthly statements and weekly overdue reminders",
       "fieldtype": "Check",
       "default": "0"
+    },
+    {
+      "fieldname": "installed_app_icon",
+      "label": "Installed app icon",
+      "fieldtype": "Select",
+      "options": "Original\nWordmark",
+      "default": "Wordmark"
     }
   ],
   "permissions": [

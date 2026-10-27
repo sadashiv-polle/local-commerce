@@ -19,4 +19,9 @@ def get_context(context):
     from local_commerce.services.branding import favicon
 
     context.lc_favicon = favicon()
+    from local_commerce.services.branding import installed_icon
+
+    wordmark = installed_icon() == "Wordmark"
+    context.lc_manifest = "/local-commerce-wordmark-manifest.json" if wordmark else "/local-commerce-manifest.json"
+    context.lc_touch_icon = "/assets/local_commerce/icons/wordmark-180.png?v=1" if wordmark else "/assets/local_commerce/icons/apple-touch-icon-180.png?v=20261007-white"
     context.no_cache = 1

@@ -1,6 +1,7 @@
 <script setup>
 import NeedsAttention from './NeedsAttention.vue'
 import InstallationSetup from './InstallationSetup.vue'
+import AppIconSettings from './AppIconSettings.vue'
 import RiderRateSettings from './RiderRateSettings.vue'
 import CashfreeSettings from './CashfreeSettings.vue'
 import GstSettings from './GstSettings.vue'
@@ -177,7 +178,7 @@ onBeforeUnmount(() => { generation++; window.clearTimeout(searchTimer); window.c
       <template v-else-if="section === 'cashfree'"><CashfreeSettings /></template>
       <template v-else-if="section === 'storefront'"><StoreSettings embedded /></template>
       <template v-else-if="section === 'setup'"><InstallationSetup /></template>
-      <template v-else-if="section === 'settings'"><RouterLink class="admin-settings-link" to="/admin/setup">Local dot Setup — view configuration checklist →</RouterLink><RiderRateSettings /><div class="admin-settings-grid"><section v-for="group in systemLinks" :key="group.title" class="admin-card"><header><h2>{{ group.title }}</h2></header><a v-for="link in group.links" :key="link[1]" :href="link[1]" class="admin-settings-link">{{ link[0] }}<span>↗</span></a></section></div></template>
+      <template v-else-if="section === 'settings'"><RouterLink class="admin-settings-link" to="/admin/setup">Local dot Setup — view configuration checklist →</RouterLink><AppIconSettings /><RiderRateSettings /><div class="admin-settings-grid"><section v-for="group in systemLinks" :key="group.title" class="admin-card"><header><h2>{{ group.title }}</h2></header><a v-for="link in group.links" :key="link[1]" :href="link[1]" class="admin-settings-link">{{ link[0] }}<span>↗</span></a></section></div></template>
       <template v-else>
         <section class="admin-toolbar"><label v-if="section !== 'customers'">Shop<select :value="selectedShop" @change="chooseShop"><option value="">All shops</option><option v-for="shop in summary?.shop_options || []" :key="shop.name" :value="shop.name">{{ shop.shop_name }}</option><option v-if="selectedShop && !summary?.shop_options.some(shop => shop.name === selectedShop)" :value="selectedShop">Selected shop</option></select></label><label v-if="!embedded" class="admin-search">Search<input v-model="search" type="search" maxlength="140" placeholder="Search names, shops and records…"></label><label v-if="statuses.length && !embedded">{{ section === 'people' ? 'Role' : 'Status' }}<select v-model="status"><option value="">All {{ section === 'people' ? 'roles' : 'statuses' }}</option><option v-for="value in statuses" :key="value">{{ value }}</option></select></label><button v-if="section === 'shops'" type="button" class="admin-primary" @click="openSetup('shop')">+ Add shop</button><button v-if="section === 'people'" type="button" class="admin-primary" @click="openSetup('membership')">+ Add membership</button></section>
         <p v-if="embedded" class="admin-selected-note">Managing one shop. Choose “All shops” to return to the platform overview for this section.</p>
