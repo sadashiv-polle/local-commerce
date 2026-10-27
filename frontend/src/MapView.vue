@@ -10,6 +10,8 @@ const props = defineProps({
   route: { type: Array, default: () => [] },
   editable: Boolean,
   preserveView: Boolean,
+  follow: { type: Object, default: null },
+  hideExpand: Boolean,
   height: { type: String, default: '260px' },
 })
 const emit = defineEmits(['pick'])
@@ -20,6 +22,7 @@ let map
 let layer
 let routeLayer
 let fitted = false
+let renderedRoute = null
 const markers = new Map()
 
 const markerStyles = {
@@ -30,14 +33,15 @@ const markerStyles = {
 
 function renderPoints() {
   if (!map || !layer || !routeLayer) return
-  routeLayer.clearLayers()
+  const routeChanged = renderedRoute !== props.route
+  if (routeChanged) { routeLayer.clearLayers(); renderedRoute = props.route }
   const bounds = []
   const route = props.route
     .map(point => [Number(point?.latitude), Number(point?.longitude)])
     .filter(point => point.every(Number.isFinite))
   if (route.length > 1) {
-    L.polyline(route, { color: '#286dcc', weight: 6, opacity: .86, lineCap: 'round', lineJoin: 'round' }).addTo(routeLayer)
-    L.polyline(route, { color: '#fff', weight: 2, opacity: .82, dashArray: '2 10', lineCap: 'round' }).addTo(routeLayer)
+    if (routeChanged) L.polyline(route, { color: '#286dcc', weight: 6, opacity: .86, lineCap: 'round', lineJoin: 'round' }).addTo(routeLayer)
+    if (routeChanged) L.polyline(route, { color: '#fff', weight: 2, opacity: .82, dashArray: '2 10', lineCap: 'round' }).addTo(routeLayer)
     bounds.push(...route)
   }
   const activeMarkers = new Set()
@@ -69,7 +73,9 @@ function renderPoints() {
   for (const [key, marker] of markers) {
     if (!activeMarkers.has(key)) { layer.removeLayer(marker); markers.delete(key) }
   }
-  if (!props.preserveView || !fitted) {
+  if (props.follow) {
+    map.setView([props.follow.latitude, props.follow.longitude], 17, { animate: false })
+  } else if (!props.preserveView || !fitted) {
     if (bounds.length === 1) map.setView(bounds[0], 15)
     else if (bounds.length > 1) map.fitBounds(bounds, { padding: [38, 38], maxZoom: 16 })
     else map.setView([15.49, 73.83], 11)
@@ -121,7 +127,7 @@ onMounted(async () => {
   window.addEventListener('keydown', closeExpanded)
 })
 
-watch([() => props.points, () => props.route], renderPoints, { deep: true })
+watch([() => props.points, () => props.route, () => props.follow], renderPoints, { deep: true })
 watch(() => props.editable, () => { searchResults.value = []; searchError.value = '' })
 onBeforeUnmount(() => { window.removeEventListener('keydown', closeExpanded); map?.remove(); map = null; layer = null; routeLayer = null; markers.clear() })
 </script>
@@ -141,7 +147,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', closeExpanded); ma
         </button>
       </div>
     </div>
-    <button class="map-expand-button" type="button" :aria-label="expanded ? 'Minimize map' : 'Expand map'" :title="expanded ? 'Minimize map' : 'Expand map'" @click="toggleExpanded">
+    <button v-if="!hideExpand" class="map-expand-button" type="button" :aria-label="expanded ? 'Minimize map' : 'Expand map'" :title="expanded ? 'Minimize map' : 'Expand map'" @click="toggleExpanded">
       <svg v-if="expanded" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
       <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" /></svg>
     </button>

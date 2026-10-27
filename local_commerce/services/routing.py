@@ -38,13 +38,13 @@ def _coordinates(value):
     return result
 
 
-def road_route(origin, destination):
+def road_route(origin, destination, navigation=False):
     start = point(origin.get("latitude"), origin.get("longitude"), required=True)
     finish = point(destination.get("latitude"), destination.get("longitude"), required=True)
     endpoint = _endpoint()
     signature = "|".join(
         [
-            endpoint,
+            endpoint + (":navigation-v1" if navigation else ""),
             f"{start['latitude']:.5f},{start['longitude']:.5f}",
             f"{finish['latitude']:.5f},{finish['longitude']:.5f}",
         ]
@@ -64,7 +64,7 @@ def road_route(origin, destination):
                 f"{finish['longitude']},{finish['latitude']}"
             )
             url = f"{endpoint}/{coordinates}?" + urlencode(
-                {"overview": "simplified", "geometries": "geojson", "steps": "false"}
+                {"overview": "full" if navigation else "simplified", "geometries": "geojson", "steps": "true" if navigation else "false"}
             )
             request = Request(
                 url,
@@ -93,6 +93,15 @@ def road_route(origin, destination):
                 "attribution": "Route by OSRM · © OpenStreetMap contributors",
                 "attribution_url": "https://project-osrm.org/",
             }
+            if navigation:
+                result["steps"] = [
+                    {"type": step.get("maneuver", {}).get("type", "continue"),
+                     "modifier": step.get("maneuver", {}).get("modifier", ""),
+                     "exit": step.get("maneuver", {}).get("exit"),
+                     "name": str(step.get("name") or "")[:200],
+                     "points": _coordinates(step.get("geometry", {}).get("coordinates"))}
+                    for leg in selected.get("legs", []) for step in leg.get("steps", [])
+                ]
             frappe.cache.set_value(cache_key, result, expires_in_sec=86400)
             return result
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, TypeError, ValueError):

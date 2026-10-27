@@ -990,6 +990,24 @@ def reorder_preview(order):
             "currency": so.currency, "items": items, "notices": notices}
 
 
+def journey_route(order, latitude, longitude):
+    doc = frappe.get_doc("LC Order", order)
+    if doc.delivery_user != frappe.session.user or not is_shop_driver(frappe.session.user, doc.shop):
+        reject("Only the assigned rider can start this journey")
+    if doc.status not in {"Ready", "Picked Up", "Out for Delivery"}:
+        reject("This delivery is no longer active")
+    try:
+        origin = point(latitude, longitude, required=True)
+        destination = (shop_location(frappe.get_doc("LC Shop", doc.shop)) if doc.status == "Ready"
+                       else point(doc.destination_latitude, doc.destination_longitude, required=True))
+    except ValueError as exc:
+        reject(str(exc))
+    if not destination:
+        reject("The destination needs a map location")
+    from local_commerce.services.routing import road_route
+    return road_route(origin, destination, navigation=True)
+
+
 def delivery_route(order):
     doc = frappe.get_doc("LC Order", order)
     authorize(doc)
