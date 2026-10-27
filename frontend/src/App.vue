@@ -20,6 +20,11 @@ const savedCart = ref(null)
 const headerAddresses = ref([]), headerAddress = ref(null)
 const notifications = ref([]), unreadNotifications = ref(0), notificationsLoading = ref(false)
 const pushState = ref('loading'), pushMessage = ref(''), pushBusy = ref(false), pushPublicKey = ref('')
+const pushPromptDismissed = ref(false)
+function dismissPushPrompt() {
+  pushPromptDismissed.value = true
+  try { sessionStorage.setItem(`lc-push-prompt:${session.value.user}`, 'dismissed') } catch { /* Optional preference. */ }
+}
 const savedCartLines = computed(() => Object.keys(savedCart.value?.cart || {}).length)
 const savedCartTotal = computed(() => Object.values(savedCart.value?.cart || {}).reduce((sum, item) => sum + Number(item.rate) * Number(item.quantity), 0))
 const savedCartCurrency = computed(() => Object.values(savedCart.value?.cart || {})[0]?.currency)
@@ -150,7 +155,10 @@ async function turnOnPush() {
     const subscription = await enablePush(pushPublicKey.value)
     await call('push.subscribe', { subscription: subscription.toJSON() }, true)
     pushState.value = 'enabled'; pushMessage.value = 'Phone notifications are on for this device.'
-  } catch (error) { pushMessage.value = error.message }
+  } catch (error) {
+    pushMessage.value = error.message
+    if (Notification.permission === 'denied') pushState.value = 'denied'
+  }
   finally { pushBusy.value = false }
 }
 async function turnOffPush() {
@@ -213,6 +221,7 @@ async function load() {
     if (labelView.value) return
     await loadNotifications()
     await loadPushState()
+    try { pushPromptDismissed.value = sessionStorage.getItem(`lc-push-prompt:${session.value.user}`) === 'dismissed' } catch { /* Optional preference. */ }
     if (session.value.roles.includes('LC Customer')) {
       // Account linking is a POST; public browsing remains usable if setup needs attention.
       try { await call('customers.ensure', {}, true); await loadHeaderAddress() } catch { /* Account/checkout show actionable errors. */ }
@@ -286,6 +295,11 @@ onBeforeUnmount(() => {
       <div class="header-note"><span class="pin" aria-hidden="true">⌖</span><div><strong>{{ ownerView ? 'Your business workspace' : deliveryView ? 'Your rider workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : deliveryView ? 'Every order, right on track.' : 'Delivery from your local shops' }}</small></div></div>
       <nav aria-label="Main navigation"><div class="header-shortcuts"><RouterLink v-if="!ownerView && !deliveryView" to="/favourites">♡ Favourites</RouterLink></div><div class="header-account-controls"><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><details v-else-if="session" ref="notificationMenu" class="notification-menu" @toggle="toggleNotifications"><summary aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><span v-if="unreadNotifications" class="notification-badge">{{ unreadNotifications > 99 ? '99+' : unreadNotifications }}</span></summary><section class="notification-panel"><header><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2></div><button type="button" aria-label="Close notifications" @click="notificationMenu.open = false">✕</button><button type="button" :disabled="!unreadNotifications" @click="markAllNotifications">Mark all read</button></header><div v-if="pushState !== 'loading'" class="push-settings"><div><strong>{{ pushState === 'enabled' ? 'Phone alerts are on' : 'Get phone alerts' }}</strong><small v-if="pushState === 'available'">Receive order updates when this app is closed.</small><small v-else-if="pushState === 'enabled'">This device can receive background order alerts.</small><small v-else-if="pushState === 'unconfigured'">The server needs its free push key configured.</small><small v-else-if="pushState === 'denied'">Allow notifications in your phone or browser settings.</small><small v-else-if="pushState === 'unsupported'">On iPhone, add Local to your Home Screen, then open it there.</small><small v-else>Phone alerts are unavailable right now.</small></div><button v-if="pushState === 'available'" type="button" :disabled="pushBusy" @click="turnOnPush">{{ pushBusy ? 'Enabling…' : 'Enable' }}</button><button v-else-if="pushState === 'enabled'" type="button" :disabled="pushBusy" @click="turnOffPush">{{ pushBusy ? 'Turning off…' : 'Turn off' }}</button></div><p v-if="pushMessage" class="push-message" role="status">{{ pushMessage }}</p><p v-if="notificationsLoading && !notifications.length" role="status">Checking updates…</p><p v-else-if="!notifications.length" class="notification-empty">No order updates yet.</p><button v-for="notification in notifications" :key="notification.name" type="button" class="notification-item" :class="{ unread: !notification.read }" @click="openNotification(notification)"><span class="notification-dot" aria-hidden="true"></span><span><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small><time>{{ notificationTime(notification.creation) }}</time></span></button></section></details><details v-if="session && session.user !== 'Guest'" ref="profileMenu" class="profile-menu" @keydown.esc.prevent="profileMenu.open = false; profileMenu.querySelector('summary')?.focus()"><summary class="account" :aria-label="`Profile options for ${session.full_name}`"><ProfileAvatar :name="session.full_name" :image="session.user_image" /><span>{{ session.full_name }}</span></summary><div class="profile-options"><strong>{{ session.full_name }}</strong><RouterLink :to="workView ? workHome : '/account'">{{ workView ? 'My workspace' : 'My account' }}</RouterLink><RouterLink to="/security">Change password</RouterLink></div></details><button v-if="session && session.user !== 'Guest'" class="logout-button" aria-label="Log out" title="Log out" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg><span class="logout-button-label">Log out</span></button></div></nav>
     </header>
+    <section v-if="session && session.user !== 'Guest' && pushState === 'available' && !pushPromptDismissed" class="push-settings" aria-label="Enable order notifications" style="margin:12px 16px;padding:16px;border:1px solid #dce6df;border-radius:12px">
+      <div><strong>Stay updated on your orders</strong><small>Turn on notifications for order and delivery updates.</small><p v-if="pushMessage" role="status">{{ pushMessage }}</p></div>
+      <button type="button" :disabled="pushBusy" @click="turnOnPush">{{ pushBusy ? 'Enabling…' : 'Enable notifications' }}</button>
+      <button type="button" :disabled="pushBusy" @click="dismissPushPrompt">Not now</button>
+    </section>
     <section v-if="hasWorkspace" class="workspace-switch" aria-label="Workspace switch">
       <div><strong>{{ workView ? deliveryView ? 'Delivery workspace' : adminView ? 'Admin workspace' : 'Shop workspace' : 'Shopping as a customer' }}</strong><small>{{ workView ? 'Your orders, tasks and daily work' : 'Browse shops and place your own orders' }}</small></div>
       <RouterLink v-if="workView && canManage && canDeliver" :to="deliveryView ? workHome : '/delivery'">{{ deliveryView ? 'Switch to Shop' : 'Switch to Delivery' }}</RouterLink>
