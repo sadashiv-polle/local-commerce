@@ -2,11 +2,13 @@
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import MapView from './MapView.vue'
 import { call } from './api.js'
-import { metres, segmentDistance } from './journey-navigation.js'
+import { metres, segmentDistance, createRerouteGuard } from './journey-navigation.js'
 const props = defineProps({ order: { type: Object, required: true } })
 const emit = defineEmits(['close'])
 const location = ref(null), route = ref(null), message = ref('Finding your precise location…'), step = ref(0), distance = ref(0)
-let watchId, timer, latest, wake, pending = false, lastRoute = 0, closed = false
+const now = ref(Date.now()), lastRoute = ref(0), pending = ref(false), routeError = ref(''), trail = ref([])
+let watchId, timer, latest, wake, closed = false, lastTrailTimestamp = null
+let shouldReroute = createRerouteGuard()
 const target = computed(() => props.order.status === 'Ready' ? props.order.shop_location : props.order.destination_location)
 const points = computed(() => [...(target.value ? [{ ...target.value, kind: 'customer', label: 'Destination' }] : []), ...(location.value ? [{ ...location.value, kind: 'rider', label: 'You' }] : [])])
 const instruction = computed(() => {
@@ -17,21 +19,27 @@ const instruction = computed(() => {
   return `${action}${next.name ? ` onto ${next.name}` : ''}`
 })
 async function getRoute() {
-  if (pending || !location.value || closed) return
-  pending = true; lastRoute = Date.now()
+  if (pending.value || !location.value || closed || !latest || Date.now() - latest.timestamp > 15000 || latest.coords.accuracy > 100) return
+  pending.value = true; lastRoute.value = Date.now(); routeError.value = ''
   try {
     const result = await call('orders.journey_route', { order: props.order.name, ...location.value })
-    if (!closed) { route.value = result; step.value = 0; message.value = '' }
-  } catch (error) { if (!closed) message.value = error.message }
-  finally { pending = false }
+    if (!closed) { route.value = result; step.value = 0; shouldReroute = createRerouteGuard(); message.value = '' }
+  } catch (error) { if (!closed) routeError.value = error.message }
+  finally { pending.value = false }
 }
 function tick() {
+  now.value = Date.now()
   if (!latest || closed) return
   if (Date.now() - latest.timestamp > 15000) { message.value = 'GPS signal lost. Waiting for a fresh location…'; return }
   if (latest.coords.accuracy > 100) { message.value = 'Waiting for precise GPS. Move outdoors if possible.'; return }
   location.value = { latitude: latest.coords.latitude, longitude: latest.coords.longitude }
-  if (!route.value) { if (Date.now() - lastRoute > 30000) getRoute(); return }
-  message.value = pending ? 'Updating route…' : ''
+  if (latest.timestamp !== lastTrailTimestamp) {
+    lastTrailTimestamp = latest.timestamp
+    const previous = trail.value.at(-1)
+    if (!previous || metres(previous, location.value) >= 5) trail.value = [...trail.value.slice(-1999), location.value]
+  }
+  if (!route.value) { if (now.value - lastRoute.value >= 5000) getRoute(); return }
+  message.value = pending.value ? 'Updating route…' : ''
   const steps = route.value.steps || []
   // Search the current and following segment only, avoiding jumps at crossing roads.
   let nearest = Infinity, index = step.value
@@ -42,7 +50,7 @@ function tick() {
   step.value = index
   const next = steps[index + 1]?.points?.[0] || target.value
   distance.value = next ? Math.round(metres(location.value, next)) : 0
-  if (nearest > 60 && Date.now() - lastRoute > 30000) getRoute()
+  if (shouldReroute(latest, nearest, lastRoute.value, now.value)) getRoute()
 }
 async function keepAwake() {
   if (closed || document.visibilityState !== 'visible' || wake) return
@@ -64,8 +72,9 @@ onBeforeUnmount(() => { closed = true; if (watchId != null) navigator.geolocatio
   <section class="journey" role="dialog" aria-modal="true" aria-label="Delivery navigation" @keydown.esc="emit('close')">
     <header><div><small>{{ order.status === 'Ready' ? 'JOURNEY TO SHOP' : 'JOURNEY TO CUSTOMER' }}</small><h2>{{ instruction }}</h2><strong v-if="route">{{ distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance} m` }} approximately to next direction</strong></div><button type="button" autofocus @click="emit('close')">End journey</button></header>
     <p v-if="message" role="status">{{ message }}</p>
-    <MapView :config="order.map" :points="points" :route="route?.points || []" :follow="location" preserve-view hide-expand height="calc(100dvh - 240px)" />
-    <footer><span>GPS view refreshes every second. Keep this screen open; follow road signs.</span><small v-if="route">{{ route.attribution }}</small><button type="button" :disabled="pending || !location || Date.now() - lastRoute < 30000" @click="getRoute">Refresh route</button></footer>
+    <p v-if="routeError" role="alert">{{ routeError }} Retrying automatically when needed.</p>
+    <MapView :trail="trail" :config="order.map" :points="points" :route="route?.points || []" :follow="location" preserve-view hide-expand height="calc(100dvh - 240px)" />
+    <footer><span>Green line: your travelled path. Blue line: directions. GPS view refreshes every second. Keep this screen open; follow road signs.</span><small v-if="route">{{ route.attribution }}</small><button type="button" :disabled="pending || !location || now - lastRoute < 5000" @click="getRoute">Refresh route</button></footer>
   </section>
 </template>
 <style scoped>

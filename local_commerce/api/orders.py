@@ -38,7 +38,7 @@ def detail(order):
 
 
 @frappe.whitelist(methods=["GET"])
-@rate_limit(limit=120, seconds=3600)
+@rate_limit(limit=720, seconds=3600)
 def journey_route(order, latitude, longitude):
     return orders.journey_route(order, latitude, longitude)
 

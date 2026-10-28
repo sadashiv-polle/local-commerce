@@ -8,6 +8,7 @@ const props = defineProps({
   config: { type: Object, default: () => ({}) },
   points: { type: Array, default: () => [] },
   route: { type: Array, default: () => [] },
+  trail: { type: Array, default: () => [] },
   editable: Boolean,
   preserveView: Boolean,
   follow: { type: Object, default: null },
@@ -20,6 +21,7 @@ const expanded = ref(false)
 const searchQuery = ref(''), searchResults = ref([]), searchError = ref(''), searching = ref(false)
 let map
 let layer
+let trailLayer
 let routeLayer
 let fitted = false
 let renderedRoute = null
@@ -117,6 +119,8 @@ onMounted(async () => {
   await nextTick()
   map = L.map(container.value, { zoomControl: true, attributionControl: false })
   L.tileLayer(props.config?.tile_url || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map)
+  trailLayer = L.polyline([], { color: '#176448', weight: 5, opacity: .85 }).addTo(map)
+  trailLayer.setLatLngs(props.trail.map(point => [point.latitude, point.longitude]))
   routeLayer = L.layerGroup().addTo(map)
   layer = L.layerGroup().addTo(map)
   map.on('click', event => {
@@ -128,6 +132,7 @@ onMounted(async () => {
 })
 
 watch([() => props.points, () => props.route, () => props.follow], renderPoints, { deep: true })
+watch(() => props.trail, points => trailLayer?.setLatLngs(points.map(point => [point.latitude, point.longitude])))
 watch(() => props.editable, () => { searchResults.value = []; searchError.value = '' })
 onBeforeUnmount(() => { window.removeEventListener('keydown', closeExpanded); map?.remove(); map = null; layer = null; routeLayer = null; markers.clear() })
 </script>

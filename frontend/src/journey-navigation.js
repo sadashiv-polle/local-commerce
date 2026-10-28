@@ -16,3 +16,15 @@ export function segmentDistance(location, points) {
   }
   return nearest
 }
+
+// Count distinct GPS fixes, never repeated one-second renders of the same fix.
+export function createRerouteGuard() {
+  let timestamp = null, misses = 0
+  return (position, distance, lastRequest, now) => {
+    if (position.timestamp !== timestamp) {
+      timestamp = position.timestamp
+      misses = distance > Math.max(35, position.coords.accuracy * 1.5) ? misses + 1 : 0
+    }
+    return misses >= 2 && now - lastRequest >= 5000
+  }
+}
