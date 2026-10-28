@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createCashfreeLoader } from '../src/cashfree-sdk.js'
+import { createCashfreeLoader, loadCheckoutSdk } from '../src/cashfree-sdk.js'
 function setup() {
   const browser = {}, scripts = []
   const document = { createElement: () => ({ remove() {} }), head: { appendChild: script => scripts.push(script) } }
@@ -27,4 +27,17 @@ test('failed preload can be retried on Pay', async () => {
   browser.Cashfree = () => {}
   scripts[1].onload()
   await retry
+})
+
+test('checkout retries a failed preload once', async () => {
+  let attempts = 0
+  const sdk = () => {}
+  const result = await loadCheckoutSdk(async () => { if (++attempts === 1) throw new Error('timeout'); return sdk })
+  assert.equal(result, sdk)
+  assert.equal(attempts, 2)
+})
+test('checkout stops after a second SDK failure', async () => {
+  let attempts = 0
+  await assert.rejects(loadCheckoutSdk(async () => { attempts++; throw new Error('offline') }), /offline/)
+  assert.equal(attempts, 2)
 })

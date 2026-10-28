@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
-import { loadCashfree } from './cashfree-sdk.js'
+import { loadCashfree, loadCheckoutSdk } from './cashfree-sdk.js'
 import { checkoutTarget } from './checkout-target.js'
 import { useRoute } from 'vue-router'
 const route = useRoute()
@@ -13,7 +13,7 @@ function verificationError(e) {
   if (['Paid', 'Refunded'].includes(props.order.payment_status) || ['Paid', 'Refunded'].includes(verified.value)) {
     error.value = ''
   } else {
-    error.value = 'Payment confirmation is temporarily unavailable. If you paid, do not pay again. Refresh payment status in a moment.'
+    error.value = `${e.message || 'Payment confirmation is temporarily unavailable.'} If you paid, do not pay again. Refresh payment status in a moment.`
   }
   emit('updated')
 }
@@ -44,10 +44,8 @@ async function pay() {
   if (busy.value) return
   busy.value = true; error.value = ''; phase.value = 'opening'
   try {
-    const [session, Cashfree] = await Promise.all([
-      call('cashfree.checkout', { order: props.order.name }, true),
-      loadCashfree(),
-    ])
+    const Cashfree = await loadCheckoutSdk()
+    const session = await call('cashfree.checkout', { order: props.order.name }, true)
     const target = checkoutTarget()
     phase.value = 'checkout'
     const result = await Cashfree({ mode: session.environment }).checkout({

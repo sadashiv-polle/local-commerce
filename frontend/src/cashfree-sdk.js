@@ -1,5 +1,5 @@
 // One shared download across order cards, with retry after a failed load.
-export function createCashfreeLoader(browser, document, timeoutMs = 15000) {
+export function createCashfreeLoader(browser, document, timeoutMs = 30000) {
   let pending
   return function load() {
     if (browser.Cashfree) return Promise.resolve(browser.Cashfree)
@@ -26,4 +26,10 @@ let loader
 export function loadCashfree() {
   loader ||= createCashfreeLoader(window, document)
   return loader()
+}
+
+// A preload may already be near its timeout when the customer taps Pay.
+export async function loadCheckoutSdk(load = loadCashfree) {
+  try { return await load() }
+  catch { return await load() }
 }
