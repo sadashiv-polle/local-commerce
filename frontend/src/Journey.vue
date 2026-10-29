@@ -2,12 +2,44 @@
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import MapView from './MapView.vue'
 import { call } from './api.js'
-import { metres, segmentDistance, createRerouteGuard, travelHeading } from './journey-navigation.js'
+import { metres, segmentDistance, createRerouteGuard, travelHeading, phoneHeading, smoothHeading } from './journey-navigation.js'
 const props = defineProps({ order: { type: Object, required: true } })
 const emit = defineEmits(['close'])
 const location = ref(null), route = ref(null), message = ref('Finding your precise location…'), step = ref(0), distance = ref(0)
 const now = ref(Date.now()), lastRoute = ref(0), pending = ref(false), routeError = ref(''), trail = ref([])
 const heading = ref(null)
+const compassEnabled = ref(false), compassBusy = ref(false), compassMessage = ref('')
+let compassAt = 0, compassRenderAt = 0, gpsHeading = null
+function orient(event) {
+  if (closed || document.visibilityState !== 'visible') return
+  const value = phoneHeading(event, window.screen?.orientation?.angle ?? window.orientation ?? 0)
+  if (value === null) return
+  compassAt = Date.now()
+  if (compassAt - compassRenderAt < 100) return
+  compassRenderAt = compassAt
+  heading.value = smoothHeading(heading.value, value)
+  compassMessage.value = 'Arrow follows your phone direction.'
+}
+function listenCompass() {
+  if (closed || compassEnabled.value) return
+  compassEnabled.value = true
+  window.addEventListener('deviceorientation', orient)
+  window.addEventListener('deviceorientationabsolute', orient)
+  compassMessage.value = 'Waiting for compass. GPS direction is used until available.'
+}
+async function enableCompass() {
+  if (compassBusy.value) return
+  compassBusy.value = true
+  try {
+    const sensor = window.DeviceOrientationEvent
+    if (!sensor) { compassMessage.value = 'Phone compass unavailable. Using GPS direction.'; return }
+    if (typeof sensor.requestPermission === 'function' && await sensor.requestPermission(true) !== 'granted') {
+      compassMessage.value = 'Compass permission was not granted. Using GPS direction.'; return
+    }
+    listenCompass()
+  } catch { compassMessage.value = 'Phone compass unavailable. Using GPS direction.' }
+  finally { compassBusy.value = false }
+}
 let headingFix
 let watchId, timer, latest, wake, closed = false, lastTrailTimestamp = null
 let shouldReroute = createRerouteGuard()
@@ -32,10 +64,15 @@ async function getRoute() {
 }
 function tick() {
   now.value = Date.now()
+  if (compassEnabled.value && now.value - compassAt > 3000) {
+    heading.value = gpsHeading
+    compassMessage.value = 'Compass unavailable. Using GPS direction; hold the phone flat for a compass reading.'
+  }
   if (!latest || closed) return
   if (Date.now() - latest.timestamp > 15000) { message.value = 'GPS signal lost. Waiting for a fresh location…'; return }
   if (latest.coords.accuracy > 100) { message.value = 'Waiting for precise GPS. Move outdoors if possible.'; return }
-  heading.value = travelHeading(headingFix, latest, heading.value)
+  gpsHeading = travelHeading(headingFix, latest, gpsHeading)
+  if (now.value - compassAt > 3000) heading.value = gpsHeading
   if (!headingFix || metres(headingFix.coords, latest.coords) >= Math.max(8, latest.coords.accuracy, headingFix.coords.accuracy)) headingFix = latest
   location.value = { latitude: latest.coords.latitude, longitude: latest.coords.longitude }
   if (latest.timestamp !== lastTrailTimestamp) {
@@ -64,6 +101,7 @@ async function keepAwake() {
 function visible() { keepAwake(); tick() }
 onMounted(() => {
   keepAwake()
+  if (window.DeviceOrientationEvent && typeof window.DeviceOrientationEvent.requestPermission !== 'function') listenCompass()
   document.addEventListener('visibilitychange', visible)
   if (!navigator.geolocation || !window.isSecureContext) { message.value = 'Navigation needs HTTPS and location access.'; return }
   watchId = navigator.geolocation.watchPosition(position => { latest = position; tick() }, error => {
@@ -71,12 +109,13 @@ onMounted(() => {
   }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 })
   timer = window.setInterval(tick, 1000)
 })
-onBeforeUnmount(() => { closed = true; if (watchId != null) navigator.geolocation.clearWatch(watchId); clearInterval(timer); wake?.release(); document.removeEventListener('visibilitychange', visible) })
+onBeforeUnmount(() => { closed = true; window.removeEventListener('deviceorientation', orient); window.removeEventListener('deviceorientationabsolute', orient); if (watchId != null) navigator.geolocation.clearWatch(watchId); clearInterval(timer); wake?.release(); document.removeEventListener('visibilitychange', visible) })
 </script>
 <template>
   <section class="journey" role="dialog" aria-modal="true" aria-label="Delivery navigation" @keydown.esc="emit('close')">
     <header><div><small>{{ order.status === 'Ready' ? 'JOURNEY TO SHOP' : 'JOURNEY TO CUSTOMER' }}</small><h2>{{ instruction }}</h2><strong v-if="route">{{ distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance} m` }} approximately to next direction</strong></div><button type="button" autofocus @click="emit('close')">End journey</button></header>
     <p v-if="message" role="status">{{ message }}</p>
+    <div><button v-if="!compassEnabled" type="button" :disabled="compassBusy" @click="enableCompass">{{ compassBusy ? 'Enabling compass…' : 'Enable phone compass' }}</button><small role="status">{{ compassMessage }}</small></div>
     <p v-if="routeError" role="alert">{{ routeError }} Retrying automatically when needed.</p>
     <MapView navigation :heading="heading" :trail="trail" :config="order.map" :points="points" :route="route?.points || []" :follow="location" preserve-view hide-expand height="calc(100dvh - 240px)" />
     <footer><strong v-if="route?.route_preference">Shortest available driving route · {{ route.distance_km }} km at last update</strong><span>Green line: your travelled path. Blue line: directions. GPS view refreshes every second. Keep this screen open; follow road signs.</span><small v-if="route">{{ route.attribution }}</small><button type="button" :disabled="pending || !location || now - lastRoute < 5000" @click="getRoute">Refresh route</button></footer>

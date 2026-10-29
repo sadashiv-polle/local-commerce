@@ -45,3 +45,20 @@ test('movement-derived headings distinguish north, east and west', () => {
   assert.ok(Math.abs(travelHeading(first, fix(15, 73.001, 2000)) - 90) < 1)
   assert.ok(Math.abs(travelHeading(first, fix(15, 72.999, 2000)) - 270) < 1)
 })
+
+import { phoneHeading, smoothHeading } from '../src/journey-navigation.js'
+test('phone compass uses north-referenced readings and screen rotation', () => {
+  assert.equal(phoneHeading({ webkitCompassHeading: 90, webkitCompassAccuracy: 10 }), 90)
+  assert.equal(phoneHeading({ absolute: true, alpha: 270 }), 90)
+  assert.equal(phoneHeading({ absolute: true, alpha: 270 }, 90), 180)
+  assert.equal(phoneHeading({ webkitCompassHeading: 10 }, -90), 280)
+  assert.equal(phoneHeading({ absolute: false, alpha: 270 }), null)
+  assert.equal(phoneHeading({ absolute: true, alpha: null }), null)
+  assert.equal(phoneHeading({ webkitCompassHeading: 90, webkitCompassAccuracy: -1 }), null)
+  assert.equal(phoneHeading({ webkitCompassHeading: 90, webkitCompassAccuracy: 80 }), null)
+})
+test('compass smoothing crosses north without spinning the long way', () => {
+  assert.equal(smoothHeading(null, 90), 90)
+  assert.ok(smoothHeading(359, 1) > 359)
+  assert.ok(smoothHeading(1, 359) < 1)
+})

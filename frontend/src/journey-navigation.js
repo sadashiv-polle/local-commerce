@@ -41,3 +41,20 @@ export function travelHeading(previous, current, lastHeading = null) {
   const rad = Math.PI / 180, delta = (b.longitude - a.longitude) * rad
   return (Math.atan2(Math.sin(delta) * Math.cos(b.latitude * rad), Math.cos(a.latitude * rad) * Math.sin(b.latitude * rad) - Math.sin(a.latitude * rad) * Math.cos(b.latitude * rad) * Math.cos(delta)) / rad + 360) % 360
 }
+
+// Relative alpha has no north reference and must never be used as a compass.
+export function phoneHeading(event, screenAngle = 0) {
+  let heading
+  if (Number.isFinite(event.webkitCompassHeading) && event.webkitCompassHeading >= 0) {
+    if (Number.isFinite(event.webkitCompassAccuracy) && (event.webkitCompassAccuracy < 0 || event.webkitCompassAccuracy > 50)) return null
+    heading = event.webkitCompassHeading
+  } else if (event.absolute === true && Number.isFinite(event.alpha)) heading = 360 - event.alpha
+  else return null
+  return ((heading + (Number.isFinite(screenAngle) ? screenAngle : 0)) % 360 + 360) % 360
+}
+
+export function smoothHeading(previous, next) {
+  if (!Number.isFinite(previous)) return next
+  const delta = ((next - previous + 540) % 360) - 180
+  return (previous + delta * 0.3 + 360) % 360
+}
