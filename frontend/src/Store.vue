@@ -1,4 +1,5 @@
 <script setup>
+import AppIcon from './AppIcon.vue'
 import StockAlertButton from './StockAlertButton.vue'
 import { displayPrice } from './product-price.js'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -126,7 +127,7 @@ watch(shopsOnly, async () => {
       <div class="compact-category-row"><button v-for="category in categoryMenu.categories" :key="category.item_group" type="button" class="category-tile" :class="{ selected: activeCategory === category.item_group }" @click="chooseCategory(category.item_group)"><span class="category-tile-art"><img v-if="category.image" :src="category.image" alt="" loading="lazy" @error="category.image = ''"><span v-else aria-hidden="true">{{ categoryIcon(category.item_group) }}</span></span><strong>{{ category.label }}</strong></button></div>
     </section>
     <section id="home-shops" ref="browse" class="browse-section">
-      <div class="section-title"><div><span class="eyebrow">YOUR NEIGHBOURHOOD</span><h2>{{ productSearch.trim() ? 'Matching shops' : 'Explore local shops' }}</h2></div><nav class="home-view-switch" aria-label="Shop view"><span aria-current="page">▦ List</span><RouterLink to="/store/map">⌖ Map</RouterLink></nav></div>
+      <div class="section-title"><div><span class="eyebrow">YOUR NEIGHBOURHOOD</span><h2>{{ productSearch.trim() ? 'Matching shops' : 'Explore local shops' }}</h2></div><nav class="home-view-switch" aria-label="Shop view"><span aria-current="page"><AppIcon name="list" /> List</span><RouterLink to="/store/map"><AppIcon name="map" /> Map</RouterLink></nav></div>
       <div>
         <p v-if="activeAddress" class="nearby-summary">Showing shops near <strong>{{ activeAddress.address_label }}</strong>, sorted by delivery availability and distance.</p>
         <p v-if="error" role="alert" class="lc-notice">{{ error }}</p><p v-if="loading" role="status">Loading shops…</p>

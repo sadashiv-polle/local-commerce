@@ -1,4 +1,5 @@
 <script setup>
+import AppIcon from './AppIcon.vue'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call } from './api.js'
@@ -107,8 +108,8 @@ onBeforeUnmount(() => { locationGeneration++; window.removeEventListener('lc-add
       </header>
       <nav v-if="!editing" class="account-shortcuts" aria-label="Account shortcuts">
         <RouterLink to="/security"><span aria-hidden="true">⚿</span><div><strong>Change password</strong><small>Update your password or request a reset email</small></div><b aria-hidden="true">›</b></RouterLink>
-        <RouterLink to="/orders"><span aria-hidden="true">▤</span><div><strong>My orders</strong><small>Track deliveries & buy again</small></div><b aria-hidden="true">›</b></RouterLink>
-        <RouterLink to="/store"><span aria-hidden="true">⌂</span><div><strong>Continue shopping</strong><small>Explore your local shops</small></div><b aria-hidden="true">›</b></RouterLink>
+        <RouterLink to="/orders"><AppIcon name="orders" /><div><strong>My orders</strong><small>Track deliveries & buy again</small></div><b aria-hidden="true">›</b></RouterLink>
+        <RouterLink to="/store"><AppIcon name="home" /><div><strong>Continue shopping</strong><small>Explore your local shops</small></div><b aria-hidden="true">›</b></RouterLink>
       </nav>
       <p v-if="loading" role="status">Loading account…</p>
       <p v-if="error" class="lc-notice" role="alert">{{ error }} <button v-if="!data" @click="load()">Retry</button></p>
@@ -117,7 +118,7 @@ onBeforeUnmount(() => { locationGeneration++; window.removeEventListener('lc-add
         <section v-if="!editing" class="address-book">
           <div class="section-title"><div><span class="eyebrow">DELIVERY LOCATIONS</span><h2>Saved addresses <small class="address-count">{{ data.addresses.length }}</small></h2><p>Choose where nearby shops should deliver.</p></div><button class="lc-primary" :disabled="busy" @click="openNewAddress">+ Add address</button></div>
           <div v-if="data.addresses.length" class="address-grid">
-            <article v-for="address in data.addresses" :key="address.name" class="address-card" :class="{ default: address.name === selectedAddress }"><header><span class="address-icon" aria-hidden="true">{{ address.address_type === 'Home' ? '⌂' : address.address_type === 'Work' ? '▦' : '⌖' }}</span><div><span class="eyebrow">{{ address.address_type }}</span><h3>{{ address.address_label }}</h3></div><span v-if="address.name === selectedAddress" class="status-pill">Selected</span></header><strong>{{ address.recipient }}</strong><p>{{ address.line1 }}<br>{{ address.city }} · {{ address.postal_code }}</p><small>{{ address.phone }}</small><footer><button :disabled="busy" @click="editAddress(address)">Edit</button><button v-if="address.name !== selectedAddress" :disabled="busy" @click="setDefault(address)">Use for delivery</button><button class="text-danger" :disabled="busy" @click="archiveAddress(address)">Remove</button></footer></article>
+            <article v-for="address in data.addresses" :key="address.name" class="address-card" :class="{ default: address.name === selectedAddress }"><header><span class="address-icon" aria-hidden="true"><AppIcon :name="address.address_type === 'Home' ? 'home' : address.address_type === 'Work' ? 'work' : 'location'" /></span><div><span class="eyebrow">{{ address.address_type }}</span><h3>{{ address.address_label }}</h3></div><span v-if="address.name === selectedAddress" class="status-pill">Selected</span></header><strong>{{ address.recipient }}</strong><p>{{ address.line1 }}<br>{{ address.city }} · {{ address.postal_code }}</p><small>{{ address.phone }}</small><footer><button :disabled="busy" @click="editAddress(address)">Edit</button><button v-if="address.name !== selectedAddress" :disabled="busy" @click="setDefault(address)">Use for delivery</button><button class="text-danger" :disabled="busy" @click="archiveAddress(address)">Remove</button></footer></article>
           </div>
           <p v-else class="lc-empty">Add Home, Work, or another address to discover shops that deliver nearby.</p>
         </section>

@@ -1,4 +1,5 @@
 <script setup>
+import AppIcon from './AppIcon.vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -69,7 +70,7 @@ onBeforeUnmount(() => { disposed = true; generation++; clearTimeout(timer); map?
 </script>
 <template>
   <section class="store-page shop-map-page">
-    <header class="shop-map-heading"><div><nav class="home-view-switch" aria-label="Shop view"><RouterLink to="/store?browse=shops">▦ List</RouterLink><span aria-current="page">⌖ Map</span></nav><h1>Explore local shops</h1><p>Move the map to explore an area. Tap a shop to see its details.</p></div><button type="button" :disabled="locating" @click="useLocation">{{ locating ? 'Finding you…' : 'Use my location' }}</button></header>
+    <header class="shop-map-heading"><div><nav class="home-view-switch" aria-label="Shop view"><RouterLink to="/store?browse=shops"><AppIcon name="list" /> List</RouterLink><span aria-current="page"><AppIcon name="map" /> Map</span></nav><h1>Explore local shops</h1><p>Move the map to explore an area. Tap a shop to see its details.</p></div><button type="button" :disabled="locating" @click="useLocation">{{ locating ? 'Finding you…' : 'Use my location' }}</button></header>
     <div class="shop-discovery-layout">
       <div class="shop-discovery-map"><div ref="container" class="shop-discovery-canvas" aria-label="Map of shops in this area"></div><footer><a :href="attribution.attribution_url" target="_blank" rel="noopener">{{ attribution.attribution }}</a><span role="status">{{ busy ? 'Finding shops…' : `${shops.length} shops in this area` }}</span></footer></div>
       <aside class="shop-discovery-panel">

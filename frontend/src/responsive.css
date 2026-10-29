@@ -836,3 +836,7 @@
 #lc-app .profile-options strong { padding: 8px; overflow-wrap: anywhere; }
 #lc-app .profile-options a { padding: 12px; border-radius: 8px; color: #17654d; text-decoration: none; }
 #lc-app .profile-options a:hover, #lc-app .profile-options a:focus-visible { background: #edf5ef; }
+
+#lc-app .home-view-switch > * { display: inline-flex; align-items: center; gap: 7px; }
+#lc-app .home-view-switch .app-icon { width: 18px; height: 18px; }
+#lc-app .customer-bottom-nav .app-icon { width: 24px; height: 24px; margin-bottom: 2px; }
