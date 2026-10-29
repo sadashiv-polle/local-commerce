@@ -5,6 +5,7 @@ Refunds are financial only: physical inventory returns are a separate workflow.
 """
 
 import json
+from local_commerce.services.payments.rules import require_offer_accounting
 from contextlib import contextmanager
 from urllib.parse import quote
 
@@ -64,6 +65,7 @@ def submitted(doctype, name):
 
 
 def book_refunds(doc, rows):
+    require_offer_accounting(doc)
     """Automatic full credit; partial refunds use an admin-selected native credit note."""
     from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
     from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_sales_return
@@ -290,7 +292,11 @@ def reconcile_settlement(order):
 
     cashfree.begin_operation(order)
     doc = cashfree.payment_order(order)
+    from .rules import offer_receipt_allocation
+    allocation = offer_receipt_allocation(doc)
     snap = json.loads(doc.gateway_snapshot)
+    if allocation:
+        snap["payment_amount"] = allocation["payment_amount"]
     if not doc.payment_entry or not doc.gateway_payment_id:
         if state(doc).get("unbilled_refund"):
             for journal in state(doc)["unbilled_refund"]["journals"]:

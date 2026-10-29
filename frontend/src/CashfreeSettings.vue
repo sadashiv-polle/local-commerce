@@ -2,9 +2,14 @@
 import { onMounted, ref } from 'vue'
 import { call } from './api.js'
 const data = ref(null), busy = ref(false), error = ref(''), message = ref(''), details = ref({}), credits = ref({})
+const fundingForms = ref({}), reimbursements = ref({})
 const profile = ref({ name: '', environment: 'sandbox', enabled: false, client_id: '', client_secret: '' })
 async function load() {
   data.value = await call('cashfree.settings')
+  for (const order of data.value.orders) {
+    order.offerData = JSON.parse(order.gateway_accounting_json || '{}')
+    fundingForms.value[order.name] ||= { provider: '', evidence: '', account: '' }
+  }
   for (const shop of data.value.shops) shop.cashfree_settlement_mode ||= 'Easy Split'
 }
 onMounted(async () => { try { await load() } catch (e) { error.value = e.message } })
@@ -30,6 +35,10 @@ async function prepareCredit(order) {
     const result = await call('cashfree.prepare_credit', { order: order.name }, true)
     details.value[order.name] = { credit_note: result.credit_note }
   })
+}
+function offerAccounts(order) {
+  const company = data.value.shops.find(s => s.name === order.shop)?.company
+  return data.value.accounts.filter(a => a.company === company && a.root_type === 'Asset' && !['Bank', 'Cash', 'Receivable', 'Payable'].includes(a.account_type))
 }
 function accounts(shop, type) { return data.value.accounts.filter(a => a.company === shop.company && a.root_type === type && (type !== 'Asset' || a.account_type === 'Bank')) }
 </script>
@@ -87,6 +96,29 @@ function accounts(shop, type) { return data.value.accounts.filter(a => a.company
         <article v-for="order in data.orders" :key="order.name" class="order-rating">
           <RouterLink :to="{ path: '/admin/orders', query: { shop: order.shop } }">{{ order.gateway_order_id }}</RouterLink>
           <p>{{ order.payment_status }} · {{ order.status }}</p><p v-if="order.gateway_accounting_error">{{ order.gateway_accounting_error }}</p><p v-if="order.gateway_settlement_error">{{ order.gateway_settlement_error }}</p>
+          <section v-if="Number(order.offerData.payment_evidence?.discount_amount) > 0" class="offer-review">
+            <h3>Checkout offer reconciliation</h3>
+            <p>Order value: ₹{{ order.offerData.payment_evidence.order_amount }} · Customer paid: ₹{{ order.offerData.payment_evidence.payment_amount }} · Offer discount: ₹{{ order.offerData.payment_evidence.discount_amount }}</p>
+            <p>Offer IDs: {{ order.offerData.payment_evidence.offers.map(o => o.offer_id).join(', ') }}</p>
+            <p><strong>{{ order.offerData.offer_reimbursement ? 'Reimbursement journal linked' : 'Reimbursement unconfirmed' }}</strong> · {{ order.offerData.offer_funding?.provider || 'Funder unknown' }}</p>
+            <p>The discount is separate from commission. Do not treat it as earned margin or reduce a vendor payout without confirming the funding agreement.</p>
+            <button :disabled="busy" @click="run(async () => { details[order.name] = await call('cashfree.check_offer_settlement', { order: order.name }, true) })">Check offer settlement evidence</button>
+            <details v-if="!order.payment_entry && order.status !== 'Cancelled'">
+              <summary>Record confirmed third-party funding</summary>
+              <p>For direct merchant orders without marketplace GST only. Confirm the funder's written agreement before creating a receivable. Unknown funding remains under review.</p>
+              <label>Confirmed funder<input v-model="fundingForms[order.name].provider" maxlength="140" placeholder="Bank or offer provider"></label>
+              <label>Funding agreement / support reference<textarea v-model="fundingForms[order.name].evidence" maxlength="1000"></textarea></label>
+              <label>Separate offer receivable account<select v-model="fundingForms[order.name].account"><option value="">Select account</option><option v-for="account in offerAccounts(order)" :key="account.name">{{ account.name }}</option></select></label>
+              <button :disabled="busy" @click="run(() => call('cashfree.approve_offer_funding', { order: order.name, ...fundingForms[order.name] }, true))">Confirm documented funding</button>
+              <p>Then select Retry verification to post the customer payment and offer receivable separately.</p>
+            </details>
+            <details v-if="order.payment_entry && order.offerData.offer_funding">
+              <summary>Link received reimbursement</summary>
+              <p>Create a dedicated submitted journal in ERPNext: debit the actual bank, credit the offer receivable, enter the bank reference, and include this LC Order ID in remarks: {{ order.name }}. Partial payments and combined settlements require manual allocation review.</p>
+              <label>Submitted reimbursement journal<input v-model="reimbursements[order.name]" placeholder="ACC-JV-…"></label>
+              <button :disabled="busy" @click="run(() => call('cashfree.link_offer_reimbursement', { order: order.name, journal: reimbursements[order.name] }, true))">Validate and link reimbursement</button>
+            </details>
+          </section>
           <button :disabled="busy" @click="run(() => call('cashfree.verify', { order: order.name }, true))">Retry verification</button>
           <button :disabled="busy" @click="run(async () => { details[order.name] = await call('cashfree.settlements', { order: order.name }, true) })">Refunds & accounting entries</button>
           <button :disabled="busy" @click="run(async () => { details[order.name] = await call('cashfree.reconcile_settlement', { order: order.name }, true) })">Reconcile bank settlement</button>

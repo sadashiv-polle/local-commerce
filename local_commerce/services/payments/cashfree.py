@@ -14,7 +14,7 @@ import requests
 
 from local_commerce.permissions.scope import require_platform
 from local_commerce.services.owner import reject
-from local_commerce.services.payments.rules import money, split_amounts, successful_payment
+from local_commerce.services.payments.rules import money, split_amounts, successful_payment, payment_discount, require_offer_accounting
 
 SHOP_FIELDS = (
     "cashfree_enabled",
@@ -457,15 +457,33 @@ def sync(order, authorize=True):
         if doc.gateway_payment_id and doc.gateway_payment_id != payment_id:
             reject("Payment reference changed; administrator review required")
         doc.gateway_payment_id = payment_id
+        verified_payment = next(p for p in payments if str(p.get("cf_payment_id")) == payment_id and p.get("payment_status") == "SUCCESS")
+        discount = payment_discount(verified_payment)
+        data = json.loads(doc.get("gateway_accounting_json") or "{}")
+        previous_evidence = data.get("payment_evidence") or {}
+        if previous_evidence and (
+            money(previous_evidence["payment_amount"]) != money(verified_payment["payment_amount"])
+            or money(previous_evidence["discount_amount"]) != discount
+        ):
+            reject("Verified payment amounts changed; reconcile the previous receipt before updating")
+        data["payment_evidence"] = {
+            "payment_id": payment_id,
+            "order_amount": str(money(snap["amount"])),
+            "payment_amount": str(money(verified_payment["payment_amount"])),
+            "discount_amount": str(discount),
+            "currency": snap["currency"],
+            "offers": verified_payment.get("payment_offers") or [],
+        }
+        doc.gateway_accounting_json = json.dumps(data)
         from local_commerce.services.payments.refund_tracking import merge
         tracking = merge(doc.get("refund_tracking_json"), refunds, doc.gateway_order_id,
-                         payment_id, snap["currency"], snap["amount"], str(frappe.utils.now_datetime()))
+                         payment_id, snap["currency"], verified_payment["payment_amount"], str(frappe.utils.now_datetime()))
         doc.refund_tracking_json = json.dumps(tracking)
         doc.refund_attention = int(any(r["status"] in {"FAILED", "CANCELLED"} for r in tracking))
         from local_commerce.services.payments.reconciliation_rules import refunds_for_order
 
         verified_refunds = refunds_for_order(
-            refunds, doc.gateway_order_id, payment_id, snap["currency"], snap["amount"]
+            refunds, doc.gateway_order_id, payment_id, snap["currency"], verified_payment["payment_amount"]
         )
         refunded = sum((money(row["refund_amount"]) for row in verified_refunds.values()), money(0))
         refunded = max(refunded, money(doc.gateway_refunded_amount or 0))
@@ -473,7 +491,7 @@ def sync(order, authorize=True):
         observe(doc, refunds)
         doc.gateway_refunded_amount = float(refunded)
         if refunded:
-            doc.payment_status = "Refunded" if refunded >= money(snap["amount"]) else "Paid"
+            doc.payment_status = "Refunded" if refunded >= money(verified_payment["payment_amount"]) else "Paid"
             save(doc)
             frappe.db.savepoint("cashfree_refund_accounting")
             try:
@@ -499,6 +517,16 @@ def sync(order, authorize=True):
         if doc.payment_status != "Refunded":
             doc.payment_status = "Paid"
         save(doc)
+        if discount and not data.get("offer_funding"):
+            doc.gateway_accounting_error = (
+                "Customer payment verified: " + str(money(verified_payment["payment_amount"]))
+                + " " + snap["currency"] + "; Cashfree discount: " + str(discount)
+                + ". Offer reimbursement is unconfirmed. Review funding in Cashfree settings; do not collect again."
+            )
+            if doc.status == "Cancelled":
+                doc.gateway_accounting_error += " This cancelled order needs fulfilment or refund review."
+            save(doc)
+            return {"payment_status": doc.payment_status, "accounting_pending": True}
         # Persist receipt even if stock or bookkeeping needs manual attention.
         if not doc.payment_entry and doc.payment_status == "Paid":
             frappe.db.savepoint("cashfree_accounting")
@@ -536,6 +564,8 @@ def sync(order, authorize=True):
 
 
 def book_payment(doc):
+    from local_commerce.services.payments.rules import offer_receipt_allocation
+    allocation = offer_receipt_allocation(doc)
     from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
     from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 
@@ -582,6 +612,22 @@ def book_payment(doc):
             bank_account=snap["clearing_account"],
             reference_date=frappe.utils.nowdate(),
         )
+        if allocation:
+            from local_commerce.services.payments.accounting import account as validate_account
+            validate_account(allocation["account"], so.company, "Asset")
+            if payment.paid_from_account_currency != "INR" or payment.paid_to_account_currency != "INR":
+                reject("Offer accounting requires INR party and bank accounts")
+            if payment.get("deductions") or payment.get("taxes"):
+                reject("Existing payment deductions require manual offer accounting review")
+            payment.paid_amount = float(allocation["payment_amount"])
+            payment.received_amount = float(allocation["payment_amount"])
+            payment.append("deductions", {"account": allocation["account"],
+                "cost_center": frappe.db.get_value("LC Shop", doc.shop, "cost_center"),
+                "amount": float(allocation["discount_amount"])})
+            payment.custom_remarks = 1
+            payment.remarks = ("Cashfree customer payment " + allocation["payment_amount"]
+                + "; separately confirmed offer receivable " + allocation["discount_amount"]
+                + ". LC Order " + doc.name)
         payment.reference_no = doc.gateway_payment_id
         payment.reference_date = frappe.utils.nowdate()
         payment.mode_of_payment = snap["mode_of_payment"]
@@ -630,7 +676,10 @@ def prepare_cancellation(doc):
     remote = request(doc.gateway_profile, "GET", "/orders/" + doc.gateway_order_id, missing=True)
     snap = json.loads(doc.gateway_snapshot)
     if remote:
-        successful_payment(remote, [], doc.gateway_order_id, snap["amount"], snap["currency"])
+        attempts = request(doc.gateway_profile, "GET", "/orders/" + doc.gateway_order_id + "/payments")
+        verified = successful_payment(remote, attempts, doc.gateway_order_id, snap["amount"], snap["currency"])
+        if verified or any(p.get("payment_status") not in {"FAILED", "USER_DROPPED", "CANCELLED", "VOID"} for p in attempts):
+            reject("A successful or unresolved payment exists. Refresh payment status before cancellation")
     if remote and remote.get("order_status") not in {"EXPIRED", "TERMINATED"}:
         reject("The payment window is still open. Refresh payment status or wait for it to expire")
     return (doc.name, doc.gateway_profile, doc.gateway_order_id, doc.gateway_snapshot)
@@ -656,16 +705,23 @@ def reconcile_pending():
         order_by="modified asc",
         limit_page_length=20,
     )
-    for name in names:
+    cancelled = frappe.get_all(
+        "LC Order", filters={"payment_method": "Cashfree", "status": "Cancelled",
+            "payment_status": ["in", ["Pending", "Failed"]],
+            "creation": [">=", frappe.utils.add_days(frappe.utils.nowdate(), -30)]},
+        pluck="name", order_by="modified asc", limit_page_length=20,
+    )
+    for name in dict.fromkeys([*names, *cancelled]):
         try:
             sync(name, authorize=False)
             # Finish accounting and release its locks before another provider request.
             frappe.db.commit()
             doc = frappe.get_doc("LC Order", name)
-            if doc.payment_status == "Failed":
+            if doc.payment_status == "Failed" and doc.status == "Requested":
                 from local_commerce.services.orders import change
 
                 change(name, "Cancelled", "Cashfree payment window expired")
             frappe.db.commit()
         except Exception:
             frappe.db.rollback()
+            frappe.log_error(title="Cashfree scheduled verification failed", message=frappe.get_traceback())

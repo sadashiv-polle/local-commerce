@@ -71,7 +71,7 @@ def settlement_evidence(payload, snap, order_id, payment_id):
             or money(order.get("order_amount")) != money(snap["amount"])
             or str(payment.get("cf_payment_id")) != str(payment_id)
             or payment.get("payment_currency") != snap["currency"]
-            or money(payment.get("payment_amount")) != money(snap["amount"])
+            or money(payment.get("payment_amount")) != money(snap.get("payment_amount", snap["amount"]))
         ):
             raise ValueError("Settlement does not match the verified payment")
         if settled.get("status") != "SUCCESS":
@@ -82,7 +82,7 @@ def settlement_evidence(payload, snap, order_id, payment_id):
             raise ValueError("Postpaid or customer-paid charges require separate reconciliation")
         fee = money(payment["pg_service_charge"]) + money(payment["split_service_charge"])
         tax = money(payment["pg_service_tax"]) + money(payment["split_service_tax"])
-        gross, net = money(snap["amount"]), money(payment["settlement_amount"])
+        gross, net = money(snap.get("payment_amount", snap["amount"])), money(payment["settlement_amount"])
         reference, utr, date = (
             settled.get("cf_settlement_id"),
             settled.get("settlement_utr"),

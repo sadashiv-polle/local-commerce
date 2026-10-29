@@ -79,6 +79,8 @@ onMounted(() => {
     <p v-else-if="order.payment_status === 'Reconciled'">A payment receipt is recorded. Refresh payment status to verify it before delivery. Do not pay again.</p>
     <p v-else-if="order.payment_status === 'Refunded'">Your payment has been refunded.</p>
     <p v-else>Complete payment to confirm your order. The shop accepts it automatically after payment is verified.</p>
+    <p v-if="order.payment_offer">Customer payment: {{ order.payment_offer.currency }} {{ order.payment_offer.payment_amount }} · Checkout discount: {{ order.payment_offer.currency }} {{ order.payment_offer.discount_amount }}. The discount is not an extra amount you owe.</p>
+    <p v-if="order.status === 'Cancelled' && order.payment_status === 'Paid'">Payment verified for a cancelled order. Contact the shop for fulfilment or refund review. Do not pay again.</p>
     <p v-if="order.accounting_pending">Payment received; the shop is resolving an order processing issue.</p>
     <div class="button-row">
       <button v-if="customer && verified !== 'Paid' && ['Pending', 'Failed'].includes(order.payment_status) && order.status !== 'Cancelled'" :disabled="busy" class="lc-primary" @click="pay">Pay securely</button>

@@ -203,3 +203,21 @@ def webhook(**kwargs):
     # Every replay rechecks the provider; row locks and payment references prevent duplicates.
     cashfree.sync(order.name, authorize=False)
     return {"received": True}
+
+
+@frappe.whitelist(methods=["POST"])
+def check_offer_settlement(order):
+    from local_commerce.services.payments.offers import check_settlement
+    return check_settlement(order)
+
+
+@frappe.whitelist(methods=["POST"])
+def approve_offer_funding(order, provider, evidence, account):
+    from local_commerce.services.payments.offers import approve_funding
+    return approve_funding(order, provider, evidence, account)
+
+
+@frappe.whitelist(methods=["POST"])
+def link_offer_reimbursement(order, journal):
+    from local_commerce.services.payments.offers import link_reimbursement
+    return link_reimbursement(order, journal)

@@ -1,3 +1,4 @@
+from local_commerce.services.payments.rules import require_offer_accounting
 import ast
 import json
 from pathlib import Path
@@ -122,10 +123,11 @@ class ReturnWorkerTests(unittest.TestCase):
             payload=dict(refund_id='ret_fixed',refund_amount=100,refund_note='Local dot return ret_fixed',refund_speed='STANDARD'))
         self.doc=SimpleNamespace(name='order',gateway_profile='profile',gateway_order_id='remote',
             gateway_payment_id='payment',gateway_snapshot=json.dumps(dict(amount='100',currency='INR',settlement_mode='Direct merchant')))
+        self.doc.get = lambda key: getattr(self.doc, key, None)
         self.gateway.payment_order.return_value=self.doc
         self.gateway.locked.return_value=self.doc
         self.scope=dict(frappe=self.frappe,cashfree=self.gateway,json=json,
-            quote=lambda s,**k:s,refund_evidence=refund_evidence)
+            quote=lambda s,**k:s,refund_evidence=refund_evidence, require_offer_accounting=require_offer_accounting)
         tree=ast.parse(Path('local_commerce/services/returns.py').read_text())
         tree.body=[n for n in tree.body if isinstance(n,ast.FunctionDef)]
         exec(compile(tree,'returns.py','exec'),self.scope)
@@ -134,6 +136,13 @@ class ReturnWorkerTests(unittest.TestCase):
         self.scope['save']=Mock(side_effect=lambda doc,case,status:case.update(status=status))
         self.row=dict(refund_id='ret_fixed',cf_refund_id='provider',cf_payment_id='payment',order_id='remote',
             refund_currency='INR',refund_amount=100,refund_status='PENDING')
+
+    def test_discounted_payment_cannot_send_a_gross_refund(self):
+        self.doc.gateway_accounting_json = json.dumps({"payment_evidence": {
+            "payment_amount": "50.00", "discount_amount": "50.00"}})
+        self.scope['process']('order')
+        self.gateway.request.assert_not_called()
+        self.assertEqual(self.case['status'], 'Needs review')
 
     def test_creation_uses_persisted_id_payload_and_key(self):
         self.gateway.request.side_effect=[[],{},[self.row]]

@@ -1,5 +1,6 @@
 """One auditable return case per delivered order; durable, admin-approved refunds."""
 import json
+from local_commerce.services.payments.rules import require_offer_accounting
 from urllib.parse import quote
 import frappe
 from local_commerce.permissions.scope import require_platform, require_shop
@@ -87,6 +88,7 @@ def decide(order, decision, decision_note, kind='Full', amount=None, credit_note
         reject('COD and Manual UPI refunds need manual payment and accounting handling. Contact the administrator; no money has been sent.')
     if doc.status != 'Delivered' or not doc.gateway_payment_id or doc.payment_status != 'Paid':
         reject('A verified paid, delivered Cashfree order is required')
+    require_offer_accounting(doc)
     snap = json.loads(doc.gateway_snapshot)
     try:
         approved = approved_amount(kind, amount, snap['amount'], doc.gateway_refunded_amount)
@@ -143,6 +145,7 @@ def process(order):
         case = state(doc)
         if case.get('status') not in ('Refund queued', 'Refund processing'):
             return
+        require_offer_accounting(doc)
         snap = json.loads(doc.gateway_snapshot)
         snap['order_id'] = doc.gateway_order_id
         path = '/orders/' + quote(doc.gateway_order_id, safe='') + '/refunds'

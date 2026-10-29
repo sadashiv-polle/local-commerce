@@ -806,6 +806,7 @@ def authorize(doc, write=False):
 
 
 def serialize(doc):
+    from local_commerce.services.payments.offers import summary as offer_summary
     from local_commerce.services.returns import public as return_summary
     from local_commerce.services.manual_upi import reconciled_receipt_is_valid
 
@@ -910,6 +911,7 @@ def serialize(doc):
         "return_request": return_summary(doc),
         "refunded_amount": float(doc.get("gateway_refunded_amount") or 0),
         "accounting_pending": bool(doc.get("gateway_accounting_error")),
+        "payment_offer": offer_summary(doc),
         "upi": ({"id": doc.get("upi_id"), "qr": doc.get("upi_qr"),
                  "proof": doc.get("upi_proof"), "note": doc.get("upi_review_note"),
                  "reference": doc.get("upi_reference"),

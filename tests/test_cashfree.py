@@ -67,8 +67,39 @@ class CashfreeRulesTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             successful_payment({**remote, "order_id": "other"}, [success], "lc_order", 350, "INR")
 
+    def test_verified_discount_and_cashback_are_distinct(self):
+        remote = dict(order_id="order", order_currency="INR", order_amount=210, order_status="PAID")
+        offer = dict(offer_id="offer", offer_type="DISCOUNT", offer_redemption=dict(
+            redemption_status="SUCCESS", discount_amount=50, cashback_amount=0))
+        payment = dict(cf_payment_id="42", payment_status="SUCCESS", payment_currency="INR",
+            payment_amount=160, order_id="order", order_amount=210, order_currency="INR", is_captured=True,
+            payment_offers=[offer])
+        self.assertEqual(successful_payment(remote, [payment], "order", 210, "INR"), "42")
+        for offers in [[], [offer, offer], [{**offer, "offer_type": "CASHBACK"}],
+            [{**offer, "offer_redemption": dict(redemption_status="FAILED", discount_amount=50)}]]:
+            with self.assertRaises(ValueError):
+                successful_payment(remote, [{**payment, "payment_offers": offers}], "order", 210, "INR")
+        for change in [dict(order_id="other"), dict(is_captured=False), dict(payment_amount=159)]:
+            with self.assertRaises(ValueError):
+                successful_payment(remote, [{**payment, **change}], "order", 210, "INR")
+
 
 class CashfreeSyncTests(unittest.TestCase):
+    def test_discounted_success_is_preserved_without_gross_cash_posting(self):
+        self.payments[0].update(order_id="lc_order", order_amount=350, order_currency="INR", is_captured=True)
+        self.payments[0]["payment_amount"] = 300
+        self.payments[0]["payment_offers"] = [dict(offer_id="offer", offer_type="DISCOUNT",
+            offer_redemption=dict(redemption_status="SUCCESS", discount_amount=50))]
+        result = self.service.sync("order")
+        self.assertEqual(result, {"payment_status": "Paid", "accounting_pending": True})
+        self.service.book_payment.assert_not_called()
+        evidence = json.loads(self.doc.gateway_accounting_json)["payment_evidence"]
+        self.assertEqual(evidence["payment_amount"], "300.00")
+        self.assertEqual(evidence["discount_amount"], "50.00")
+        from local_commerce.services.payments.rules import require_offer_accounting
+        with self.assertRaises(ValueError):
+            require_offer_accounting(self.doc)
+
     def setUp(self):
         self.frappe = Mock()
         self.orders = Mock()
@@ -424,6 +455,7 @@ class CashfreeSyncTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.service.prepare_cancellation(self.doc)
         self.remote["order_status"] = "EXPIRED"
+        self.payments = []
         evidence = self.service.prepare_cancellation(self.doc)
         self.service.request.reset_mock()
         self.service.ensure_cancellable(self.doc, evidence)
@@ -530,6 +562,7 @@ class CashfreeSyncTests(unittest.TestCase):
 
     def test_cancellation_rechecks_payment_after_preflight(self):
         self.remote["order_status"] = "EXPIRED"
+        self.payments = []
         evidence = self.service.prepare_cancellation(self.doc)
         self.doc.payment_status = "Paid"
         with self.assertRaisesRegex(ValueError, "refund"):
