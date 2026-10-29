@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import math
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -44,7 +45,7 @@ def road_route(origin, destination, navigation=False):
     endpoint = _endpoint()
     signature = "|".join(
         [
-            endpoint + (":navigation-v1" if navigation else ""),
+            endpoint + (":navigation-shortest-v2" if navigation else ""),
             f"{start['latitude']:.5f},{start['longitude']:.5f}",
             f"{finish['latitude']:.5f},{finish['longitude']:.5f}",
         ]
@@ -63,9 +64,10 @@ def road_route(origin, destination, navigation=False):
                 f"{start['longitude']},{start['latitude']};"
                 f"{finish['longitude']},{finish['latitude']}"
             )
-            url = f"{endpoint}/{coordinates}?" + urlencode(
-                {"overview": "full" if navigation else "simplified", "geometries": "geojson", "steps": "true" if navigation else "false"}
-            )
+            options = {"overview": "full" if navigation else "simplified", "geometries": "geojson", "steps": "true" if navigation else "false"}
+            if navigation:
+                options["alternatives"] = "true"
+            url = f"{endpoint}/{coordinates}?" + urlencode(options)
             request = Request(
                 url,
                 headers={
@@ -84,7 +86,7 @@ def road_route(origin, destination, navigation=False):
             routes = payload.get("routes")
             if payload.get("code") != "Ok" or not isinstance(routes, list) or not routes:
                 raise ValueError("No delivery route found")
-            selected = routes[0]
+            selected = _shortest_route(routes) if navigation else routes[0]
             geometry = selected.get("geometry") if isinstance(selected, dict) else None
             result = {
                 "points": _coordinates(geometry.get("coordinates") if geometry else None),
@@ -94,6 +96,7 @@ def road_route(origin, destination, navigation=False):
                 "attribution_url": "https://project-osrm.org/",
             }
             if navigation:
+                result["route_preference"] = "shortest_available"
                 result["steps"] = [
                     {"type": step.get("maneuver", {}).get("type", "continue"),
                      "modifier": step.get("maneuver", {}).get("modifier", ""),
@@ -102,12 +105,31 @@ def road_route(origin, destination, navigation=False):
                      "points": _coordinates(step.get("geometry", {}).get("coordinates"))}
                     for leg in selected.get("legs", []) for step in leg.get("steps", [])
                 ]
-            frappe.cache.set_value(cache_key, result, expires_in_sec=86400)
+            frappe.cache.set_value(cache_key, result, expires_in_sec=60 if navigation else 86400)
             return result
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, TypeError, ValueError):
         reject("Road route is temporarily unavailable. You can still open navigation")
     except LockError:
         reject("Road route is busy. Please wait a moment and try again")
+
+
+def _shortest_route(routes):
+    """OSRM ranks by time; prefer distance among its returned driving alternatives."""
+    candidates = []
+    for route in routes:
+        if not isinstance(route, dict):
+            continue
+        try:
+            distance, duration = float(route["distance"]), float(route["duration"])
+            if not all(math.isfinite(value) and value >= 0 for value in (distance, duration)):
+                continue
+            _coordinates(route.get("geometry", {}).get("coordinates"))
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue
+        candidates.append((distance, duration, route))
+    if not candidates:
+        raise ValueError("No valid driving route found")
+    return min(candidates, key=lambda candidate: candidate[:2])[2]
 
 
 def batch_route(origin, destinations):

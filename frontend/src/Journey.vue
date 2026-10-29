@@ -23,6 +23,7 @@ const instruction = computed(() => {
 async function getRoute() {
   if (pending.value || !location.value || closed || !latest || Date.now() - latest.timestamp > 15000 || latest.coords.accuracy > 100) return
   pending.value = true; lastRoute.value = Date.now(); routeError.value = ''
+  message.value = route.value ? 'Rerouting from your current location…' : 'Finding the shortest available driving route…'
   try {
     const result = await call('orders.journey_route', { order: props.order.name, ...location.value })
     if (!closed) { route.value = result; step.value = 0; shouldReroute = createRerouteGuard(); message.value = '' }
@@ -43,7 +44,7 @@ function tick() {
     if (!previous || metres(previous, location.value) >= 5) trail.value = [...trail.value.slice(-1999), location.value]
   }
   if (!route.value) { if (now.value - lastRoute.value >= 5000) getRoute(); return }
-  message.value = pending.value ? 'Updating route…' : ''
+  message.value = pending.value ? 'Rerouting from your current location…' : ''
   const steps = route.value.steps || []
   // Search the current and following segment only, avoiding jumps at crossing roads.
   let nearest = Infinity, index = step.value
@@ -78,7 +79,7 @@ onBeforeUnmount(() => { closed = true; if (watchId != null) navigator.geolocatio
     <p v-if="message" role="status">{{ message }}</p>
     <p v-if="routeError" role="alert">{{ routeError }} Retrying automatically when needed.</p>
     <MapView navigation :heading="heading" :trail="trail" :config="order.map" :points="points" :route="route?.points || []" :follow="location" preserve-view hide-expand height="calc(100dvh - 240px)" />
-    <footer><span>Green line: your travelled path. Blue line: directions. GPS view refreshes every second. Keep this screen open; follow road signs.</span><small v-if="route">{{ route.attribution }}</small><button type="button" :disabled="pending || !location || now - lastRoute < 5000" @click="getRoute">Refresh route</button></footer>
+    <footer><strong v-if="route?.route_preference">Shortest available driving route · {{ route.distance_km }} km at last update</strong><span>Green line: your travelled path. Blue line: directions. GPS view refreshes every second. Keep this screen open; follow road signs.</span><small v-if="route">{{ route.attribution }}</small><button type="button" :disabled="pending || !location || now - lastRoute < 5000" @click="getRoute">Refresh route</button></footer>
   </section>
 </template>
 <style scoped>
