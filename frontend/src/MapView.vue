@@ -1,5 +1,6 @@
 <script setup>
 import L from 'leaflet'
+import '@tomickigrzegorz/leaflet-rotate'
 import 'leaflet/dist/leaflet.css'
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
@@ -10,6 +11,8 @@ const props = defineProps({
   route: { type: Array, default: () => [] },
   trail: { type: Array, default: () => [] },
   editable: Boolean,
+  navigation: Boolean,
+  heading: { type: Number, default: null },
   preserveView: Boolean,
   follow: { type: Object, default: null },
   hideExpand: Boolean,
@@ -27,6 +30,7 @@ let fitted = false
 let updatingView = false
 let followed = false
 const followPaused = ref(false)
+const headingUp = ref(true)
 let renderedRoute = null
 const markers = new Map()
 
@@ -57,28 +61,33 @@ function renderPoints() {
     const key = `${point.kind || 'customer'}:${index}`
     activeMarkers.add(key)
     const [symbol, className] = markerStyles[point.kind] || markerStyles.customer
+    const arrow = props.navigation && point.kind === 'rider'
     const selected = props.editable && (point.kind === 'customer' || props.points.length === 1)
     let marker = markers.get(key)
     if (!marker) {
       marker = L.marker([latitude, longitude], {
         icon: L.divIcon({
-          className: `map-marker ${className}${selected ? ' map-marker-selected' : ''}`,
-          html: `<span class="map-pin-pulse" aria-hidden="true"></span><span class="map-pin-body" aria-hidden="true">${symbol}</span>`,
+          className: `map-marker ${arrow ? 'navigation-arrow' : className}${selected ? ' map-marker-selected' : ''}`,
+          html: arrow ? '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 35 35 20 28 5 35Z" fill="#2169d5" stroke="white" stroke-width="3" /></svg>' : `<span class="map-pin-pulse" aria-hidden="true"></span><span class="map-pin-body" aria-hidden="true">${symbol}</span>`,
           iconSize: [50, 58],
-          iconAnchor: [25, 55],
+          iconAnchor: arrow ? [25, 29] : [25, 55],
         }),
+        rotation: arrow ? (props.heading ?? 0) : 0,
+        rotateWithView: arrow,
         keyboard: false,
         zIndexOffset: point.kind === 'rider' ? 1000 : 0,
         title: String(point.label || 'Map location').slice(0, 100),
       }).addTo(layer)
       markers.set(key, marker)
     } else marker.setLatLng([latitude, longitude])
+    if (arrow) { marker.options.rotation = props.heading ?? 0; marker.update() }
     bounds.push([latitude, longitude])
   }
   for (const [key, marker] of markers) {
     if (!activeMarkers.has(key)) { layer.removeLayer(marker); markers.delete(key) }
   }
   updatingView = true
+  if (props.navigation && headingUp.value && !followPaused.value && Number.isFinite(props.heading)) map.setHeading(props.heading)
   if (props.follow) {
     if (!followPaused.value) {
       map.setView([props.follow.latitude, props.follow.longitude], followed ? map.getZoom() : 17, { animate: false })
@@ -94,7 +103,18 @@ function renderPoints() {
 }
 
 function pauseFollow() {
-  if (props.follow && !updatingView) followPaused.value = true
+  if (props.follow && !updatingView) { followPaused.value = true; if (props.navigation) map.stopHeadingUp() }
+}
+
+function northUp() {
+  headingUp.value = false
+  map.stopHeadingUp()
+  map.setBearing(0)
+}
+
+function realign() {
+  headingUp.value = true
+  resumeFollow()
 }
 
 function resumeFollow() {
@@ -134,13 +154,13 @@ function choosePlace(place) {
 
 onMounted(async () => {
   await nextTick()
-  map = L.map(container.value, { zoomControl: true, attributionControl: false })
+  map = L.map(container.value, { zoomControl: true, attributionControl: false, rotate: props.navigation, touchRotate: props.navigation, dragRotate: props.navigation, shiftKeyRotate: props.navigation, rotateControl: false })
   L.tileLayer(props.config?.tile_url || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map)
   trailLayer = L.polyline([], { color: '#176448', weight: 5, opacity: .85 }).addTo(map)
   trailLayer.setLatLngs(props.trail.map(point => [point.latitude, point.longitude]))
   routeLayer = L.layerGroup().addTo(map)
   layer = L.layerGroup().addTo(map)
-  map.on('dragstart zoomstart', pauseFollow)
+  map.on('dragstart zoomstart rotatestart', pauseFollow)
   map.on('click', event => {
     if (props.editable) emit('pick', { latitude: Number(event.latlng.lat.toFixed(6)), longitude: Number(event.latlng.lng.toFixed(6)) })
   })
@@ -149,7 +169,7 @@ onMounted(async () => {
   window.addEventListener('keydown', closeExpanded)
 })
 
-watch([() => props.points, () => props.route, () => props.follow], renderPoints, { deep: true })
+watch([() => props.points, () => props.route, () => props.follow, () => props.heading], renderPoints, { deep: true })
 watch(() => props.trail, points => trailLayer?.setLatLngs(points.map(point => [point.latitude, point.longitude])))
 watch(() => props.editable, () => { searchResults.value = []; searchError.value = '' })
 onBeforeUnmount(() => { window.removeEventListener('keydown', closeExpanded); map?.remove(); map = null; layer = null; routeLayer = null; markers.clear() })
@@ -174,7 +194,14 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', closeExpanded); ma
       <svg v-if="expanded" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
       <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" /></svg>
     </button>
-    <button v-if="follow && followPaused" type="button" @click="resumeFollow">Follow my location</button>
+    <div v-if="navigation" class="navigation-map-controls"><button type="button" :disabled="!follow" @click="resumeFollow">Recenter</button><button type="button" @click="northUp">Compass · North up</button><button type="button" :disabled="!follow || heading === null" :aria-pressed="headingUp && !followPaused" @click="realign">Direction of travel</button><small>{{ heading === null ? 'Move to find your heading.' : 'Use two fingers to rotate the map.' }}</small></div>
+    <button v-if="!navigation && follow && followPaused" type="button" @click="resumeFollow">Follow my location</button>
     <footer><span v-if="editable">Tap the map to move the pin.</span><small><a :href="config?.attribution_url || 'https://www.openstreetmap.org/copyright'" target="_blank" rel="noopener">{{ config?.attribution || '© OpenStreetMap contributors' }}</a></small></footer>
   </div>
 </template>
+
+<style>
+.navigation-arrow svg { width: 50px; height: 58px; filter: drop-shadow(0 2px 3px #16345055); }
+.navigation-map-controls { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; background: white; }
+.navigation-map-controls small { width: 100%; color: #526658; }
+</style>

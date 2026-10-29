@@ -2,11 +2,13 @@
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import MapView from './MapView.vue'
 import { call } from './api.js'
-import { metres, segmentDistance, createRerouteGuard } from './journey-navigation.js'
+import { metres, segmentDistance, createRerouteGuard, travelHeading } from './journey-navigation.js'
 const props = defineProps({ order: { type: Object, required: true } })
 const emit = defineEmits(['close'])
 const location = ref(null), route = ref(null), message = ref('Finding your precise location…'), step = ref(0), distance = ref(0)
 const now = ref(Date.now()), lastRoute = ref(0), pending = ref(false), routeError = ref(''), trail = ref([])
+const heading = ref(null)
+let headingFix
 let watchId, timer, latest, wake, closed = false, lastTrailTimestamp = null
 let shouldReroute = createRerouteGuard()
 const target = computed(() => props.order.status === 'Ready' ? props.order.shop_location : props.order.destination_location)
@@ -32,6 +34,8 @@ function tick() {
   if (!latest || closed) return
   if (Date.now() - latest.timestamp > 15000) { message.value = 'GPS signal lost. Waiting for a fresh location…'; return }
   if (latest.coords.accuracy > 100) { message.value = 'Waiting for precise GPS. Move outdoors if possible.'; return }
+  heading.value = travelHeading(headingFix, latest, heading.value)
+  if (!headingFix || metres(headingFix.coords, latest.coords) >= Math.max(8, latest.coords.accuracy, headingFix.coords.accuracy)) headingFix = latest
   location.value = { latitude: latest.coords.latitude, longitude: latest.coords.longitude }
   if (latest.timestamp !== lastTrailTimestamp) {
     lastTrailTimestamp = latest.timestamp
@@ -73,7 +77,7 @@ onBeforeUnmount(() => { closed = true; if (watchId != null) navigator.geolocatio
     <header><div><small>{{ order.status === 'Ready' ? 'JOURNEY TO SHOP' : 'JOURNEY TO CUSTOMER' }}</small><h2>{{ instruction }}</h2><strong v-if="route">{{ distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance} m` }} approximately to next direction</strong></div><button type="button" autofocus @click="emit('close')">End journey</button></header>
     <p v-if="message" role="status">{{ message }}</p>
     <p v-if="routeError" role="alert">{{ routeError }} Retrying automatically when needed.</p>
-    <MapView :trail="trail" :config="order.map" :points="points" :route="route?.points || []" :follow="location" preserve-view hide-expand height="calc(100dvh - 240px)" />
+    <MapView navigation :heading="heading" :trail="trail" :config="order.map" :points="points" :route="route?.points || []" :follow="location" preserve-view hide-expand height="calc(100dvh - 240px)" />
     <footer><span>Green line: your travelled path. Blue line: directions. GPS view refreshes every second. Keep this screen open; follow road signs.</span><small v-if="route">{{ route.attribution }}</small><button type="button" :disabled="pending || !location || now - lastRoute < 5000" @click="getRoute">Refresh route</button></footer>
   </section>
 </template>

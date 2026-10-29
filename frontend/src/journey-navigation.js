@@ -28,3 +28,16 @@ export function createRerouteGuard() {
     return misses >= 2 && now - lastRequest >= 5000
   }
 }
+
+// Prefer GPS course; infer only from distinct fixes with movement beyond GPS noise.
+export function travelHeading(previous, current, lastHeading = null) {
+  const c = current.coords
+  if (Number.isFinite(c.heading) && c.heading >= 0 && c.heading < 360 && (!Number.isFinite(c.speed) || c.speed > 0.5)) return c.heading
+  if (!previous || current.timestamp <= previous.timestamp) return lastHeading
+  const a = previous.coords, b = c
+  const from = { latitude: a.latitude, longitude: a.longitude }
+  const to = { latitude: b.latitude, longitude: b.longitude }
+  if (metres(from, to) < Math.max(8, a.accuracy || 0, b.accuracy || 0)) return lastHeading
+  const rad = Math.PI / 180, delta = (b.longitude - a.longitude) * rad
+  return (Math.atan2(Math.sin(delta) * Math.cos(b.latitude * rad), Math.cos(a.latitude * rad) * Math.sin(b.latitude * rad) - Math.sin(a.latitude * rad) * Math.cos(b.latitude * rad) * Math.cos(delta)) / rad + 360) % 360
+}
