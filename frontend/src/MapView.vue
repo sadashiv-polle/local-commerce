@@ -24,6 +24,9 @@ let layer
 let trailLayer
 let routeLayer
 let fitted = false
+let updatingView = false
+let followed = false
+const followPaused = ref(false)
 let renderedRoute = null
 const markers = new Map()
 
@@ -75,14 +78,28 @@ function renderPoints() {
   for (const [key, marker] of markers) {
     if (!activeMarkers.has(key)) { layer.removeLayer(marker); markers.delete(key) }
   }
+  updatingView = true
   if (props.follow) {
-    map.setView([props.follow.latitude, props.follow.longitude], 17, { animate: false })
+    if (!followPaused.value) {
+      map.setView([props.follow.latitude, props.follow.longitude], followed ? map.getZoom() : 17, { animate: false })
+      followed = true
+    }
   } else if (!props.preserveView || !fitted) {
     if (bounds.length === 1) map.setView(bounds[0], 15)
     else if (bounds.length > 1) map.fitBounds(bounds, { padding: [38, 38], maxZoom: 16 })
     else map.setView([15.49, 73.83], 11)
     fitted = bounds.length > 0
   }
+  updatingView = false
+}
+
+function pauseFollow() {
+  if (props.follow && !updatingView) followPaused.value = true
+}
+
+function resumeFollow() {
+  followPaused.value = false
+  renderPoints()
 }
 
 async function toggleExpanded() {
@@ -123,6 +140,7 @@ onMounted(async () => {
   trailLayer.setLatLngs(props.trail.map(point => [point.latitude, point.longitude]))
   routeLayer = L.layerGroup().addTo(map)
   layer = L.layerGroup().addTo(map)
+  map.on('dragstart zoomstart', pauseFollow)
   map.on('click', event => {
     if (props.editable) emit('pick', { latitude: Number(event.latlng.lat.toFixed(6)), longitude: Number(event.latlng.lng.toFixed(6)) })
   })
@@ -156,6 +174,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', closeExpanded); ma
       <svg v-if="expanded" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
       <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" /></svg>
     </button>
+    <button v-if="follow && followPaused" type="button" @click="resumeFollow">Follow my location</button>
     <footer><span v-if="editable">Tap the map to move the pin.</span><small><a :href="config?.attribution_url || 'https://www.openstreetmap.org/copyright'" target="_blank" rel="noopener">{{ config?.attribution || '© OpenStreetMap contributors' }}</a></small></footer>
   </div>
 </template>
