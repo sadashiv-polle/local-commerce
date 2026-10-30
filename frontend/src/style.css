@@ -477,16 +477,20 @@ html { scroll-behavior: smooth; }
 #lc-app .cash-heading h2 { margin: 7px 0 2px; font-size: 32px; }
 #lc-app .cash-heading p { margin: 0; color: #718073; }
 #lc-app .cash-tabs { display: flex; gap: 7px; padding: 5px; margin-bottom: 18px; border-radius: 12px; background: #eef2e9; }
-#lc-app .cash-tabs button { flex: 1; border: 0; background: transparent; }
+#lc-app .cash-tabs button { flex: 1; min-width: 0; white-space: normal; border: 0; background: transparent; }
 #lc-app .cash-tabs button[aria-selected=true] { color: #176547; background: white; box-shadow: 0 2px 8px #193c3610; font-weight: 750; }
 #lc-app .cash-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 18px; }
 #lc-app .cash-totals article { display: flex; flex-direction: column; padding: 20px; border: 1px solid #dce5cf; border-radius: 15px; background: #f0f5e5; }
 #lc-app .cash-totals span { color: #6f7b63; font-size: 9px; letter-spacing: 1.2px; font-weight: 750; }
 #lc-app .cash-totals strong { margin: 5px 0; font-size: 30px; }
 #lc-app .cash-totals small { color: #77816f; }
-#lc-app .cash-list { display: grid; gap: 16px; }
-#lc-app .cash-card { padding: 22px; border: 1px solid var(--lc-line); border-radius: 17px; background: white; box-shadow: 0 5px 20px #193c3608; }
-#lc-app .cash-card > header { display: flex; align-items: start; justify-content: space-between; gap: 15px; }
+#lc-app .cash-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+#lc-app .cash-card { min-width: 0; overflow-wrap: anywhere; padding: 22px; border: 1px solid var(--lc-line); border-radius: 17px; background: white; box-shadow: 0 5px 20px #193c3608; }
+#lc-app .cash-card > header { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 15px; }
+#lc-app .cash-card > header > div { min-width: 0; flex: 1 1 140px; }
+#lc-app .cash-card > header .status-pill { max-width: 100%; white-space: normal; }
+#lc-app .cash-page .payment-dialog { overflow-wrap: anywhere; }
+#lc-app .cash-card > footer button { min-width: 0; white-space: normal; }
 #lc-app .cash-card h3 { margin: 5px 0 0; }
 #lc-app .cash-card header p { margin: 0; color: #79847b; font-size: 12px; }
 #lc-app .cash-amounts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }

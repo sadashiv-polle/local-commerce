@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
+import OrderReference from './OrderReference.vue'
 
 const props = defineProps({ shop: { type: String, required: true }, editable: Boolean })
 const collections = ref([]), view = ref('pending'), start = ref(0)
@@ -54,7 +55,8 @@ onMounted(load)
     <div v-else-if="!collections.length" class="lc-empty cash-empty"><div aria-hidden="true">✓</div><h3>{{ view === 'pending' ? 'No cash waiting' : 'No reconciliation history yet' }}</h3><p>{{ view === 'pending' ? 'All recorded rider cash has been handed over.' : 'Completed handovers will appear here.' }}</p></div>
     <div v-else class="cash-list">
       <article v-for="row in collections" :key="row.name" class="cash-card">
-        <header><div><span class="eyebrow">{{ row.order }}</span><h3>{{ row.delivery_name }}</h3><p>{{ when(row.collected_at) }}</p></div><span class="status-pill">{{ row.status }}</span></header>
+        <header><div><h3>{{ row.delivery_name }}</h3><p>{{ when(row.collected_at) }}</p></div><span class="status-pill">{{ row.status }}</span></header>
+        <OrderReference :order-id="row.order" />
         <p v-if="row.status === 'Difference Pending'" class="variance-note shortage">Cash handover recorded. An administrator must settle the invoice balance or resolve the customer credit in ERPNext, then check again. This will not create a second receipt.</p><dl class="cash-amounts"><div><dt>Expected</dt><dd>{{ money(row.expected_amount, row.currency) }}</dd></div><div><dt>Rider received</dt><dd>{{ money(row.collected_amount, row.currency) }}</dd></div><div :class="{ variance: row.variance }"><dt>Difference</dt><dd>{{ row.variance > 0 ? '+' : '' }}{{ money(row.variance, row.currency) }}</dd></div></dl>
         <p v-if="row.driver_note" class="cash-note"><strong>Rider note</strong>{{ row.driver_note }}</p>
         <p v-if="row.owner_note" class="cash-note"><strong>Owner note</strong>{{ row.owner_note }}</p>
@@ -66,7 +68,7 @@ onMounted(load)
 
     <dialog ref="reconcileDialog" class="payment-dialog" aria-labelledby="reconcile-title">
       <div class="cash-symbol" aria-hidden="true">✓</div><span class="eyebrow">OWNER CONFIRMATION</span><h2 id="reconcile-title">{{ selected?.status === 'Difference Pending' ? 'Check accounting balance' : 'Confirm cash handover' }}</h2>
-      <template v-if="selected"><p v-if="selected.status === 'Difference Pending'">Recheck the invoice balance after the administrator records the missing payment, an approved write-off, or resolves the customer credit in ERPNext.</p><p v-else>You are confirming receipt of <strong>{{ money(selected.collected_amount, selected.currency) }}</strong> from {{ selected.delivery_name }} for {{ selected.order }}.</p><p v-if="selected.variance" class="variance-note" :class="{ shortage: selected.variance < 0 }">Cash difference: {{ selected.variance > 0 ? '+' : '' }}{{ money(selected.variance, selected.currency) }}</p></template>
+      <template v-if="selected"><p v-if="selected.status === 'Difference Pending'">Recheck the invoice balance after the administrator records the missing payment, an approved write-off, or resolves the customer credit in ERPNext.</p><p v-else>You are confirming receipt of <strong>{{ money(selected.collected_amount, selected.currency) }}</strong> from {{ selected.delivery_name }}.</p><OrderReference :order-id="selected.order" /><p v-if="selected.variance" class="variance-note" :class="{ shortage: selected.variance < 0 }">Cash difference: {{ selected.variance > 0 ? '+' : '' }}{{ money(selected.variance, selected.currency) }}</p></template>
       <label class="cash-field">Reconciliation note <small>{{ selected?.variance ? 'Required for a cash difference' : 'Optional' }}</small><textarea v-model="ownerNote" maxlength="500" placeholder="Add handover details"></textarea></label>
       <p v-if="dialogError" class="lc-notice" role="alert">{{ dialogError }}</p>
       <p class="muted">This creates the ERPNext Payment Entry and keeps an audit record. The action cannot be undone here.</p>
