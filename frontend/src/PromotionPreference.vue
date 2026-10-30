@@ -19,7 +19,7 @@ async function update(event) {
   <section class="lc-panel">
     <h2>Product updates & offers</h2>
     <label><input type="checkbox" :checked="enabled" :disabled="busy" @change="update"> Send me promotional notifications</label>
-    <p>Enabling app notifications includes shop and product updates, once a day while a shop is open. Turn this off any time. Your order and delivery alerts stay on.</p>
+    <p>Enabling app notifications includes shop and product updates, up to five automatic suggestions a day, at least 2½ hours apart, plus shop campaigns during opening hours. Turn this off any time. Your order and delivery alerts stay on.</p>
     <p>To receive these on your phone, also enable the app’s phone notifications.</p>
     <p v-if="error" role="alert">{{ error }}</p>
   </section>

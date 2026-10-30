@@ -1,6 +1,7 @@
 """Explicitly approved promotional campaigns, separate from transactional alerts."""
 import json
 import hashlib
+from datetime import timedelta
 from contextvars import ContextVar
 from urllib.parse import quote
 
@@ -171,11 +172,7 @@ def process_one(name):
             break
         # Serialize campaigns for the same user so concurrent workers respect the cap.
         frappe.db.sql("select name from tabUser where name=%s for update", (account,))
-        recent = frappe.db.count("LC Notification", {
-            "recipient_user": account, "campaign": ["is", "set"], "campaign_test": 0,
-            "creation": [">=", now.replace(hour=0, minute=0, second=0, microsecond=0)],
-        })
-        if allowed(account) and (frappe.conf.get("lc_campaign_unlimited_testing") == 1 or recent < 1):
+        if allowed(account):
             _notify(doc, account)
             queued += 1
         else:
@@ -211,11 +208,19 @@ def wording_history(shop, item=""):
                           order_by="creation desc, name desc", limit_page_length=0)
 
 
-def daily_count(account, now):
-    return frappe.db.count("LC Notification", {
-        "recipient_user": account, "campaign": ["is", "set"], "campaign_test": 0,
-        "creation": [">=", now.replace(hour=0, minute=0, second=0, microsecond=0)],
-    })
+def automatic_due(account, now):
+    rows = frappe.db.sql("""
+        select count(case when n.creation >= %s then 1 end) as today_count,
+               max(n.creation) as last_sent
+        from `tabLC Notification` n
+        inner join `tabLC Campaign` c on c.name = n.campaign
+        where n.recipient_user = %s and n.campaign_test = 0
+          and c.automatic_key is not null and c.automatic_key != ''
+    """, (now.replace(hour=0, minute=0, second=0, microsecond=0), account), as_dict=True)
+    row = rows[0]
+    return int(row.today_count or 0) < 5 and (
+        not row.last_sent or now - get_datetime(row.last_sent) >= timedelta(minutes=150)
+    )
 
 
 def daily_wording(product, shop_name, day):
@@ -237,7 +242,7 @@ def daily_wording(product, shop_name, day):
 
 
 def process_daily():
-    """One daily attempt per eligible customer across all shops; never bypassed by test mode."""
+    """Up to five automatic attempts daily, at least 150 minutes apart across shops."""
     from local_commerce.services.orders import public_product
     from local_commerce.services.stock_alerts import restocked
 
@@ -245,7 +250,9 @@ def process_daily():
     shops = frappe.get_all("LC Shop", filters={"status": "Active"}, pluck="name", order_by="name asc", limit_page_length=0)
     if not shops:
         return
-    offset = now.date().toordinal() % len(shops)
+    slot = (now.hour * 60 + now.minute) // 150
+    rotation = now.date().toordinal() + slot
+    offset = rotation % len(shops)
     for shop in shops[offset:] + shops[:offset]:
         try:
             # Serialize daily campaign creation for this shop.
@@ -258,7 +265,7 @@ def process_daily():
             if not items:
                 frappe.db.commit()
                 continue
-            shift = now.date().toordinal() % len(items)
+            shift = rotation % len(items)
             product = None
             for item in items[shift:] + items[:shift]:
                 try:
@@ -271,10 +278,10 @@ def process_daily():
             if not product:
                 frappe.db.commit()
                 continue
-            key = hashlib.sha256(f"{now.date()}:{shop}".encode()).hexdigest()
+            key = hashlib.sha256(f"{now.date()}:{slot}:{shop}".encode()).hexdigest()
             name = frappe.db.get_value("LC Campaign", {"automatic_key": key}, "name")
             if not name:
-                title, message = daily_wording(product, frappe.db.get_value("LC Shop", shop, "shop_name"), now.date().toordinal())
+                title, message = daily_wording(product, frappe.db.get_value("LC Shop", shop, "shop_name"), rotation)
                 token = _operation.set(True)
                 try:
                     campaign = frappe.get_doc({"doctype": "LC Campaign", "shop": shop, "item": item,
@@ -298,7 +305,7 @@ def process_daily():
                 if not shop_is_open(shop):
                     break
                 frappe.db.sql("select name from tabUser where name=%s for update", (account,))
-                if allowed(account) and not daily_count(account, now):
+                if allowed(account) and automatic_due(account, now):
                     _notify(campaign, account)
                     sent += 1
                 if sent >= 100:

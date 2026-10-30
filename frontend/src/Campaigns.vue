@@ -58,7 +58,7 @@ onMounted(() => action(async () => { shops.value = (await call('campaigns.option
 <template>
   <section class="campaign-page">
     <h2>Promotional campaigns</h2>
-    <p>Customers who allow promotions receive one daily product suggestion while a shop is open. Approved campaigns count toward that daily limit. Automatic suggestions use available products; shops need opening hours configured.</p>
+    <p>Customers who allow promotions receive up to five automatic product suggestions per day, at least 2½ hours apart while shops are open. Manual campaigns have no frequency limit. Automatic suggestions use available products; shops need opening hours configured.</p>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <form class="admin-card campaign-form" @submit.prevent="save">

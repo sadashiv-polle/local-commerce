@@ -1,32 +1,23 @@
 # Promotional campaigns
 
-Administrators use Admin → Campaigns to choose a shop/product, draft and preview a message, save it, test on their own account, and send or schedule. Customer sends require confirmation. Suggest wording uses a fixed product-name template; no AI provider is configured. Images, audience segments and purchase attribution are not included in this first version.
+Admin → Campaigns supports product/shop drafts, previews, test-to-self, manual sends and scheduling. Suggested wording uses category templates and saved wording history; no external AI provider is configured.
 
-Enabling app notifications includes promotions, as explained in the permission prompt. Existing enabled push subscriptions also qualify when there is no explicit promotion preference. Customers can opt out under Account → Product updates & offers; explicit opt-outs override push subscriptions and leave transactional alerts enabled. Opt-outs are checked before generating notifications and again before phone delivery. Delivered notifications cannot be recalled.
+Enabling app notifications includes promotions. Customers can explicitly opt out in Account; opt-outs and disabled accounts are respected. Order and delivery alerts remain independent.
 
-The audience is snapshotted on approval. The scheduler processes 100 recipients per campaign per minute, during the selected shop’s configured opening hours in the site time zone. Scheduling inputs also use site time. Disabled users, opt-outs and customers already sent a promotion today are skipped. Test messages do not count. Repeated approval does not restart a campaign; transaction locks and cursor progress prevent repeated notification creation.
+## Automatic promotions
 
-Queued counts notification records, not confirmed phone delivery. Read counts in-app read flags. Completed means all recipients were processed. Push failures use existing error logging. Cancelling stops further generation and pending phone sends, but does not remove notifications already created.
+The minute scheduler selects available, priced products from active shops with configured opening hours. Paused or closed shops and unavailable products are excluded. Overnight schedules use the existing shop-hours logic in site time.
 
-## Deployment and verification
+Each customer gets up to five automatic notification attempts per site calendar day across all shops, separated by at least 150 minutes (2½ hours). The gap also applies across midnight. Short opening hours or unavailable stock can result in fewer than five. Product, shop and title selections rotate by date and time slot.
 
-Run pull/build, then `bench --site mysite migrate`, clear cache and restart. The migration creates campaign/preference DocTypes and notification fields. Installation does not send messages. The scheduler, workers and existing Web Push setup must run.
+Manual campaigns have no frequency cap, do not count toward the automatic five, and do not change the automatic spacing. The old lc_campaign_unlimited_testing setting is no longer needed. Tests to the administrator remain unrestricted. Duplicate approval of the same campaign does not resend it; save another campaign for a repeat send.
 
-On the deployed site, opt in a test customer and enable phone notifications. Save a draft, test to the administrator, then approve a customer campaign and verify its deep link. Check opt-out, the one-per-day limit, scheduling and cancellation. Order alerts should remain unaffected.
+Push delivery rechecks opening hours and consent. Deferred promotions expire at midnight. Promotional pushes use zero provider TTL to avoid storing offline messages until after closing. Actual receipt and display depend on device connectivity and provider behavior; counts are notification attempts, not guaranteed delivery.
 
-Local tests cover authorization, consent, frequency limits, quiet hours, repeated approvals and batch progress. Real Frappe migration and phone delivery still require site verification.
+## Reporting and deployment
 
-## Unlimited testing
+Queued counts notification records; read counts in-app reads, not verified phone impressions. Completed means recipients were processed. Automatic records appear in the same campaign history. Cancelling a record prevents further sends for that record, not future automatic time slots.
 
-Set `bench --site mysite set-config lc_campaign_unlimited_testing 1` and restart workers to bypass the daily cap for campaigns site-wide during testing. Opt-outs, disabled accounts, quiet hours and duplicate-send protection still apply. Create a new campaign for each repeat send. Restore the normal limit with `bench --site mysite set-config lc_campaign_unlimited_testing 0` and restart. Test-to-myself already has no daily cap.
+Deploy with pull/build, site migrate, clear-cache and restart. The site scheduler, workers and Web Push configuration must run. Installation does not directly send messages; scheduled automatic work starts when workers run.
 
-
-## Automatic daily promotions
-
-The minute scheduler also chooses an available, priced product from an open shop and generates a category-based message. Product/shop ordering and five titles rotate by date. All consenting, enabled accounts are considered; one promotion record per customer per site calendar day across shops is the normal limit. Approved campaigns run first and count toward that limit. The unlimited testing flag bypasses the cap for manual campaigns only; automatic campaigns always keep the daily limit.
-
-Shops without opening hours, paused shops, disabled shops and shops without a sellable product are excluded. If no shop is eligible, no daily promotion is generated. Automatic records appear in Campaigns and can be cancelled for the remainder of that day.
-
-Push delivery rechecks shop hours. A message delayed until after closing waits for another opening on the same calendar day; old pending messages expire at midnight instead of accumulating. Promotional pushes use zero provider TTL so offline devices do not receive stored promotions after closing. Actual display/delivery cannot be guaranteed by the app and depends on the device and push provider. This is one daily delivery attempt, not a guarantee of receipt. Transactional notifications and explicit administrator test sends keep their existing behavior.
-
-Deploy with a site migration before restarting workers: campaign and notification tracking fields were added. Verify overnight schedules, paused shops, zero stock, opt-outs and daily limits on a staging/test account before relying on production delivery.
+Verify shop hours, midnight spacing, stock availability, opt-out, five-per-day limits and manual campaigns using test accounts on the deployed site. Local tests do not verify actual phone delivery.

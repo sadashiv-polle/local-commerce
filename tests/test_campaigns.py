@@ -38,13 +38,13 @@ class CampaignTests(unittest.TestCase):
         self.service.shop_is_open = Mock(return_value=True)
         self.service._notify = Mock()
 
-    def test_opt_out_and_frequency_limit_skip(self):
+    def test_manual_campaign_has_no_frequency_limit_but_respects_opt_out(self):
         self.service.allowed = Mock(side_effect=[True, False, True])
         self.frappe.db.count.side_effect = [0, 0, 1]
         self.service.process_one("campaign")
-        self.service._notify.assert_called_once_with(self.doc, "a")
+        self.assertEqual(self.service._notify.call_count, 2)
         values = self.frappe.db.set_value.call_args.args[2]
-        self.assertEqual(values, {"cursor": 3, "queued_count": 1, "skipped_count": 2, "status": "Completed"})
+        self.assertEqual(values, {"cursor": 3, "queued_count": 2, "skipped_count": 1, "status": "Completed"})
 
     def test_unlimited_testing_bypasses_cap_but_respects_opt_out(self):
         self.frappe.conf = {"lc_campaign_unlimited_testing": 1}
@@ -120,11 +120,16 @@ class CampaignTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.service.wording_history("shop")
 
-    def test_daily_count_uses_today_not_rolling_week(self):
-        self.service.daily_count("customer", self.now)
-        filters = self.frappe.db.count.call_args.args[1]
-        self.assertEqual(filters["creation"], [">=", datetime(2026, 10, 30)])
-        self.assertEqual(filters["campaign_test"], 0)
+    def test_automatic_cap_and_spacing(self):
+        from datetime import timedelta
+        for count, elapsed, expected in [(0, None, True), (4, 150, True), (4, 149, False), (5, 180, False)]:
+            self.frappe.db.sql.return_value = [SimpleNamespace(today_count=count,
+                last_sent=self.now - timedelta(minutes=elapsed) if elapsed is not None else None)]
+            self.assertEqual(self.service.automatic_due("customer", self.now), expected)
+
+    def test_previous_day_message_still_requires_spacing(self):
+        self.frappe.db.sql.return_value = [SimpleNamespace(today_count=0, last_sent=datetime(2026, 10, 29, 23, 30))]
+        self.assertFalse(self.service.automatic_due("customer", datetime(2026, 10, 30, 0, 30)))
 
     def test_daily_copy_rotates_and_respects_category(self):
         product = {"item_name": "Bangde Pack", "item_group": "Fish & Seafood"}
@@ -146,7 +151,7 @@ class CampaignTests(unittest.TestCase):
         self.doc.item = "fish"
         self.doc.status = "Completed"
         self.service.allowed = Mock(return_value=True)
-        self.service.daily_count = Mock(side_effect=[0, 1])
+        self.service.automatic_due = Mock(side_effect=[True, False])
         self.frappe.db.get_value.return_value = "campaign"
         with patch.dict(sys.modules, {
             "local_commerce.services.orders": SimpleNamespace(public_product=Mock(return_value=product)),
