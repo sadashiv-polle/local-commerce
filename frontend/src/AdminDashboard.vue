@@ -1,4 +1,5 @@
 <script setup>
+import Campaigns from './Campaigns.vue'
 import NeedsAttention from './NeedsAttention.vue'
 import InstallationSetup from './InstallationSetup.vue'
 import AppIconSettings from './AppIconSettings.vue'
@@ -25,6 +26,7 @@ const modules = [
   { id: 'people', title: 'Team & riders', description: 'Shop memberships and delivery partners' },
   { id: 'customers', title: 'Customers', description: 'Customer accounts and business records' },
   { id: 'payments', title: 'Payments', description: 'COD collections and cash handovers' },
+  { id: 'campaigns', title: 'Campaigns', description: 'Product updates and promotional notifications' },
   { id: 'storefront', title: 'Storefront', description: 'Categories, artwork and featured products' },
   { id: 'gst', title: 'GST & commission', description: 'Tax setup, invoices, filing reports and platform settlements' },
   { id: 'cashfree', title: 'Cashfree', description: 'Online payments, vendor splits and commission' },
@@ -129,7 +131,7 @@ function when(value) { return value ? new Date(String(value).replace(' ', 'T')).
 function record(type, name) { return `/app/${type}/${encodeURIComponent(name)}` }
 async function loadRows(delta = 0) {
   const current = ++generation
-  if (!session.value.platform_admin || ['overview', 'attention', 'storefront', 'settings', 'cashfree', 'gst', 'setup'].includes(section.value) || embedded.value) { rows.value = []; rowsLoading.value = false; return }
+  if (!session.value.platform_admin || ['overview', 'attention', 'campaigns', 'storefront', 'settings', 'cashfree', 'gst', 'setup'].includes(section.value) || embedded.value) { rows.value = []; rowsLoading.value = false; return }
   start.value = Math.max(0, start.value + delta); rowsLoading.value = true; rowError.value = ''
   try {
     const result = await call('admin.listing', { section: section.value, shop: selectedShop.value, search: search.value, status: status.value, start: start.value })
@@ -175,6 +177,7 @@ onBeforeUnmount(() => { generation++; window.clearTimeout(searchTimer); window.c
       </template>
       <template v-else-if="section === 'attention'"><NeedsAttention /></template>
       <template v-else-if="section === 'gst'"><GstSettings /></template>
+      <template v-else-if="section === 'campaigns'"><Campaigns /></template>
       <template v-else-if="section === 'cashfree'"><CashfreeSettings /></template>
       <template v-else-if="section === 'storefront'"><StoreSettings embedded /></template>
       <template v-else-if="section === 'setup'"><InstallationSetup /></template>

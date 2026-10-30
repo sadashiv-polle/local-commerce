@@ -125,12 +125,16 @@ def send_notification(notification):
     row = frappe.db.get_value(
         "LC Notification",
         notification,
-        ["recipient_user", "title", "message", "target"],
+        ["recipient_user", "title", "message", "target", "campaign", "campaign_test"],
         as_dict=True,
     )
     private_key = _private_key_path()
     if not row or not private_key or not private_key.is_file():
         return
+    if row.get("campaign") and not row.get("campaign_test"):
+        from local_commerce.services.campaigns import allowed
+        if not allowed(row.recipient_user) or frappe.db.get_value("LC Campaign", row.campaign, "status") == "Cancelled":
+            return
     from pywebpush import WebPushException, webpush
 
     subscriptions = frappe.get_all(

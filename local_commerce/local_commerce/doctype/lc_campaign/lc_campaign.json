@@ -1,0 +1,86 @@
+{
+  "doctype": "DocType",
+  "name": "LC Campaign",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "field_order": [
+    "shop",
+    "item",
+    "title",
+    "message",
+    "status",
+    "send_at",
+    "recipients",
+    "cursor",
+    "queued_count",
+    "skipped_count"
+  ],
+  "fields": [
+    {
+      "fieldname": "shop",
+      "label": "Shop",
+      "fieldtype": "Link",
+      "options": "LC Shop",
+      "reqd": 1
+    },
+    {
+      "fieldname": "item",
+      "label": "Item",
+      "fieldtype": "Link",
+      "options": "Item"
+    },
+    {
+      "fieldname": "title",
+      "label": "Title",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "message",
+      "label": "Message",
+      "fieldtype": "Small Text",
+      "reqd": 1
+    },
+    {
+      "fieldname": "status",
+      "label": "Status",
+      "fieldtype": "Select",
+      "options": "Draft\nQueued\nCompleted\nCancelled",
+      "default": "Draft"
+    },
+    {
+      "fieldname": "send_at",
+      "label": "Send At",
+      "fieldtype": "Datetime"
+    },
+    {
+      "fieldname": "recipients",
+      "label": "Recipients",
+      "fieldtype": "Long Text"
+    },
+    {
+      "fieldname": "cursor",
+      "label": "Cursor",
+      "fieldtype": "Int"
+    },
+    {
+      "fieldname": "queued_count",
+      "label": "Queued Count",
+      "fieldtype": "Int"
+    },
+    {
+      "fieldname": "skipped_count",
+      "label": "Skipped Count",
+      "fieldtype": "Int"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1
+    }
+  ],
+  "sort_field": "creation",
+  "sort_order": "DESC"
+}

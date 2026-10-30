@@ -8,5 +8,5 @@ class LCNotification(Document):
     def validate(self):
         if not _notification_operation.get():
             frappe.throw("Notifications are created by app activity", frappe.PermissionError)
-        if not self.order and not self.get("item"):
+        if not self.order and not self.get("item") and not self.get("campaign"):
             frappe.throw("A notification must reference an order or product")

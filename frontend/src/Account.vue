@@ -1,4 +1,5 @@
 <script setup>
+import PromotionPreference from './PromotionPreference.vue'
 import AppIcon from './AppIcon.vue'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -106,6 +107,7 @@ onBeforeUnmount(() => { locationGeneration++; window.removeEventListener('lc-add
         <ProfileAvatar :name="session.full_name" :image="session.user_image" />
         <div><span class="eyebrow">YOUR ACCOUNT</span><h1>{{ session.full_name || 'Welcome to Local' }}</h1><p>{{ session.user }}</p><small v-if="session.username" class="account-username" :title="session.username_login_enabled ? 'You can also log in with this username' : 'Use your email to log in'"><span>Username</span><strong>{{ session.username }}</strong></small></div>
       </header>
+      <PromotionPreference v-if="!editing" />
       <nav v-if="!editing" class="account-shortcuts" aria-label="Account shortcuts">
         <RouterLink to="/security"><span aria-hidden="true">⚿</span><div><strong>Change password</strong><small>Update your password or request a reset email</small></div><b aria-hidden="true">›</b></RouterLink>
         <RouterLink to="/orders"><AppIcon name="orders" /><div><strong>My orders</strong><small>Track deliveries & buy again</small></div><b aria-hidden="true">›</b></RouterLink>

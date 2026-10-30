@@ -1,0 +1,40 @@
+{
+  "doctype": "DocType",
+  "name": "LC Promotion Preference",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "field_order": [
+    "user",
+    "enabled",
+    "consented_at"
+  ],
+  "fields": [
+    {
+      "fieldname": "user",
+      "label": "User",
+      "fieldtype": "Link",
+      "options": "User",
+      "unique": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "enabled",
+      "label": "Enabled",
+      "fieldtype": "Check"
+    },
+    {
+      "fieldname": "consented_at",
+      "label": "Consented At",
+      "fieldtype": "Datetime"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1
+    }
+  ],
+  "sort_field": "creation",
+  "sort_order": "DESC"
+}

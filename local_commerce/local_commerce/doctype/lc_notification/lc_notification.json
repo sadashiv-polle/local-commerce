@@ -16,7 +16,9 @@
     "target",
     "read",
     "read_at",
-    "item"
+    "item",
+    "campaign",
+    "campaign_test"
   ],
   "fields": [
     {
@@ -96,6 +98,20 @@
       "label": "Product",
       "fieldtype": "Link",
       "options": "Item",
+      "read_only": 1
+    },
+    {
+      "fieldname": "campaign",
+      "label": "Campaign",
+      "fieldtype": "Link",
+      "options": "LC Campaign",
+      "read_only": 1,
+      "search_index": 1
+    },
+    {
+      "fieldname": "campaign_test",
+      "label": "Campaign test",
+      "fieldtype": "Check",
       "read_only": 1
     }
   ],
