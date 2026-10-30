@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
+import { campaignSuggestions } from './campaign-copy.js'
 const shops = ref([]), products = ref([]), rows = ref([])
 const shop = ref(''), item = ref(''), title = ref(''), message = ref(''), saved = ref(''), sendAt = ref('')
 const busy = ref(false), error = ref(''), notice = ref('')
@@ -21,21 +22,7 @@ async function action(fn) {
   try { await fn() } catch (e) { error.value = e.message } finally { busy.value = false }
 }
 function suggest() {
-  const name = product.value?.item_name?.trim()
-  const store = shopName.value.trim()
-  const options = name ? [
-    { title: `${name} on your list? 🛍️`, message: `Take a closer look at ${name} from ${store}. Tap to view the product and plan your next order.` },
-    { title: 'Your next basket starts here 🛍️', message: `Make room on your shopping list for ${name}. Browse it at ${store} and see if it’s right for your basket.` },
-    { title: `A little inspiration from ${store}`, message: `Still deciding what to buy? Take a look at ${name}. Tap for product details and current pricing.` },
-    { title: 'Give your next basket a new idea 💡', message: `Considering ${name}? Visit ${store} to explore the details and decide what belongs in your next order.` },
-    { title: 'Something for your shopping list ✨', message: `Discover ${name} at ${store}. Your next find could be just a tap away.` },
-  ] : [
-    { title: `What’s on your list? 🛍️`, message: `Start your next shopping trip with ${store}. Browse the range and find something for your basket.` },
-    { title: 'Your next local find awaits ✨', message: `Take a look around ${store}. Tap to browse products, check prices and plan your next order.` },
-    { title: `A little inspiration from ${store}`, message: `Need an idea for your next basket? Explore ${store} and see what catches your eye.` },
-    { title: 'A new idea for your next order 💡', message: `Let ${store} inspire your shopping list. Explore the range and pick what suits your day.` },
-    { title: 'Shopping plans? Start here 🛍️', message: `Bring your list to ${store}. Explore the shop from your phone and choose what works for you.` },
-  ]
+  const options = campaignSuggestions(product.value, shopName.value)
   const suggestion = options[suggestionIndex % options.length]
   suggestionIndex++
   // Keep complete sentences when unusually long catalogue names exceed push limits.
@@ -74,6 +61,7 @@ onMounted(() => action(async () => { shops.value = (await call('campaigns.option
       <fieldset :disabled="busy">
         <label>Shop<select v-model="shop" required><option value="">Choose a shop</option><option v-for="row in shops" :key="row.name" :value="row.name">{{ row.shop_name }}</option></select></label>
         <label>Product (optional)<select v-model="item"><option value="">Whole shop</option><option v-for="row in products" :key="row.name" :value="row.name">{{ row.item_name }}</option></select></label>
+        <small v-if="product?.item_group">Suggestions for {{ product.item_group }}</small>
         <button type="button" :disabled="!shop" @click="suggest">Suggest wording · try another</button>
         <small>Tap again for another idea. Edit the title and message to suit your shop before sending.</small>
         <label>Title<input v-model="title" maxlength="80" required></label>

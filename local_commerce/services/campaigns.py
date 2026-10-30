@@ -52,7 +52,7 @@ def options(shop=""):
     require_platform()
     shops = frappe.get_all("LC Shop", filters={"status": "Active"}, fields=["name", "shop_name"], limit_page_length=500)
     products = frappe.get_all("Item", filters={"lc_shop": shop, "disabled": 0},
-                              fields=["name", "item_name"], limit_page_length=500) if shop else []
+                              fields=["name", "item_name", "item_group"], limit_page_length=500) if shop else []
     return {"shops": shops, "products": products}
 
 
