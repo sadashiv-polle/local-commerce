@@ -47,7 +47,7 @@ async function send(name, scheduled = '') {
   if (!window.confirm('Send this campaign to customers who opted into promotions?')) return
   await action(async () => {
     await call('campaigns.send', { name, send_at: scheduled.replace('T', ' ') }, true)
-    notice.value = 'Campaign queued. Delivery runs between 9 AM and 8 PM in the site time zone.'; await refresh()
+    notice.value = 'Campaign queued. Delivery waits until the shop is open.'; await refresh()
   })
 }
 async function cancel(name) {
@@ -58,7 +58,7 @@ onMounted(() => action(async () => { shops.value = (await call('campaigns.option
 <template>
   <section class="campaign-page">
     <h2>Promotional campaigns</h2>
-    <p>Send product and shop updates to customers who opted in. Maximum two campaigns per customer in seven days, between 9 AM and 8 PM (site time).</p>
+    <p>Customers who allow promotions receive one daily product suggestion while a shop is open. Approved campaigns count toward that daily limit. Automatic suggestions use available products; shops need opening hours configured.</p>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <form class="admin-card campaign-form" @submit.prevent="save">
@@ -83,12 +83,12 @@ onMounted(() => action(async () => { shops.value = (await call('campaigns.option
     <p>Queued counts are notification records, not confirmed phone deliveries. Read counts reflect in-app reads.</p>
     <article v-for="row in rows" :key="row.name" class="admin-card campaign-record">
       <h3>{{ row.title }}</h3><p>{{ row.message }}</p>
-      <p>{{ row.status }} <span v-if="row.send_at">· {{ row.send_at }} (site time)</span></p>
+      <p>{{ row.automatic_key ? 'Automatic daily · ' : '' }}{{ row.status }} <span v-if="row.send_at">· {{ row.send_at }} (site time)</span></p>
       <p>{{ row.queued_count }} queued · {{ row.skipped_count }} skipped · {{ row.read_count }} read</p>
       <div class="campaign-actions">
         <button v-if="row.status === 'Draft'" :disabled="busy" @click="test(row.name)">Test to myself</button>
         <button v-if="row.status === 'Draft'" :disabled="busy" @click="send(row.name)">Send campaign</button>
-        <button v-if="['Draft', 'Queued'].includes(row.status)" :disabled="busy" @click="cancel(row.name)">Cancel campaign</button>
+        <button v-if="['Draft', 'Queued'].includes(row.status) || (row.automatic_key && row.status !== 'Cancelled')" :disabled="busy" @click="cancel(row.name)">Cancel campaign</button>
       </div>
     </article>
   </section>

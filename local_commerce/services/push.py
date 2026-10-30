@@ -7,7 +7,7 @@ from contextvars import ContextVar
 from pathlib import Path
 
 import frappe
-from frappe.utils import now_datetime
+from frappe.utils import get_datetime, now_datetime
 
 from local_commerce.services.owner import reject
 
@@ -122,19 +122,29 @@ def unsubscribe(endpoint):
 
 
 def send_notification(notification):
+    frappe.db.sql("select name from `tabLC Notification` where name=%s for update", (notification,))
     row = frappe.db.get_value(
         "LC Notification",
         notification,
-        ["recipient_user", "title", "message", "target", "campaign", "campaign_test"],
+        ["recipient_user", "title", "message", "target", "campaign", "campaign_test", "campaign_push_state", "shop", "creation"],
         as_dict=True,
     )
     private_key = _private_key_path()
     if not row or not private_key or not private_key.is_file():
         return
     if row.get("campaign") and not row.get("campaign_test"):
-        from local_commerce.services.campaigns import allowed
-        if not allowed(row.recipient_user) or frappe.db.get_value("LC Campaign", row.campaign, "status") == "Cancelled":
+        from local_commerce.services.campaigns import allowed, shop_is_open
+        if row.campaign_push_state in ("Attempted", "Expired"):
             return
+        if get_datetime(row.creation).date() < now_datetime().date():
+            frappe.db.set_value("LC Notification", notification, "campaign_push_state", "Expired", update_modified=False)
+            return
+        if not shop_is_open(row.shop):
+            return
+        if not allowed(row.recipient_user) or frappe.db.get_value("LC Campaign", row.campaign, "status") == "Cancelled":
+            frappe.db.set_value("LC Notification", notification, "campaign_push_state", "Expired", update_modified=False)
+            return
+        frappe.db.set_value("LC Notification", notification, "campaign_push_state", "Attempted", update_modified=False)
     from pywebpush import WebPushException, webpush
 
     subscriptions = frappe.get_all(
@@ -164,7 +174,7 @@ def send_notification(notification):
                 data=payload,
                 vapid_private_key=str(private_key),
                 vapid_claims={"sub": subject},
-                ttl=86400,
+                ttl=0 if row.get("campaign") and not row.get("campaign_test") else 86400,
             )
             frappe.db.set_value(
                 "LC Push Subscription",

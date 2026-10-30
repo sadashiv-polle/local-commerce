@@ -18,7 +18,8 @@
     "read_at",
     "item",
     "campaign",
-    "campaign_test"
+    "campaign_test",
+    "campaign_push_state"
   ],
   "fields": [
     {
@@ -113,6 +114,14 @@
       "label": "Campaign test",
       "fieldtype": "Check",
       "read_only": 1
+    },
+    {
+      "fieldname": "campaign_push_state",
+      "label": "Campaign Push State",
+      "fieldtype": "Select",
+      "options": "\nPending\nAttempted\nExpired",
+      "read_only": 1,
+      "search_index": 1
     }
   ],
   "permissions": [

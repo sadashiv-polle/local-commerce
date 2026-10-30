@@ -35,11 +35,12 @@ class CampaignTests(unittest.TestCase):
                                    cursor=0, queued_count=0, skipped_count=0)
         self.frappe.get_doc.return_value = self.doc
         self.service._target = Mock()
+        self.service.shop_is_open = Mock(return_value=True)
         self.service._notify = Mock()
 
     def test_opt_out_and_frequency_limit_skip(self):
         self.service.allowed = Mock(side_effect=[True, False, True])
-        self.frappe.db.count.side_effect = [0, 0, 2]
+        self.frappe.db.count.side_effect = [0, 0, 1]
         self.service.process_one("campaign")
         self.service._notify.assert_called_once_with(self.doc, "a")
         values = self.frappe.db.set_value.call_args.args[2]
@@ -58,11 +59,12 @@ class CampaignTests(unittest.TestCase):
         self.service.process_one("campaign")
         self.service._notify.assert_not_called()
 
-    def test_quiet_hours_and_future_schedule(self):
-        for now, send_at in [(datetime(2026, 10, 30, 21), self.doc.send_at),
-                             (self.now, datetime(2026, 10, 31, 12))]:
-            self.now, self.doc.send_at = now, send_at
-            self.service.process_one("campaign")
+    def test_closed_shop_and_future_schedule_wait(self):
+        self.service.shop_is_open.return_value = False
+        self.service.process_one("campaign")
+        self.service.shop_is_open.return_value = True
+        self.doc.send_at = datetime(2026, 10, 31, 12)
+        self.service.process_one("campaign")
         self.service._notify.assert_not_called()
         self.frappe.db.set_value.assert_not_called()
 
@@ -117,6 +119,54 @@ class CampaignTests(unittest.TestCase):
         self.scope.require_platform.side_effect = PermissionError
         with self.assertRaises(PermissionError):
             self.service.wording_history("shop")
+
+    def test_daily_count_uses_today_not_rolling_week(self):
+        self.service.daily_count("customer", self.now)
+        filters = self.frappe.db.count.call_args.args[1]
+        self.assertEqual(filters["creation"], [">=", datetime(2026, 10, 30)])
+        self.assertEqual(filters["campaign_test"], 0)
+
+    def test_daily_copy_rotates_and_respects_category(self):
+        product = {"item_name": "Bangde Pack", "item_group": "Fish & Seafood"}
+        ideas = [self.service.daily_wording(product, "Daily Basket", day) for day in range(5)]
+        self.assertEqual(len(set(title for title, _ in ideas)), 5)
+        self.assertTrue(all("Bangde Pack at Daily Basket" in body for _, body in ideas))
+        title, _ = self.service.daily_wording({"item_name": "Eggs", "item_group": "Dairy & Eggs"}, "Fish Market", 0)
+        self.assertIn("Breakfast", title)
+
+    def test_batch_stops_if_shop_closes(self):
+        self.service.shop_is_open.side_effect = [True, False]
+        self.service.process_one("campaign")
+        self.service._notify.assert_not_called()
+        self.assertEqual(self.frappe.db.set_value.call_args.args[2]["cursor"], 0)
+
+    def test_daily_scheduler_sends_once_and_skips_already_notified(self):
+        product = {"item_name": "Bangde", "item_group": "Fish", "available": 5, "rate": 10}
+        self.service._lock = Mock(return_value=self.doc)
+        self.doc.item = "fish"
+        self.doc.status = "Completed"
+        self.service.allowed = Mock(return_value=True)
+        self.service.daily_count = Mock(side_effect=[0, 1])
+        self.frappe.db.get_value.return_value = "campaign"
+        with patch.dict(sys.modules, {
+            "local_commerce.services.orders": SimpleNamespace(public_product=Mock(return_value=product)),
+            "local_commerce.services.stock_alerts": SimpleNamespace(restocked=lambda value: value["available"] > 0),
+        }):
+            for _ in range(2):
+                self.frappe.get_all.side_effect = [["shop"], ["fish"], ["customer"], ["customer"]]
+                self.service.process_daily()
+        self.service._notify.assert_called_once_with(self.doc, "customer")
+
+    def test_daily_scheduler_does_not_choose_closed_shop(self):
+        self.service.shop_is_open.return_value = False
+        self.frappe.get_all.return_value = ["shop"]
+        with patch.dict(sys.modules, {
+            "local_commerce.services.orders": SimpleNamespace(public_product=Mock()),
+            "local_commerce.services.stock_alerts": SimpleNamespace(restocked=Mock()),
+        }):
+            self.service.process_daily()
+        self.service._notify.assert_not_called()
+        self.frappe.get_all.assert_called_once()
 
     def test_guest_cannot_change_consent(self):
         self.frappe.session.user = "Guest"

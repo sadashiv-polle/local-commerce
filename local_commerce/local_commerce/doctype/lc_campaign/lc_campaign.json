@@ -14,7 +14,8 @@
     "recipients",
     "cursor",
     "queued_count",
-    "skipped_count"
+    "skipped_count",
+    "automatic_key"
   ],
   "fields": [
     {
@@ -73,6 +74,13 @@
       "fieldname": "skipped_count",
       "label": "Skipped Count",
       "fieldtype": "Int"
+    },
+    {
+      "fieldname": "automatic_key",
+      "label": "Automatic Daily Key",
+      "fieldtype": "Data",
+      "unique": 1,
+      "read_only": 1
     }
   ],
   "permissions": [

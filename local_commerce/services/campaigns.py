@@ -1,7 +1,7 @@
 """Explicitly approved promotional campaigns, separate from transactional alerts."""
 import json
+import hashlib
 from contextvars import ContextVar
-from datetime import timedelta
 from urllib.parse import quote
 
 import frappe
@@ -58,7 +58,7 @@ def options(shop=""):
 
 def listing():
     require_platform()
-    rows = frappe.get_all("LC Campaign", fields=["name", "title", "message", "status", "send_at", "queued_count", "skipped_count"],
+    rows = frappe.get_all("LC Campaign", fields=["name", "title", "message", "automatic_key", "status", "send_at", "queued_count", "skipped_count"],
                           order_by="creation desc", limit_page_length=50)
     for row in rows:
         row["read_count"] = frappe.db.count("LC Notification", {"campaign": row.name, "campaign_test": 0, "read": 1})
@@ -105,7 +105,7 @@ def send(name, send_at=""):
 def cancel(name):
     require_platform()
     doc = _lock(name)
-    if doc.status in ("Draft", "Queued"):
+    if doc.status in ("Draft", "Queued") or doc.get("automatic_key"):
         frappe.db.set_value("LC Campaign", name, "status", "Cancelled")
     return {"status": frappe.db.get_value("LC Campaign", name, "status")}
 
@@ -117,6 +117,7 @@ def _notify(doc, account, test=False):
         notification = frappe.get_doc({
             "doctype": "LC Notification", "recipient_user": account, "shop": doc.shop,
             "item": doc.item, "campaign": doc.name, "campaign_test": int(test), "audience": "Customer",
+            "campaign_push_state": "" if test else "Pending",
             "title": ("[Test] " if test else "") + doc.title, "message": doc.message,
             "target": f'/store/{quote(doc.shop, safe="")}' + (f'?item={quote(doc.item, safe="")}' if doc.item else ""),
         }).insert(ignore_permissions=True)
@@ -149,22 +150,32 @@ def allowed(account):
                 promotion_enabled(account))
 
 
+def shop_is_open(shop, current=None):
+    from local_commerce.services.shop_hours import availability
+    doc = frappe.get_doc("LC Shop", shop)
+    if doc.status != "Active" or not doc.opening_hours_json:
+        return False
+    return availability(doc, current=current)["open"]
+
+
 def process_one(name):
     doc = _lock(name)
     now = now_datetime()
-    if doc.status != "Queued" or get_datetime(doc.send_at) > now or not 9 <= now.hour < 20:
+    if doc.status != "Queued" or get_datetime(doc.send_at) > now or not shop_is_open(doc.shop, now):
         return
     _target(doc.shop, doc.item)
     users = json.loads(doc.recipients or "[]")
     cursor, queued, skipped = doc.cursor or 0, doc.queued_count or 0, doc.skipped_count or 0
     for account in users[cursor:cursor + 100]:
+        if not shop_is_open(doc.shop):
+            break
         # Serialize campaigns for the same user so concurrent workers respect the cap.
         frappe.db.sql("select name from tabUser where name=%s for update", (account,))
         recent = frappe.db.count("LC Notification", {
             "recipient_user": account, "campaign": ["is", "set"], "campaign_test": 0,
-            "creation": [">=", now - timedelta(days=7)],
+            "creation": [">=", now.replace(hour=0, minute=0, second=0, microsecond=0)],
         })
-        if allowed(account) and (frappe.conf.get("lc_campaign_unlimited_testing") == 1 or recent < 2):
+        if allowed(account) and (frappe.conf.get("lc_campaign_unlimited_testing") == 1 or recent < 1):
             _notify(doc, account)
             queued += 1
         else:
@@ -177,6 +188,7 @@ def process_one(name):
 
 
 def process_pending():
+    deliver_pending_promotions()
     for name in frappe.get_all("LC Campaign", filters={"status": "Queued", "send_at": ["<=", now_datetime()]},
                                pluck="name", order_by="send_at asc", limit_page_length=20):
         try:
@@ -186,6 +198,7 @@ def process_pending():
             frappe.db.rollback()
             frappe.log_error(title="Promotional campaign failed", message=frappe.get_traceback())
 
+    process_daily()
 
 def wording_history(shop, item=""):
     require_platform()
@@ -196,3 +209,117 @@ def wording_history(shop, item=""):
         filters["item"] = ["is", "not set"]
     return frappe.get_all("LC Campaign", filters=filters, fields=["title", "message"],
                           order_by="creation desc, name desc", limit_page_length=0)
+
+
+def daily_count(account, now):
+    return frappe.db.count("LC Notification", {
+        "recipient_user": account, "campaign": ["is", "set"], "campaign_test": 0,
+        "creation": [">=", now.replace(hour=0, minute=0, second=0, microsecond=0)],
+    })
+
+
+def daily_wording(product, shop_name, day):
+    category = (product.get("item_group") or "").lower()
+    if any(word in category for word in ("fish", "seafood", "prawn", "crab")):
+        titles = ["Fish on the menu? 🐟", "Curry or fry? You decide 🍽️", "A seafood idea for dinner 🐟",
+                  "Plan your next fish meal 🍲", "Your next seafood recipe starts here 🐟"]
+    elif any(word in category for word in ("dairy", "egg", "milk")):
+        titles = ["Breakfast plans? 🍳", "An idea for your morning menu ☀️", "Check your fridge list 📝",
+                  "Something for your kitchen 🥣", "Plan your next breakfast basket 🧺"]
+    elif any(word in category for word in ("food", "vegetable", "fruit", "meat", "grocery", "groceries", "bakery", "snack", "rice")):
+        titles = ["What’s on your menu? 🍽️", "An idea for your next meal 🍲", "Check your kitchen list 📝",
+                  "Plan your next food shop 🧺", "A little meal inspiration 💡"]
+    else:
+        titles = ["What’s on your list? 🛍️", "Your next local find ✨", "A little shopping inspiration 💡",
+                  "Plan your next basket 🧺", "Take a look around your local shop 🛍️"]
+    message = f'Explore {product["item_name"]} at {shop_name}. Tap for current prices and availability.'
+    return titles[day % 5], message if len(message) <= 240 else "Explore this product at your local shop. Tap for current prices and availability."
+
+
+def process_daily():
+    """One daily attempt per eligible customer across all shops; never bypassed by test mode."""
+    from local_commerce.services.orders import public_product
+    from local_commerce.services.stock_alerts import restocked
+
+    now = now_datetime()
+    shops = frappe.get_all("LC Shop", filters={"status": "Active"}, pluck="name", order_by="name asc", limit_page_length=0)
+    if not shops:
+        return
+    offset = now.date().toordinal() % len(shops)
+    for shop in shops[offset:] + shops[:offset]:
+        try:
+            # Serialize daily campaign creation for this shop.
+            frappe.db.sql("select name from `tabLC Shop` where name=%s for update", (shop,))
+            if not shop_is_open(shop, now):
+                frappe.db.commit()
+                continue
+            items = frappe.get_all("Item", filters={"lc_shop": shop, "disabled": 0},
+                                   pluck="name", order_by="name asc", limit_page_length=0)
+            if not items:
+                frappe.db.commit()
+                continue
+            shift = now.date().toordinal() % len(items)
+            product = None
+            for item in items[shift:] + items[:shift]:
+                try:
+                    candidate = public_product(shop, item)
+                    if restocked(candidate):
+                        product = candidate
+                        break
+                except (frappe.ValidationError, frappe.PermissionError, frappe.DoesNotExistError):
+                    continue
+            if not product:
+                frappe.db.commit()
+                continue
+            key = hashlib.sha256(f"{now.date()}:{shop}".encode()).hexdigest()
+            name = frappe.db.get_value("LC Campaign", {"automatic_key": key}, "name")
+            if not name:
+                title, message = daily_wording(product, frappe.db.get_value("LC Shop", shop, "shop_name"), now.date().toordinal())
+                token = _operation.set(True)
+                try:
+                    campaign = frappe.get_doc({"doctype": "LC Campaign", "shop": shop, "item": item,
+                        "title": title, "message": message, "automatic_key": key, "status": "Completed",
+                        "send_at": now}).insert(ignore_permissions=True)
+                    name = campaign.name
+                finally:
+                    _operation.reset(token)
+            campaign = _lock(name)
+            if campaign.status == "Cancelled":
+                frappe.db.commit()
+                continue
+            # Validate the saved daily product again, including stock changes since creation.
+            if not restocked(public_product(shop, campaign.item)):
+                frappe.db.commit()
+                continue
+            users = set(frappe.get_all("LC Promotion Preference", filters={"enabled": 1}, pluck="user", limit_page_length=0))
+            users.update(frappe.get_all("LC Push Subscription", filters={"enabled": 1}, pluck="user", limit_page_length=0))
+            sent = 0
+            for account in sorted(users):
+                if not shop_is_open(shop):
+                    break
+                frappe.db.sql("select name from tabUser where name=%s for update", (account,))
+                if allowed(account) and not daily_count(account, now):
+                    _notify(campaign, account)
+                    sent += 1
+                if sent >= 100:
+                    break
+            if sent:
+                frappe.db.set_value("LC Campaign", name, "queued_count", (campaign.queued_count or 0) + sent)
+            frappe.db.commit()
+            if sent:
+                return
+        except Exception:
+            frappe.db.rollback()
+            frappe.log_error(title="Daily promotion failed", message=frappe.get_traceback())
+
+
+def deliver_pending_promotions():
+    from local_commerce.services.push import send_notification
+    for name in frappe.get_all("LC Notification", filters={"campaign_push_state": "Pending"},
+                               pluck="name", order_by="creation asc", limit_page_length=200):
+        try:
+            send_notification(name)
+            frappe.db.commit()
+        except Exception:
+            frappe.db.rollback()
+            frappe.log_error(title="Pending promotional push failed", message=frappe.get_traceback())
