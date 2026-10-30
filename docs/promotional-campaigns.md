@@ -15,3 +15,7 @@ Run pull/build, then `bench --site mysite migrate`, clear cache and restart. The
 On the deployed site, opt in a test customer and enable phone notifications. Save a draft, test to the administrator, then approve a customer campaign and verify its deep link. Check opt-out, the two-per-week limit, scheduling and cancellation. Order alerts should remain unaffected.
 
 Local tests cover authorization, consent, frequency limits, quiet hours, repeated approvals and batch progress. Real Frappe migration and phone delivery still require site verification.
+
+## Unlimited testing
+
+Set `bench --site mysite set-config lc_campaign_unlimited_testing 1` and restart workers to bypass the weekly cap for campaigns site-wide during testing. Opt-outs, disabled accounts, quiet hours and duplicate-send protection still apply. Create a new campaign for each repeat send. Restore the normal limit with `bench --site mysite set-config lc_campaign_unlimited_testing 0` and restart. Test-to-myself already has no weekly cap.

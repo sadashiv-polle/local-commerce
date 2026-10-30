@@ -12,6 +12,7 @@ class CampaignTests(unittest.TestCase):
     def setUp(self):
         self.frappe = Mock()
         self.frappe.session.user = "admin"
+        self.frappe.conf = {}
         self.frappe.AuthenticationError = PermissionError
         self.frappe.throw.side_effect = PermissionError
         self.scope = Mock()
@@ -43,6 +44,14 @@ class CampaignTests(unittest.TestCase):
         self.service._notify.assert_called_once_with(self.doc, "a")
         values = self.frappe.db.set_value.call_args.args[2]
         self.assertEqual(values, {"cursor": 3, "queued_count": 1, "skipped_count": 2, "status": "Completed"})
+
+    def test_unlimited_testing_bypasses_cap_but_respects_opt_out(self):
+        self.frappe.conf = {"lc_campaign_unlimited_testing": 1}
+        self.service.allowed = Mock(side_effect=[True, False, True])
+        self.frappe.db.count.return_value = 100
+        self.service.process_one("campaign")
+        self.assertEqual(self.service._notify.call_count, 2)
+        self.assertEqual(self.frappe.db.set_value.call_args.args[2]["skipped_count"], 1)
 
     def test_completed_campaign_does_not_send_again(self):
         self.doc.status = "Completed"

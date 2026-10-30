@@ -164,7 +164,7 @@ def process_one(name):
             "recipient_user": account, "campaign": ["is", "set"], "campaign_test": 0,
             "creation": [">=", now - timedelta(days=7)],
         })
-        if allowed(account) and recent < 2:
+        if allowed(account) and (frappe.conf.get("lc_campaign_unlimited_testing") == 1 or recent < 2):
             _notify(doc, account)
             queued += 1
         else:
