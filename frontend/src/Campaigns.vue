@@ -27,11 +27,13 @@ function suggest() {
     { title: `${name} on your list? 🛍️`, message: `Take a closer look at ${name} from ${store}. Tap to view the product and plan your next order.` },
     { title: 'Your next basket starts here 🛍️', message: `Make room on your shopping list for ${name}. Browse it at ${store} and see if it’s right for your basket.` },
     { title: `A little inspiration from ${store}`, message: `Still deciding what to buy? Take a look at ${name}. Tap for product details and current pricing.` },
+    { title: 'Give your next basket a new idea 💡', message: `Considering ${name}? Visit ${store} to explore the details and decide what belongs in your next order.` },
     { title: 'Something for your shopping list ✨', message: `Discover ${name} at ${store}. Your next find could be just a tap away.` },
   ] : [
     { title: `What’s on your list? 🛍️`, message: `Start your next shopping trip with ${store}. Browse the range and find something for your basket.` },
     { title: 'Your next local find awaits ✨', message: `Take a look around ${store}. Tap to browse products, check prices and plan your next order.` },
     { title: `A little inspiration from ${store}`, message: `Need an idea for your next basket? Explore ${store} and see what catches your eye.` },
+    { title: 'A new idea for your next order 💡', message: `Let ${store} inspire your shopping list. Explore the range and pick what suits your day.` },
     { title: 'Shopping plans? Start here 🛍️', message: `Bring your list to ${store}. Explore the shop from your phone and choose what works for you.` },
   ]
   const suggestion = options[suggestionIndex % options.length]
