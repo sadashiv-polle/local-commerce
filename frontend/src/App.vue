@@ -290,7 +290,7 @@ onBeforeUnmount(() => {
       <section class="push-login-prompt" aria-labelledby="push-login-title" @keydown.esc="dismissPushPrompt">
         <span class="eyebrow">STAY UPDATED</span>
         <h2 id="push-login-title">Enable notifications?</h2>
-        <p>Get order and delivery updates on this device.</p>
+        <p>Get order updates, delivery alerts, product news and offers on this device. You can turn off promotions in Account.</p>
         <p v-if="pushMessage" role="status">{{ pushMessage }}</p>
         <div class="push-login-actions">
           <button type="button" :disabled="pushBusy" @click="turnOnPush">{{ pushBusy ? 'Enabling…' : 'Enable' }}</button>

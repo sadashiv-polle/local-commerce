@@ -34,7 +34,7 @@ def preference(enabled=None):
             doc.save(ignore_permissions=True)
         finally:
             _operation.reset(token)
-    return {"enabled": bool(frappe.db.get_value("LC Promotion Preference", {"user": account}, "enabled"))}
+    return {"enabled": promotion_enabled(account)}
 
 
 def _target(shop, item=""):
@@ -95,7 +95,9 @@ def send(name, send_at=""):
     if send_at and when < now_datetime():
         reject("Choose a future time")
     # Snapshot consented users; opt-outs and enabled accounts are checked again by the worker.
-    users = frappe.get_all("LC Promotion Preference", filters={"enabled": 1}, pluck="user", limit_page_length=0)
+    users = set(frappe.get_all("LC Promotion Preference", filters={"enabled": 1}, pluck="user", limit_page_length=0))
+    users.update(frappe.get_all("LC Push Subscription", filters={"enabled": 1}, pluck="user", limit_page_length=0))
+    users = sorted(account for account in users if allowed(account))
     frappe.db.set_value("LC Campaign", name, {"status": "Queued", "send_at": when, "recipients": json.dumps(users)})
     return {"status": "Queued"}
 
@@ -134,9 +136,17 @@ def test(name):
     return {"status": "Test queued to your account"}
 
 
+def promotion_enabled(account):
+    # Explicit opt-outs take precedence over device registration and refreshes.
+    preference = frappe.db.get_value("LC Promotion Preference", {"user": account}, "enabled")
+    if preference is not None:
+        return bool(preference)
+    return bool(frappe.db.exists("LC Push Subscription", {"user": account, "enabled": 1}))
+
+
 def allowed(account):
     return bool(frappe.db.get_value("User", account, "enabled") and
-                frappe.db.get_value("LC Promotion Preference", {"user": account}, "enabled"))
+                promotion_enabled(account))
 
 
 def process_one(name):

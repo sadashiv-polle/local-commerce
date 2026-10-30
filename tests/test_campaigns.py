@@ -65,7 +65,7 @@ class CampaignTests(unittest.TestCase):
         self.doc.status = "Draft"
         self.frappe.get_all.return_value = ["opted-in"]
         self.service.send("campaign")
-        self.frappe.get_all.assert_called_once_with(
+        self.frappe.get_all.assert_any_call(
             "LC Promotion Preference", filters={"enabled": 1}, pluck="user", limit_page_length=0)
         values = self.frappe.db.set_value.call_args.args[2]
         self.assertEqual(json.loads(values["recipients"]), ["opted-in"])
@@ -83,6 +83,22 @@ class CampaignTests(unittest.TestCase):
         for values in ([0], [1, 0]):
             self.frappe.db.get_value.side_effect = values
             self.assertFalse(self.service.allowed("customer"))
+
+    def test_push_permission_includes_promotions_without_separate_preference(self):
+        self.frappe.db.get_value.return_value = None
+        self.frappe.db.exists.return_value = True
+        self.assertTrue(self.service.promotion_enabled("customer"))
+
+    def test_explicit_opt_out_overrides_active_push(self):
+        self.frappe.db.get_value.return_value = 0
+        self.frappe.db.exists.return_value = True
+        self.assertFalse(self.service.promotion_enabled("customer"))
+        self.frappe.db.exists.assert_not_called()
+
+    def test_no_push_and_no_preference_is_not_opted_in(self):
+        self.frappe.db.get_value.return_value = None
+        self.frappe.db.exists.return_value = False
+        self.assertFalse(self.service.promotion_enabled("customer"))
 
     def test_guest_cannot_change_consent(self):
         self.frappe.session.user = "Guest"

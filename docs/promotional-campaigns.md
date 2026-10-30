@@ -2,7 +2,7 @@
 
 Administrators use Admin → Campaigns to choose a shop/product, draft and preview a message, save it, test on their own account, and send or schedule. Customer sends require confirmation. Suggest wording uses a fixed product-name template; no AI provider is configured. Images, audience segments and purchase attribution are not included in this first version.
 
-Customers opt in under Account → Product updates & offers. Consent defaults off and is separate from browser push permission and transactional alerts. Opt-outs are checked before generating notifications and again before phone delivery. Delivered notifications cannot be recalled.
+Enabling app notifications includes promotions, as explained in the permission prompt. Existing enabled push subscriptions also qualify when there is no explicit promotion preference. Customers can opt out under Account → Product updates & offers; explicit opt-outs override push subscriptions and leave transactional alerts enabled. Opt-outs are checked before generating notifications and again before phone delivery. Delivered notifications cannot be recalled.
 
 The audience is snapshotted on approval. The scheduler processes 100 recipients per campaign per minute, between 09:00 and 20:00 in the site time zone. Scheduling inputs also use site time. Disabled users, opt-outs and customers already sent two campaigns in the preceding seven days are skipped. Test messages do not count. Repeated approval does not restart a campaign; transaction locks and cursor progress prevent repeated notification creation.
 
