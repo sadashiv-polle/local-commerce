@@ -139,6 +139,14 @@ class CampaignTests(unittest.TestCase):
         title, _ = self.service.daily_wording({"item_name": "Eggs", "item_group": "Dairy & Eggs"}, "Fish Market", 0)
         self.assertIn("Breakfast", title)
 
+    def test_automatic_copy_has_one_hundred_distinct_messages(self):
+        for category in ("Fish", "Dairy", "Vegetables", "Meat", "Bakery", "Beverages", "Groceries", "Household"):
+            product = {"item_name": "Selected product", "item_group": category}
+            ideas = [self.service.daily_wording(product, "Shop", index) for index in range(100)]
+            self.assertEqual(len(set(body for _, body in ideas)), 100)
+            self.assertTrue(all(len(title) <= 80 and len(body) <= 240 for title, body in ideas))
+            self.assertEqual(self.service.daily_wording(product, "Shop", 100), ideas[0])
+
     def test_batch_stops_if_shop_closes(self):
         self.service.shop_is_open.side_effect = [True, False]
         self.service.process_one("campaign")

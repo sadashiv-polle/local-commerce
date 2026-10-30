@@ -224,21 +224,16 @@ def automatic_due(account, now):
 
 
 def daily_wording(product, shop_name, day):
-    category = (product.get("item_group") or "").lower()
-    if any(word in category for word in ("fish", "seafood", "prawn", "crab")):
-        titles = ["Fish on the menu? 🐟", "Curry or fry? You decide 🍽️", "A seafood idea for dinner 🐟",
-                  "Plan your next fish meal 🍲", "Your next seafood recipe starts here 🐟"]
-    elif any(word in category for word in ("dairy", "egg", "milk")):
-        titles = ["Breakfast plans? 🍳", "An idea for your morning menu ☀️", "Check your fridge list 📝",
-                  "Something for your kitchen 🥣", "Plan your next breakfast basket 🧺"]
-    elif any(word in category for word in ("food", "vegetable", "fruit", "meat", "grocery", "groceries", "bakery", "snack", "rice")):
-        titles = ["What’s on your menu? 🍽️", "An idea for your next meal 🍲", "Check your kitchen list 📝",
-                  "Plan your next food shop 🧺", "A little meal inspiration 💡"]
-    else:
-        titles = ["What’s on your list? 🛍️", "Your next local find ✨", "A little shopping inspiration 💡",
-                  "Plan your next basket 🧺", "Take a look around your local shop 🛍️"]
-    message = f'Explore {product["item_name"]} at {shop_name}. Tap for current prices and availability.'
-    return titles[day % 5], message if len(message) <= 240 else "Explore this product at your local shop. Tap for current prices and availability."
+    import re
+    from pathlib import Path
+    copy = json.loads((Path(__file__).resolve().parents[1] / "campaign_copy.json").read_text())
+    theme = next((row["ideas"] for row in copy["themes"]
+                  if re.search(row["pattern"], product.get("item_group") or "", re.I)), copy["general"])
+    index = day % (len(theme) * len(copy["actions"]))
+    title, lead = theme[index % len(theme)]
+    action = copy["actions"][index // len(theme)]
+    message = f'{lead}. Explore {product["item_name"]} at {shop_name}. {action}'
+    return title, message if len(message) <= 240 else f"{lead}. {action}"
 
 
 def process_daily():
@@ -251,7 +246,7 @@ def process_daily():
     if not shops:
         return
     slot = (now.hour * 60 + now.minute) // 150
-    rotation = now.date().toordinal() + slot
+    rotation = now.date().toordinal() * 10 + slot
     offset = rotation % len(shops)
     for shop in shops[offset:] + shops[:offset]:
         try:

@@ -1,6 +1,6 @@
 # Promotional campaigns
 
-Admin → Campaigns supports product/shop drafts, previews, test-to-self, manual sends and scheduling. Suggested wording uses category templates and saved wording history; no external AI provider is configured.
+Admin → Campaigns supports product/shop drafts, previews, test-to-self, manual sends and scheduling. Suggested wording offers 100 message variations per category using five openings and twenty closing lines, shared with automatic campaigns, and saved wording history; no external AI provider is configured.
 
 Enabling app notifications includes promotions. Customers can explicitly opt out in Account; opt-outs and disabled accounts are respected. Order and delivery alerts remain independent.
 

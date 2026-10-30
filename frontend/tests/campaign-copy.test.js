@@ -4,9 +4,9 @@ import { campaignSuggestions } from '../src/campaign-copy.js'
 
 test('fish copy uses the category and keeps the selected product identity', () => {
   const ideas = campaignSuggestions({ item_name: 'Bangde - 6 Pieces Pack', item_group: 'Fish & Seafood' }, 'Daily Basket')
-  assert.equal(ideas.length, 5)
+  assert.equal(ideas.length, 100)
   assert.equal(new Set(ideas.map(row => row.title)).size, 5)
-  assert.equal(new Set(ideas.map(row => row.message)).size, 5)
+  assert.equal(new Set(ideas.map(row => row.message)).size, 100)
   for (const row of ideas) assert.ok(row.message.includes('Bangde - 6 Pieces Pack at Daily Basket'))
   assert.match(ideas[0].title, /Fish/)
 })
@@ -35,7 +35,7 @@ test('unknown categories and whole shops do not assume food', () => {
 
 import { orderCampaignSuggestions } from '../src/campaign-copy.js'
 test('saved title or message moves that idea behind unused ideas', () => {
-  const ideas = campaignSuggestions({ item_name: 'Bangde', item_group: 'Fish' }, 'Shop')
+  const ideas = campaignSuggestions({ item_name: 'Bangde', item_group: 'Fish' }, 'Shop').slice(0, 5)
   const ordered = orderCampaignSuggestions(ideas, [
     { title: '  ' + ideas[0].title.toUpperCase(), message: 'edited message' },
     { title: 'edited title', message: ideas[1].message },
@@ -44,6 +44,6 @@ test('saved title or message moves that idea behind unused ideas', () => {
   assert.equal(new Set(ordered.map(row => row.title)).size, 5)
 })
 test('when all ideas were saved the oldest is suggested first', () => {
-  const ideas = campaignSuggestions(null, 'Shop')
+  const ideas = campaignSuggestions(null, 'Shop').slice(0, 5)
   assert.deepEqual(orderCampaignSuggestions(ideas, ideas), [...ideas].reverse())
 })

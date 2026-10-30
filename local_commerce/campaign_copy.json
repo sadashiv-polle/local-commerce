@@ -1,0 +1,223 @@
+{
+  "themes": [
+    {
+      "pattern": "fish|seafood|prawn|crab|shellfish",
+      "ideas": [
+        [
+          "Fish on the menu? 🐟",
+          "Plan a fish curry or a pan-fried favourite"
+        ],
+        [
+          "Curry or fry? You decide 🍽️",
+          "Find inspiration for your next seafood meal"
+        ],
+        [
+          "A seafood idea for dinner 🐟",
+          "Bring a seafood recipe to your meal plan"
+        ],
+        [
+          "Make it a fish-meal day 🍲",
+          "Thinking about your next fish dish"
+        ],
+        [
+          "Your next seafood recipe starts here 🐟",
+          "Planning something from the sea for your table"
+        ]
+      ]
+    },
+    {
+      "pattern": "dairy|egg|milk|cheese",
+      "ideas": [
+        [
+          "Breakfast plans? Start here 🍳",
+          "Find an idea for your breakfast basket"
+        ],
+        [
+          "A little inspiration for your kitchen 🥣",
+          "Plan your next kitchen top-up"
+        ],
+        [
+          "Something for your morning menu ☀️",
+          "Get your shopping list ready for breakfast"
+        ],
+        [
+          "Check your fridge list 📝",
+          "Planning your next fridge restock"
+        ],
+        [
+          "Your next recipe needs a look 🍽️",
+          "Browse an option for your next homemade meal"
+        ]
+      ]
+    },
+    {
+      "pattern": "vegetable|fruit|produce",
+      "ideas": [
+        [
+          "Add colour to your meal plan 🥕",
+          "Find inspiration for your next plate"
+        ],
+        [
+          "What’s in your produce basket? 🧺",
+          "Plan your fruit and vegetable shopping"
+        ],
+        [
+          "A colourful idea for your kitchen 🌈",
+          "Explore an option for your next recipe"
+        ],
+        [
+          "Time to plan your produce shop 📝",
+          "Make a little room on your produce list"
+        ],
+        [
+          "Your next meal starts with an idea 🍽️",
+          "Find something to inspire your kitchen plans"
+        ]
+      ]
+    },
+    {
+      "pattern": "meat|chicken|poultry|mutton",
+      "ideas": [
+        [
+          "What’s cooking next? 🍲",
+          "Find an idea for your next home-cooked meal"
+        ],
+        [
+          "Dinner plans taking shape? 🍽️",
+          "Explore an option for your dinner menu"
+        ],
+        [
+          "Bring a new recipe to the table 🧑‍🍳",
+          "Start planning your next kitchen creation"
+        ],
+        [
+          "A meal idea worth a look 🍲",
+          "Find inspiration for your next family meal"
+        ],
+        [
+          "Your next cooking plan starts here 📝",
+          "Build your shopping list around your next recipe"
+        ]
+      ]
+    },
+    {
+      "pattern": "bakery|bread|cake|dessert|sweet|snack|biscuit",
+      "ideas": [
+        [
+          "Something for your break? ☕",
+          "Explore an idea for your next break"
+        ],
+        [
+          "Make room on your snack list 📝",
+          "Find inspiration for your snack cupboard"
+        ],
+        [
+          "A little treat to explore ✨",
+          "Browse something for your next treat-time plan"
+        ],
+        [
+          "Planning a tea-time break? 🫖",
+          "Take a look while planning your tea-time basket"
+        ],
+        [
+          "Your next snack idea is here 🧺",
+          "Discover an option for your next snack shop"
+        ]
+      ]
+    },
+    {
+      "pattern": "beverage|drink|juice|coffee|tea",
+      "ideas": [
+        [
+          "What’s in your cup next? ☕",
+          "Find inspiration for your next drinks order"
+        ],
+        [
+          "Take a sip of inspiration 🥤",
+          "Explore an option for your drinks list"
+        ],
+        [
+          "Planning your next break? 🫖",
+          "Browse something for your next drinks break"
+        ],
+        [
+          "Check your drinks shelf 📝",
+          "Plan your next beverage top-up"
+        ],
+        [
+          "A drink idea worth exploring ✨",
+          "Discover an option for your next drinks basket"
+        ]
+      ]
+    },
+    {
+      "pattern": "food|grocery|groceries|rice|grain|pulse|spice|pantry|staple|oil",
+      "ideas": [
+        [
+          "What’s cooking in your kitchen? 🍲",
+          "Find inspiration for your next meal"
+        ],
+        [
+          "Check your pantry list 📝",
+          "Plan your next pantry top-up"
+        ],
+        [
+          "Your next recipe starts here 🧑‍🍳",
+          "Explore an option for your cooking plans"
+        ],
+        [
+          "Make room in your meal plan 🍽️",
+          "Build your basket for your next homemade meal"
+        ],
+        [
+          "A kitchen idea worth exploring 🧺",
+          "Discover something for your next grocery shop"
+        ]
+      ]
+    }
+  ],
+  "general": [
+    [
+      "What’s on your list? 🛍️",
+      "Find inspiration for your next basket"
+    ],
+    [
+      "Your next local find awaits ✨",
+      "Explore an idea for your next shopping trip"
+    ],
+    [
+      "A little shopping inspiration 💡",
+      "Take a look while planning your next order"
+    ],
+    [
+      "Make room on your shopping list 📝",
+      "Discover an option for your next basket"
+    ],
+    [
+      "Shopping plans? Start here 🧺",
+      "Explore something for your next local shop"
+    ]
+  ],
+  "actions": [
+    "Tap for current prices and availability.",
+    "Open the shop and take a closer look.",
+    "View the details before you choose.",
+    "See if it belongs in your next basket.",
+    "Browse at your own pace.",
+    "Check the options for your next order.",
+    "Take a look and plan your shopping.",
+    "Your next choice starts with a tap.",
+    "Explore the details from your phone.",
+    "Compare it with what’s on your list.",
+    "Open the page for a closer look.",
+    "Discover the options before ordering.",
+    "Find out more and choose what suits you.",
+    "Check current availability in the app.",
+    "See the latest price before you order.",
+    "Take your shopping list one step further.",
+    "Browse now and decide what works for you.",
+    "See what fits your plans today.",
+    "Visit the shop without leaving the app.",
+    "Take a moment to explore your next pick."
+  ]
+}
