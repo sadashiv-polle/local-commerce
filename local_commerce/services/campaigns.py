@@ -185,3 +185,14 @@ def process_pending():
         except Exception:
             frappe.db.rollback()
             frappe.log_error(title="Promotional campaign failed", message=frappe.get_traceback())
+
+
+def wording_history(shop, item=""):
+    require_platform()
+    filters = {"shop": shop}
+    if item:
+        filters["item"] = item
+    else:
+        filters["item"] = ["is", "not set"]
+    return frappe.get_all("LC Campaign", filters=filters, fields=["title", "message"],
+                          order_by="creation desc, name desc", limit_page_length=0)

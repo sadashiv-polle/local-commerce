@@ -70,3 +70,14 @@ export function campaignSuggestions(product, shop) {
     }
   })
 }
+
+// History is newest first. Unused ideas come first, then least recently used.
+export function orderCampaignSuggestions(ideas, history) {
+  const normalize = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
+  return ideas.map((idea, index) => {
+    const latest = history.findIndex(row => normalize(row.title) === normalize(idea.title) ||
+      normalize(row.message) === normalize(idea.message))
+    return { idea, index, rank: latest < 0 ? Infinity : latest }
+  }).sort((a, b) => a.rank === b.rank ? a.index - b.index : b.rank - a.rank)
+    .map(row => row.idea)
+}

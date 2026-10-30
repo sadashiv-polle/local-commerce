@@ -40,3 +40,8 @@ def test(name):
 @frappe.whitelist(methods=["POST"])
 def cancel(name):
     return campaigns.cancel(name)
+
+
+@frappe.whitelist(methods=["GET"])
+def wording_history(shop, item=""):
+    return campaigns.wording_history(shop, item)

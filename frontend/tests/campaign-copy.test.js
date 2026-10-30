@@ -32,3 +32,18 @@ test('unknown categories and whole shops do not assume food', () => {
     assert.ok(campaignSuggestions(product, 'Local Shop').every(row => !/fish|meal|kitchen|breakfast/i.test(row.message)))
   }
 })
+
+import { orderCampaignSuggestions } from '../src/campaign-copy.js'
+test('saved title or message moves that idea behind unused ideas', () => {
+  const ideas = campaignSuggestions({ item_name: 'Bangde', item_group: 'Fish' }, 'Shop')
+  const ordered = orderCampaignSuggestions(ideas, [
+    { title: '  ' + ideas[0].title.toUpperCase(), message: 'edited message' },
+    { title: 'edited title', message: ideas[1].message },
+  ])
+  assert.deepEqual(ordered, [ideas[2], ideas[3], ideas[4], ideas[1], ideas[0]])
+  assert.equal(new Set(ordered.map(row => row.title)).size, 5)
+})
+test('when all ideas were saved the oldest is suggested first', () => {
+  const ideas = campaignSuggestions(null, 'Shop')
+  assert.deepEqual(orderCampaignSuggestions(ideas, ideas), [...ideas].reverse())
+})

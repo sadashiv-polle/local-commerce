@@ -109,6 +109,15 @@ class CampaignTests(unittest.TestCase):
         self.frappe.db.exists.return_value = False
         self.assertFalse(self.service.promotion_enabled("customer"))
 
+    def test_wording_history_scopes_product_and_shop(self):
+        self.service.wording_history("shop", "eggs")
+        self.assertEqual(self.frappe.get_all.call_args.kwargs["filters"], {"shop": "shop", "item": "eggs"})
+        self.service.wording_history("shop")
+        self.assertEqual(self.frappe.get_all.call_args.kwargs["filters"], {"shop": "shop", "item": ["is", "not set"]})
+        self.scope.require_platform.side_effect = PermissionError
+        with self.assertRaises(PermissionError):
+            self.service.wording_history("shop")
+
     def test_guest_cannot_change_consent(self):
         self.frappe.session.user = "Guest"
         with self.assertRaises(PermissionError):

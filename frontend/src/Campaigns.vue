@@ -1,14 +1,14 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { call } from './api.js'
-import { campaignSuggestions } from './campaign-copy.js'
+import { campaignSuggestions, orderCampaignSuggestions } from './campaign-copy.js'
 const shops = ref([]), products = ref([]), rows = ref([])
 const shop = ref(''), item = ref(''), title = ref(''), message = ref(''), saved = ref(''), sendAt = ref('')
 const busy = ref(false), error = ref(''), notice = ref('')
 const product = computed(() => products.value.find(row => row.name === item.value))
 const shopName = computed(() => shops.value.find(row => row.name === shop.value)?.shop_name || '')
-let generation = 0, suggestionIndex = 0
-watch([shop, item], () => { suggestionIndex = 0 })
+let generation = 0, suggestionIndex = 0, suggestionCycle = null
+watch([shop, item], () => { suggestionIndex = 0; suggestionCycle = null })
 watch([shop, item, title, message], () => { saved.value = '' })
 watch(shop, async value => {
   const current = ++generation
@@ -21,19 +21,23 @@ async function action(fn) {
   busy.value = true; error.value = ''; notice.value = ''
   try { await fn() } catch (e) { error.value = e.message } finally { busy.value = false }
 }
-function suggest() {
-  const options = campaignSuggestions(product.value, shopName.value)
-  const suggestion = options[suggestionIndex % options.length]
-  suggestionIndex++
-  // Keep complete sentences when unusually long catalogue names exceed push limits.
-  title.value = suggestion.title.length <= 80 ? suggestion.title : 'Something for your shopping list ✨'
-  message.value = suggestion.message.length <= 240 ? suggestion.message : 'Take a closer look at this local find. Tap to view product details, current pricing and availability before ordering.'
+async function suggest() {
+  await action(async () => {
+    if (!suggestionCycle) {
+      const history = await call('campaigns.wording_history', { shop: shop.value, item: item.value })
+      suggestionCycle = orderCampaignSuggestions(campaignSuggestions(product.value, shopName.value), history)
+    }
+    const suggestion = suggestionCycle[suggestionIndex % suggestionCycle.length]
+    suggestionIndex++
+    title.value = suggestion.title
+    message.value = suggestion.message
+  })
 }
 
 async function save() {
   await action(async () => {
     const result = await call('campaigns.save', { shop: shop.value, item: item.value, title: title.value, message: message.value }, true)
-    saved.value = result.name; notice.value = 'Draft saved. Review the preview before sending.'; await refresh()
+    saved.value = result.name; suggestionCycle = null; suggestionIndex = 0; notice.value = 'Draft saved. Review the preview before sending.'; await refresh()
   })
 }
 async function test(name) {
