@@ -16,7 +16,7 @@ def state(doc):
 
 def public(doc):
     case = state(doc)
-    return {k: case[k] for k in ('status','reason','review_note','decision_note','kind','amount',
+    return {k: case[k] for k in ('status','purpose','reason','review_note','decision_note','kind','amount',
         'requested_at','reviewed_at','approved_at','updated_at','events','stock_note') if k in case}
 
 
@@ -145,8 +145,16 @@ def process(order):
         case = state(doc)
         if case.get('status') not in ('Refund queued', 'Refund processing'):
             return
-        require_offer_accounting(doc)
+        cancellation = case.get('purpose') == 'Cancellation'
+        if cancellation:
+            if doc.status != 'Cancelled' or doc.gateway_payment_id != case.get('payment_id'):
+                reject('Cancellation refund no longer matches this order')
+        else:
+            require_offer_accounting(doc)
         snap = json.loads(doc.gateway_snapshot)
+        if cancellation:
+            # Refund the cash paid, never the gross amount before provider discounts.
+            snap['amount'] = case['paid_amount']
         snap['order_id'] = doc.gateway_order_id
         path = '/orders/' + quote(doc.gateway_order_id, safe='') + '/refunds'
         rows = cashfree.request(doc.gateway_profile, 'GET', path)

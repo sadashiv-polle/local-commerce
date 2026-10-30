@@ -25,7 +25,7 @@ def transition(current, target, customer=False):
     if current == target:
         return False
     if target not in TRANSITIONS.get(current, set()) or (
-        customer and (current != "Requested" or target != "Cancelled")
+        customer and (current not in {"Requested", "Accepted"} or target != "Cancelled")
     ):
         raise ValueError("This order status change is not allowed")
     return True

@@ -310,10 +310,10 @@ onBeforeUnmount(() => {
         <button class="lc-primary" :disabled="busy || !selectedDrivers[order.name] || selectedDrivers[order.name] === order.delivery_user" @click="assign(order)">{{ order.delivery_user ? 'Reassign this order' : 'Assign this order' }}</button>
         <small v-if="!drivers.length">No delivery people are assigned to this shop. A platform administrator can add a Delivery Person membership in Desk.</small>
       </div>
-      <div v-if="(shop && editable) || (!shop && order.status === 'Requested')" class="order-actions">
+      <div v-if="(shop && editable) || (!shop && ['Requested', 'Accepted'].includes(order.status))" class="order-actions">
         <button v-if="shop && ['Accepted', 'Preparing'].includes(order.status) && order.can_repack" :disabled="busy" @click="repack(order)">Repack with fresh stock</button>
         <button v-if="shop && next[order.status] && !(order.payment_method === 'Cashfree' && (order.payment_status !== 'Paid' || order.accounting_pending))" class="lc-primary" :disabled="busy" @click="change(order, next[order.status])">{{ nextLabel[order.status] }}</button>
-        <details v-if="cancellable.has(order.status)"><summary>Cancel order</summary><label>Reason<input v-model="reasons[order.name]" minlength="3" maxlength="500"></label><button :disabled="busy || (reasons[order.name] || '').trim().length < 3" @click="change(order, 'Cancelled')">Confirm cancellation</button></details>
+        <details v-if="cancellable.has(order.status)"><summary>Cancel order</summary><p v-if="order.payment_method === 'Cashfree'">If payment is verified, cancellation automatically queues a refund of the amount you paid. Bank credit is confirmed separately.</p><label>Reason<input v-model="reasons[order.name]" minlength="3" maxlength="500"></label><button :disabled="busy || (reasons[order.name] || '').trim().length < 3" @click="change(order, 'Cancelled')">Confirm cancellation</button></details>
       </div>
     </article>
     <dialog ref="reorderDialog" class="reorder-dialog" aria-labelledby="reorder-title">

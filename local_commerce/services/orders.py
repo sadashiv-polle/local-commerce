@@ -1676,6 +1676,8 @@ def change(order, target, reason=""):
     )
     if not is_customer:
         authorize(doc, True)
+    if target == "Cancelled" and doc.status == "Cancelled":
+        return serialize(doc)
     cancellation = None
     if doc.payment_method == "Cashfree" and target == "Cancelled":
         cancellation = cashfree.prepare_cancellation(doc)
@@ -1713,7 +1715,11 @@ def change(order, target, reason=""):
             _accept_sales_order(doc, so)
         elif target == "Cancelled":
             if so.docstatus == 1:
-                so.cancel()
+                if doc.sales_invoice or doc.payment_entry:
+                    # Preserve submitted financial links; refund accounting creates credit entries.
+                    so.update_status("Closed")
+                else:
+                    so.cancel()
             elif so.docstatus != 0:
                 reject("This ERPNext order cannot be cancelled here")
         elif so.docstatus != 1:
@@ -1722,6 +1728,9 @@ def change(order, target, reason=""):
         doc.status, doc.reason = target, str(reason).strip() if target == "Cancelled" else ""
         if target == "Cancelled":
             doc.fish_allocations_json = '[]'
+            if isinstance(cancellation, dict):
+                from local_commerce.services.cancellation_refunds import queue
+                queue(doc, cancellation)
         doc.save(ignore_permissions=True)
         doc.add_comment("Info", escape(f"{previous} → {target}. {doc.reason}"))
         order_notifications.status_changed(doc, previous)

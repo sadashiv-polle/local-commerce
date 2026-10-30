@@ -27,9 +27,10 @@ class TestOrderRules(unittest.TestCase):
             with self.assertRaises(ValueError):
                 cart_rows(rows)
 
-    def test_customer_can_only_cancel_unaccepted_request(self):
+    def test_customer_can_cancel_before_preparation(self):
         self.assertTrue(transition("Requested", "Cancelled", customer=True))
-        for current, target in [("Accepted", "Cancelled"), ("Requested", "Accepted")]:
+        self.assertTrue(transition("Accepted", "Cancelled", customer=True))
+        for current, target in [("Preparing", "Cancelled"), ("Requested", "Accepted")]:
             with self.assertRaises(ValueError):
                 transition(current, target, customer=True)
 

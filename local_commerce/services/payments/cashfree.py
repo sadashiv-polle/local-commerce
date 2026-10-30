@@ -672,16 +672,21 @@ def prepare_cancellation(doc):
     from local_commerce.services import orders
 
     orders.authorize(doc)
-    ensure_unpaid(doc)
     remote = request(doc.gateway_profile, "GET", "/orders/" + doc.gateway_order_id, missing=True)
     snap = json.loads(doc.gateway_snapshot)
     if remote:
         attempts = request(doc.gateway_profile, "GET", "/orders/" + doc.gateway_order_id + "/payments")
         verified = successful_payment(remote, attempts, doc.gateway_order_id, snap["amount"], snap["currency"])
-        if verified or any(p.get("payment_status") not in {"FAILED", "USER_DROPPED", "CANCELLED", "VOID"} for p in attempts):
+        if verified:
+            payment = next(p for p in attempts if str(p.get("cf_payment_id")) == verified)
+            from local_commerce.services.cancellation_refunds import prepare
+            rows = request(doc.gateway_profile, "GET", "/orders/" + doc.gateway_order_id + "/refunds")
+            return prepare(doc, verified, payment, rows)
+        if any(p.get("payment_status") not in {"FAILED", "USER_DROPPED", "CANCELLED", "VOID"} for p in attempts):
             reject("A successful or unresolved payment exists. Refresh payment status before cancellation")
     if remote and remote.get("order_status") not in {"EXPIRED", "TERMINATED"}:
         reject("The payment window is still open. Refresh payment status or wait for it to expire")
+    ensure_unpaid(doc)
     return (doc.name, doc.gateway_profile, doc.gateway_order_id, doc.gateway_snapshot)
 
 
@@ -691,6 +696,12 @@ def ensure_unpaid(doc):
 
 
 def ensure_cancellable(doc, evidence):
+    if isinstance(evidence, dict):
+        if evidence['identity'] != (doc.name, doc.gateway_profile, doc.gateway_order_id, doc.gateway_snapshot):
+            reject("Payment details changed. Refresh and try again")
+        if doc.gateway_payment_id and doc.gateway_payment_id != evidence['payment_id']:
+            reject("Payment reference changed. Refresh and try again")
+        return
     ensure_unpaid(doc)
     if evidence != (doc.name, doc.gateway_profile, doc.gateway_order_id, doc.gateway_snapshot):
         reject("Payment details changed. Refresh and try again")

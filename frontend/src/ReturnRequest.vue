@@ -23,13 +23,13 @@ function approve() {
 </script>
 <template>
   <section v-if="request.status || (customer && order.status === 'Delivered')" class="return-card">
-    <h3>Return &amp; refund</h3>
+    <h3>{{ request.purpose === 'Cancellation' ? 'Cancellation refund' : 'Return & refund' }}</h3>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p>
     <template v-if="request.status">
       <strong class="return-status">{{ request.status }}</strong>
       <p>{{ request.reason }}</p>
       <p v-if="request.review_note"><b>Shop review:</b> {{ request.review_note }}</p>
-      <p v-if="request.decision_note"><b>Administrator decision:</b> {{ request.decision_note }}</p>
+      <p v-if="request.decision_note"><b>{{ request.purpose === 'Cancellation' ? 'Refund handling:' : 'Administrator decision:' }}</b> {{ request.decision_note }}</p>
       <p v-if="request.amount">Approved refund: <b>{{ displayMoney(request.amount) }}</b> · {{ request.kind }}</p>
       <p v-if="request.status === 'Needs review'">The refund needs administrator review. This does not confirm that money was returned.</p>
       <ol><li v-for="(event, index) in request.events || []" :key="index">{{ event.status }} · {{ new Date(event.at.replace(' ', 'T')).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short', hour12: true }) }}</li></ol>
