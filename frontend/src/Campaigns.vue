@@ -6,7 +6,8 @@ const shop = ref(''), item = ref(''), title = ref(''), message = ref(''), saved 
 const busy = ref(false), error = ref(''), notice = ref('')
 const product = computed(() => products.value.find(row => row.name === item.value))
 const shopName = computed(() => shops.value.find(row => row.name === shop.value)?.shop_name || '')
-let generation = 0
+let generation = 0, suggestionIndex = 0
+watch([shop, item], () => { suggestionIndex = 0 })
 watch([shop, item, title, message], () => { saved.value = '' })
 watch(shop, async value => {
   const current = ++generation
@@ -20,9 +21,26 @@ async function action(fn) {
   try { await fn() } catch (e) { error.value = e.message } finally { busy.value = false }
 }
 function suggest() {
-  title.value = product.value ? `Explore ${product.value.item_name}`.slice(0, 80) : `Explore ${shopName.value}`.slice(0, 80)
-  message.value = `Browse ${product.value?.item_name || 'products'} at ${shopName.value}. Open the shop to check current stock and prices.`.slice(0, 240)
+  const name = product.value?.item_name?.trim()
+  const store = shopName.value.trim()
+  const options = name ? [
+    { title: `${name} on your list? 🛍️`, message: `Take a closer look at ${name} from ${store}. Tap to view the product and plan your next order.` },
+    { title: 'Your next basket starts here 🛍️', message: `Make room on your shopping list for ${name}. Browse it at ${store} and see if it’s right for your basket.` },
+    { title: `A little inspiration from ${store}`, message: `Still deciding what to buy? Take a look at ${name}. Tap for product details and current pricing.` },
+    { title: 'Something for your shopping list ✨', message: `Discover ${name} at ${store}. Your next find could be just a tap away.` },
+  ] : [
+    { title: `What’s on your list? 🛍️`, message: `Start your next shopping trip with ${store}. Browse the range and find something for your basket.` },
+    { title: 'Your next local find awaits ✨', message: `Take a look around ${store}. Tap to browse products, check prices and plan your next order.` },
+    { title: `A little inspiration from ${store}`, message: `Need an idea for your next basket? Explore ${store} and see what catches your eye.` },
+    { title: 'Shopping plans? Start here 🛍️', message: `Bring your list to ${store}. Explore the shop from your phone and choose what works for you.` },
+  ]
+  const suggestion = options[suggestionIndex % options.length]
+  suggestionIndex++
+  // Keep complete sentences when unusually long catalogue names exceed push limits.
+  title.value = suggestion.title.length <= 80 ? suggestion.title : 'Something for your shopping list ✨'
+  message.value = suggestion.message.length <= 240 ? suggestion.message : 'Take a closer look at this local find. Tap to view product details, current pricing and availability before ordering.'
 }
+
 async function save() {
   await action(async () => {
     const result = await call('campaigns.save', { shop: shop.value, item: item.value, title: title.value, message: message.value }, true)
@@ -54,8 +72,8 @@ onMounted(() => action(async () => { shops.value = (await call('campaigns.option
       <fieldset :disabled="busy">
         <label>Shop<select v-model="shop" required><option value="">Choose a shop</option><option v-for="row in shops" :key="row.name" :value="row.name">{{ row.shop_name }}</option></select></label>
         <label>Product (optional)<select v-model="item"><option value="">Whole shop</option><option v-for="row in products" :key="row.name" :value="row.name">{{ row.item_name }}</option></select></label>
-        <button type="button" :disabled="!shop" @click="suggest">Suggest wording</button>
-        <small>Suggestions use product names, not AI. Check any claims or offers before sending.</small>
+        <button type="button" :disabled="!shop" @click="suggest">Suggest wording · try another</button>
+        <small>Tap again for another idea. Edit the title and message to suit your shop before sending.</small>
         <label>Title<input v-model="title" maxlength="80" required></label>
         <label>Message<textarea v-model="message" maxlength="240" required /></label>
         <aside class="campaign-preview" aria-label="Notification preview"><strong>{{ title || 'Notification title' }}</strong><p>{{ message || 'Your message appears here.' }}</p><small>Opens {{ product?.item_name || shopName || 'your shop' }}</small></aside>
