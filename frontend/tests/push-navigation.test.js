@@ -3,11 +3,11 @@ import assert from 'node:assert/strict'
 import vm from 'node:vm'
 import { readFileSync } from 'node:fs'
 const source = readFileSync(new URL('../../local_commerce/www/local-commerce-sw.js', import.meta.url), 'utf8')
-async function click(windows, target = '/local-commerce#/orders?order=123') {
+async function click(windows, target = '/local-commerce#/orders?order=123', notificationId = '') {
   const handlers = {}, opened = []
   vm.runInNewContext(source, { URL, self: { location: { origin: 'https://local.test' }, addEventListener: (name, fn) => { handlers[name] = fn } }, clients: { matchAll: async () => windows, openWindow: async url => opened.push(url) } })
   let pending
-  handlers.notificationclick({ notification: { data: { url: target }, close() {} }, waitUntil(promise) { pending = promise } })
+  handlers.notificationclick({ notification: { data: { url: target, notification_id: notificationId }, close() {} }, waitUntil(promise) { pending = promise } })
   await pending
   return opened
 }
@@ -26,4 +26,16 @@ test('cold notification launch seeds a return path and never hijacks Desk', asyn
 })
 test('notification cannot navigate to another origin', async () => {
   assert.deepEqual(await click([], 'https://other.test/local-commerce'), [])
+})
+
+test('product notification preserves its destination and read identity for warm and cold launches', async () => {
+  const messages = []
+  const target = '/local-commerce#/store/shop-a?item=fish-pack'
+  await click([{ url: 'https://local.test/local-commerce#/store', postMessage: data => messages.push(data), focus: async () => {} }], target, 'notice-123')
+  assert.equal(messages[0].path, '/store/shop-a?item=fish-pack')
+  assert.equal(messages[0].notification_id, 'notice-123')
+  const opened = await click([], target, 'notice-123')
+  const url = new URL(opened[0])
+  assert.equal(url.searchParams.get('notification_id'), 'notice-123')
+  assert.equal(url.hash, '#/store/shop-a?item=fish-pack')
 })

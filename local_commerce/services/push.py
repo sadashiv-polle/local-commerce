@@ -149,6 +149,7 @@ def send_notification(notification):
             "body": row.message,
             "url": f"/local-commerce#{row.target}",
             "tag": f"lc-{notification}",
+            "notification_id": notification,
         }
     )
     subject = frappe.conf.get("lc_web_push_subject") or "mailto:admin@localhost"

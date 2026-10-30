@@ -6,7 +6,7 @@ self.addEventListener('push', event => {
     icon: '/assets/local_commerce/icons/icon-192.png?v=20261007-white',
     badge: '/assets/local_commerce/icons/badge-96.png',
     tag: data.tag || 'local-commerce',
-    data: { url: data.url || '/local-commerce' },
+    data: { url: data.url || '/local-commerce', notification_id: data.notification_id || '' },
   }))
 })
 
@@ -20,11 +20,12 @@ self.addEventListener('notificationclick', event => {
       return candidate.origin === url.origin && candidate.pathname === url.pathname
     })
     if (existing) {
-      existing.postMessage({ type: 'lc-open-notification', path: url.hash.slice(1) || '/store' })
+      existing.postMessage({ type: 'lc-open-notification', path: url.hash.slice(1) || '/store', notification_id: event.notification.data?.notification_id || '' })
       return existing.focus()
     }
     // A cold launch needs an in-app home entry underneath the order detail.
     url.searchParams.set('notification', '1')
+    if (event.notification.data?.notification_id) url.searchParams.set('notification_id', event.notification.data.notification_id)
     return clients.openWindow(url.href)
   }))
 })

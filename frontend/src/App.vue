@@ -166,21 +166,19 @@ function notificationTime(value) {
   const parsed = new Date(String(value || '').replace(' ', 'T'))
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short', hour12: true })
 }
-async function openNotification(notification) {
-  if (!notification.read) {
-    notification.read = 1
-    unreadNotifications.value = Math.max(0, unreadNotifications.value - 1)
-    try { await call('notifications.mark_read', { name: notification.name }, true) } catch { await loadNotifications() }
-  }
-  await router.push(notification.target)
-}
-async function markAllNotifications() {
-  if (!unreadNotifications.value) return
+async function markOpenedNotification(name) {
+  if (!name || !session.value || session.value.user === 'Guest') return
   try {
-    await call('notifications.mark_all_read', {}, true)
-    notifications.value.forEach(notification => { notification.read = 1 })
-    unreadNotifications.value = 0
-  } catch { await loadNotifications() }
+    await call('notifications.mark_read', { name }, true)
+    await loadNotifications()
+  } catch { /* Keep unread when the server could not record the open. */ }
+}
+async function openNotification(notification) {
+  await router.push(notification.target)
+  if (route.fullPath === router.resolve(notification.target).fullPath) {
+    if (notificationMenu.value) notificationMenu.value.open = false
+    await markOpenedNotification(notification.name)
+  }
 }
 function toggleNotifications() {
   if (notificationMenu.value?.open) {
@@ -195,9 +193,14 @@ watch(() => route.fullPath, () => {
   if (notificationMenu.value) notificationMenu.value.open = route.query.notifications === '1'
   headerAddressMenu.value?.removeAttribute('open')
 })
-function receiveNotification(event) {
+async function receiveNotification(event) {
   const path = event.data?.path
-  if (event.data?.type === 'lc-open-notification' && typeof path === 'string' && /^\/(orders|delivery|shop)(\/|\?|$)/.test(path)) router.push(path)
+  if (event.data?.type !== 'lc-open-notification' || typeof path !== 'string' ||
+      !/^\/(orders|delivery|shop|store)(\/|\?|$)/.test(path)) return
+  await router.push(path)
+  if (route.fullPath === router.resolve(path).fullPath) {
+    await markOpenedNotification(event.data.notification_id)
+  }
 }
 async function load() {
   error.value = ''
@@ -220,11 +223,14 @@ async function load() {
     if (route.path === '/') await router.replace(defaultPage(session.value))
     const launch = new URL(window.location.href)
     if (launch.searchParams.get('notification') === '1') {
+      const openedNotification = launch.searchParams.get('notification_id')
+      launch.searchParams.delete('notification_id')
       launch.searchParams.delete('notification')
       window.history.replaceState(window.history.state, '', launch.href)
       const target = route.fullPath, home = defaultPage(session.value)
       await router.replace(home)
       if (target !== home) await router.push(target)
+      if (route.fullPath === target) await markOpenedNotification(openedNotification)
     }
   } catch (e) { error.value = e.message }
 }
@@ -284,7 +290,7 @@ onBeforeUnmount(() => {
     <header class="topbar">
       <div class="brand-stack"><RouterLink class="brand" :to="workView ? workHome : '/store'">local<span>●</span><small v-if="ownerView || deliveryView">{{ adminView ? 'ADMIN' : ownerView ? 'BUSINESS' : 'DELIVERY' }}</small></RouterLink><details v-if="!ownerView && !deliveryView" ref="headerAddressMenu" class="header-address-menu" @keydown.esc.prevent="headerAddressMenu.removeAttribute('open'); headerAddressMenu.querySelector('summary')?.focus()"><summary class="header-delivery-address"><small>DELIVERING TO</small><strong v-if="headerAddress">{{ headerAddress.address_label }} · {{ headerAddress.line1 }}</strong><strong v-else>{{ headerAddresses.length ? 'Choose delivery address' : session?.user === 'Guest' ? 'Choose delivery location' : 'Add delivery address' }}</strong><span aria-hidden="true">⌄</span></summary><div class="header-address-options"><span class="eyebrow">SAVED ADDRESSES</span><button v-for="address in headerAddresses" :key="address.name" type="button" :class="{ selected: address.name === headerAddress?.name }" :aria-pressed="address.name === headerAddress?.name" @click="chooseHeaderAddress(address)"><span class="address-icon" aria-hidden="true"><AppIcon :name="address.address_type === 'Home' ? 'home' : address.address_type === 'Work' ? 'work' : 'location'" /></span><span><strong>{{ address.address_label }}</strong><small>{{ address.line1 }} · {{ address.city }}</small></span><b v-if="address.name === headerAddress?.name">✓</b></button><p v-if="!headerAddresses.length">No saved addresses yet.</p><button type="button" class="header-add-address" @click="addHeaderAddress">+ {{ session?.user === 'Guest' ? 'Login to add address' : 'Add address' }}</button></div></details></div>
       <div class="header-note"><AppIcon class="pin" name="location" /><div><strong>{{ ownerView ? 'Your business workspace' : deliveryView ? 'Your rider workspace' : 'Good things start nearby' }}</strong><small>{{ ownerView ? 'A little more connected.' : deliveryView ? 'Every order, right on track.' : 'Delivery from your local shops' }}</small></div></div>
-      <nav aria-label="Main navigation"><div class="header-shortcuts"><RouterLink v-if="!ownerView && !deliveryView" to="/favourites">♡ Favourites</RouterLink></div><div class="header-account-controls"><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><details v-else-if="session" ref="notificationMenu" class="notification-menu" @toggle="toggleNotifications"><summary aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><span v-if="unreadNotifications" class="notification-badge">{{ unreadNotifications > 99 ? '99+' : unreadNotifications }}</span></summary><section class="notification-panel"><header><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2></div><button type="button" aria-label="Close notifications" @click="notificationMenu.open = false">✕</button><button type="button" :disabled="!unreadNotifications" @click="markAllNotifications">Mark all read</button></header><div v-if="pushState !== 'loading'" class="push-settings"><div><strong>{{ pushState === 'enabled' ? 'Phone alerts are on' : 'Get phone alerts' }}</strong><small v-if="pushState === 'available'">Receive order updates when this app is closed.</small><small v-else-if="pushState === 'enabled'">This device can receive background order alerts.</small><small v-else-if="pushState === 'unconfigured'">The server needs its free push key configured.</small><small v-else-if="pushState === 'denied'">Allow notifications in your phone or browser settings.</small><small v-else-if="pushState === 'unsupported'">On iPhone, add Local to your Home Screen, then open it there.</small><small v-else>Phone alerts are unavailable right now.</small></div><button v-if="pushState === 'available'" type="button" :disabled="pushBusy" @click="turnOnPush">{{ pushBusy ? 'Enabling…' : 'Enable' }}</button></div><p v-if="pushMessage" class="push-message" role="status">{{ pushMessage }}</p><p v-if="notificationsLoading && !notifications.length" role="status">Checking updates…</p><p v-else-if="!notifications.length" class="notification-empty">No order updates yet.</p><button v-for="notification in notifications" :key="notification.name" type="button" class="notification-item" :class="{ unread: !notification.read }" @click="openNotification(notification)"><span class="notification-dot" aria-hidden="true"></span><span><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small><time>{{ notificationTime(notification.creation) }}</time></span></button></section></details><details v-if="session && session.user !== 'Guest'" ref="profileMenu" class="profile-menu" @keydown.esc.prevent="profileMenu.open = false; profileMenu.querySelector('summary')?.focus()"><summary class="account" :aria-label="`Profile options for ${session.full_name}`"><ProfileAvatar :name="session.full_name" :image="session.user_image" /><span>{{ session.full_name }}</span></summary><div class="profile-options"><strong>{{ session.full_name }}</strong><RouterLink :to="workView ? workHome : '/account'">{{ workView ? 'My workspace' : 'My account' }}</RouterLink><RouterLink to="/security">Change password</RouterLink></div></details><button v-if="session && session.user !== 'Guest'" class="logout-button" aria-label="Log out" title="Log out" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg><span class="logout-button-label">Log out</span></button></div></nav>
+      <nav aria-label="Main navigation"><div class="header-shortcuts"><RouterLink v-if="!ownerView && !deliveryView" to="/favourites">♡ Favourites</RouterLink></div><div class="header-account-controls"><template v-if="session?.user === 'Guest'"><a :href="loginUrl(route.fullPath)">Login</a><RouterLink :to="{ path: '/signup', query: { next: route.fullPath } }">Sign Up / Create Account</RouterLink></template><details v-else-if="session" ref="notificationMenu" class="notification-menu" @toggle="toggleNotifications"><summary aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><span v-if="unreadNotifications" class="notification-badge">{{ unreadNotifications > 99 ? '99+' : unreadNotifications }}</span></summary><section class="notification-panel"><header><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2></div><button type="button" aria-label="Close notifications" @click="notificationMenu.open = false">✕</button></header><div v-if="pushState !== 'loading'" class="push-settings"><div><strong>{{ pushState === 'enabled' ? 'Phone alerts are on' : 'Get phone alerts' }}</strong><small v-if="pushState === 'available'">Receive order updates when this app is closed.</small><small v-else-if="pushState === 'enabled'">This device can receive background order alerts.</small><small v-else-if="pushState === 'unconfigured'">The server needs its free push key configured.</small><small v-else-if="pushState === 'denied'">Allow notifications in your phone or browser settings.</small><small v-else-if="pushState === 'unsupported'">On iPhone, add Local to your Home Screen, then open it there.</small><small v-else>Phone alerts are unavailable right now.</small></div><button v-if="pushState === 'available'" type="button" :disabled="pushBusy" @click="turnOnPush">{{ pushBusy ? 'Enabling…' : 'Enable' }}</button></div><p v-if="pushMessage" class="push-message" role="status">{{ pushMessage }}</p><p v-if="notificationsLoading && !notifications.length" role="status">Checking updates…</p><p v-else-if="!notifications.length" class="notification-empty">No order updates yet.</p><button v-for="notification in notifications" :key="notification.name" type="button" class="notification-item" :class="{ unread: !notification.read }" @click="openNotification(notification)"><span class="notification-dot" aria-hidden="true"></span><span><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small><time>{{ notificationTime(notification.creation) }}</time></span></button></section></details><details v-if="session && session.user !== 'Guest'" ref="profileMenu" class="profile-menu" @keydown.esc.prevent="profileMenu.open = false; profileMenu.querySelector('summary')?.focus()"><summary class="account" :aria-label="`Profile options for ${session.full_name}`"><ProfileAvatar :name="session.full_name" :image="session.user_image" /><span>{{ session.full_name }}</span></summary><div class="profile-options"><strong>{{ session.full_name }}</strong><RouterLink :to="workView ? workHome : '/account'">{{ workView ? 'My workspace' : 'My account' }}</RouterLink><RouterLink to="/security">Change password</RouterLink></div></details><button v-if="session && session.user !== 'Guest'" class="logout-button" aria-label="Log out" title="Log out" :disabled="loggingOut" aria-haspopup="dialog" @click="confirmLogout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M9 12h10" stroke-linecap="round" stroke-linejoin="round" /></svg><span class="logout-button-label">Log out</span></button></div></nav>
     </header>
     <div v-if="session && session.user !== 'Guest' && pushState === 'available' && !pushPromptDismissed" class="push-login-anchor">
       <section class="push-login-prompt" aria-labelledby="push-login-title" @keydown.esc="dismissPushPrompt">
