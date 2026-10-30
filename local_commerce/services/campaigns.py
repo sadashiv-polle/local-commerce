@@ -229,11 +229,9 @@ def daily_wording(product, shop_name, day):
     copy = json.loads((Path(__file__).resolve().parents[1] / "campaign_copy.json").read_text())
     theme = next((row["ideas"] for row in copy["themes"]
                   if re.search(row["pattern"], product.get("item_group") or "", re.I)), copy["general"])
-    index = day % (len(theme) * len(copy["actions"]))
-    title, lead = theme[index % len(theme)]
-    action = copy["actions"][index // len(theme)]
-    message = f'{lead}. Explore {product["item_name"]} at {shop_name}. {action}'
-    return title, message if len(message) <= 240 else f"{lead}. {action}"
+    title, template = theme[day % len(theme)]
+    message = template.replace("{selection}", f'{product["item_name"]} at {shop_name}')
+    return title, message if len(message) <= 240 else template.replace("{selection}", "this product in the shop")
 
 
 def process_daily():

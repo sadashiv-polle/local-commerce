@@ -5,7 +5,7 @@ import { campaignSuggestions } from '../src/campaign-copy.js'
 test('fish copy uses the category and keeps the selected product identity', () => {
   const ideas = campaignSuggestions({ item_name: 'Bangde - 6 Pieces Pack', item_group: 'Fish & Seafood' }, 'Daily Basket')
   assert.equal(ideas.length, 100)
-  assert.equal(new Set(ideas.map(row => row.title)).size, 5)
+  assert.equal(new Set(ideas.map(row => row.title)).size, 100)
   assert.equal(new Set(ideas.map(row => row.message)).size, 100)
   for (const row of ideas) assert.ok(row.message.includes('Bangde - 6 Pieces Pack at Daily Basket'))
   assert.match(ideas[0].title, /Fish/)
@@ -19,10 +19,13 @@ test('all themes and long names fit the notification limits without clipped sent
   for (const category of ['Seafood', 'Dairy', 'Vegetables', 'Meat', 'Bakery', 'Beverages', 'Groceries', 'Household']) {
     for (const name of ['Product', 'Long name '.repeat(60)]) {
       const ideas = campaignSuggestions({ item_name: name, item_group: category }, 'Shop '.repeat(30))
+      assert.equal(ideas.length, 100)
+      assert.equal(new Set(ideas.map(row => row.title)).size, 100)
+      assert.equal(new Set(ideas.map(row => row.message)).size, 100)
       for (const idea of ideas) {
         assert.ok(idea.title.length <= 80)
         assert.ok(idea.message.length <= 240)
-        assert.ok(idea.message.endsWith('.'))
+        assert.match(idea.message, /[.!?]$/)
       }
     }
   }
@@ -46,4 +49,13 @@ test('saved title or message moves that idea behind unused ideas', () => {
 test('when all ideas were saved the oldest is suggested first', () => {
   const ideas = campaignSuggestions(null, 'Shop').slice(0, 5)
   assert.deepEqual(orderCampaignSuggestions(ideas, ideas), [...ideas].reverse())
+})
+
+test('ideas change the main sentence rather than only a closing line', () => {
+  const ideas = campaignSuggestions({ item_name: 'Bangde', item_group: 'Fish' }, 'Daily Basket')
+  assert.equal(new Set(ideas.map(row => row.message.split('.')[0])).size, 100)
+})
+test('product names containing replacement characters remain literal', () => {
+  const ideas = campaignSuggestions({ item_name: 'Pack $&', item_group: 'Fish' }, 'Shop')
+  assert.ok(ideas.every(row => row.message.includes('Pack $& at Shop')))
 })

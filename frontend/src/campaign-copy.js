@@ -4,11 +4,12 @@ export function campaignSuggestions(product, shop) {
   const theme = product ? copy.themes.find(row => new RegExp(row.pattern, 'i').test(product.item_group || ''))?.ideas || copy.general : copy.general
   const name = String(product?.item_name || '').trim()
   const store = String(shop || '').trim()
-  return copy.actions.flatMap(action => theme.map(([title, lead]) => {
-    const detail = name ? `Explore ${name} at ${store}.` : `Browse ${store}.`
-    const message = `${lead}. ${detail} ${action}`
-    return { title, message: message.length <= 240 ? message : `${lead}. ${action}` }
-  }))
+  return theme.map(([title, template]) => {
+    const selection = name ? `${name} at ${store}` : `the range at ${store}`
+    const message = template.replaceAll('{selection}', () => selection)
+    const fallback = name ? 'this product in the shop' : 'the shop’s range'
+    return { title, message: message.length <= 240 ? message : template.replaceAll('{selection}', fallback) }
+  })
 }
 
 // History is newest first. Unused ideas come first, then least recently used.

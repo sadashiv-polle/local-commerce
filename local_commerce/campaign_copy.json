@@ -4,24 +4,404 @@
       "pattern": "fish|seafood|prawn|crab|shellfish",
       "ideas": [
         [
-          "Fish on the menu? 🐟",
-          "Plan a fish curry or a pan-fried favourite"
+          "Fish plans? Start with a look",
+          "Thinking about seafood meal? Take a closer look at {selection} before you make your list."
         ],
         [
-          "Curry or fry? You decide 🍽️",
-          "Find inspiration for your next seafood meal"
+          "A little seafood inspiration",
+          "Give your next seafood meal a starting point: explore {selection} and see what suits your plans."
         ],
         [
-          "A seafood idea for dinner 🐟",
-          "Bring a seafood recipe to your meal plan"
+          "What’s on your seafood list?",
+          "Your list doesn’t have to be finished yet. Consider {selection} as you put your seafood meal together."
         ],
         [
-          "Make it a fish-meal day 🍲",
-          "Thinking about your next fish dish"
+          "Make your next choice a local one",
+          "Meet {selection}, an option to explore while planning your seafood meal."
         ],
         [
-          "Your next seafood recipe starts here 🐟",
-          "Planning something from the sea for your table"
+          "An idea for your next seafood meal",
+          "Not sure where to begin? Start with {selection} and check the details in the app."
+        ],
+        [
+          "Fish browsing, your way",
+          "Set your own pace. Browse {selection} when you’re ready to think about your next seafood meal."
+        ],
+        [
+          "Your seafood list has a starting point",
+          "One item can help shape a plan. See whether {selection} belongs in your seafood meal."
+        ],
+        [
+          "Have a seafood idea in mind?",
+          "Already picturing your seafood meal? Open {selection} to see if it fits."
+        ],
+        [
+          "Take your seafood plans a step further",
+          "Turn an idea into a shopping decision. Check {selection} before adding anything to your basket."
+        ],
+        [
+          "A closer look before your next order",
+          "There’s more to a choice than a name. Read about {selection} as you plan your seafood meal."
+        ],
+        [
+          "Fish ideas for the undecided",
+          "Still weighing your options? Give {selection} a look without committing to an order."
+        ],
+        [
+          "Start with your list, explore from there",
+          "Bring your seafood ideas along and see where {selection} fits into them."
+        ],
+        [
+          "A small spark for your seafood meal",
+          "Sometimes you just need somewhere to start. Browse {selection} for your next seafood meal."
+        ],
+        [
+          "Planning ahead? Think seafood",
+          "Put your next seafood meal on the calendar, then check {selection} as part of your planning."
+        ],
+        [
+          "Something to consider for seafood meal",
+          "Before you settle on your list, take a moment to explore {selection}."
+        ],
+        [
+          "One more option for your seafood list",
+          "Keep your choices open. View {selection} alongside the other ideas for your seafood meal."
+        ],
+        [
+          "Let your seafood plans take shape",
+          "From a rough idea to a shopping list: {selection} could be one of the options you consider."
+        ],
+        [
+          "A seafood thought for your day",
+          "If your next seafood meal is on your mind, have a look at {selection}."
+        ],
+        [
+          "What will your next basket include?",
+          "Build a basket that suits your seafood meal. Start by checking the details of {selection}."
+        ],
+        [
+          "Your next seafood meal, your choice",
+          "Take the lead on your plans. Browse {selection} and decide whether it’s right for you."
+        ],
+        [
+          "Explore a seafood possibility",
+          "An idea is just an idea until you check it out. Find out more about {selection}."
+        ],
+        [
+          "Room for a seafood idea?",
+          "Leave a little space for inspiration on your list. Take a look at {selection}."
+        ],
+        [
+          "A new page in your seafood plans",
+          "Open {selection} and give your next seafood meal a little more thought."
+        ],
+        [
+          "From seafood idea to shopping list",
+          "Ready to write down your options? See whether {selection} makes your shortlist."
+        ],
+        [
+          "Put your seafood meal in focus",
+          "Get specific about your plans: explore {selection} and review the details before ordering."
+        ],
+        [
+          "Keep your next seafood meal in mind",
+          "When you’re working on your list, remember to take a look at {selection}."
+        ],
+        [
+          "Your seafood shortlist starts here",
+          "Comparing options for your seafood meal? Include {selection} in your browsing."
+        ],
+        [
+          "Let’s talk about your next basket",
+          "What matters for your seafood meal? Check {selection} against your own preferences."
+        ],
+        [
+          "A thoughtful pause for seafood",
+          "Before placing an order, give {selection} a moment of consideration."
+        ],
+        [
+          "Find your own seafood inspiration",
+          "You know what suits your plans. Explore {selection} and make the choice yours."
+        ],
+        [
+          "Fish ideas without the rush",
+          "There’s no need to decide on the spot. Read about {selection} while planning your seafood meal."
+        ],
+        [
+          "Build your basket around your plans",
+          "Your seafood meal comes first. Check whether {selection} works for what you have in mind."
+        ],
+        [
+          "A seafood option worth comparing",
+          "Take a closer look at {selection} as you compare choices for your next seafood meal."
+        ],
+        [
+          "Follow your seafood curiosity",
+          "Curious about what to choose? Start with the details of {selection}."
+        ],
+        [
+          "Give your seafood meal a little thought",
+          "A few minutes of browsing can help with your list. Explore {selection} when you’re ready."
+        ],
+        [
+          "What suits your seafood meal today?",
+          "There’s no single right basket. View {selection} and decide what works for your plans."
+        ],
+        [
+          "Bring your seafood ideas along",
+          "Got a plan in mind? See how {selection} compares with what you’re looking for."
+        ],
+        [
+          "Your next list could begin here",
+          "Make {selection} one of the things you explore for your upcoming seafood meal."
+        ],
+        [
+          "A moment to browse seafood",
+          "Take a short browsing break and look into {selection} for your next seafood meal."
+        ],
+        [
+          "Look beyond the usual list",
+          "If you’re considering different options for your seafood meal, start by exploring {selection}."
+        ],
+        [
+          "Your seafood plans deserve a closer look",
+          "Check the details that matter to you in {selection} before making your next choice."
+        ],
+        [
+          "An open invitation to explore seafood",
+          "Come with a list or just an idea. Browse {selection} for your next seafood meal."
+        ],
+        [
+          "Could this fit your next basket?",
+          "See whether {selection} lines up with your plans for seafood meal."
+        ],
+        [
+          "A little direction for your seafood list",
+          "Start with what you need for your seafood meal, then take a look at {selection}."
+        ],
+        [
+          "Keep your options open for seafood meal",
+          "You can explore before deciding. Read about {selection} and consider your next step."
+        ],
+        [
+          "Make space to explore seafood",
+          "Your next seafood meal may need a little planning. Have a look at {selection}."
+        ],
+        [
+          "Browse first, build your basket next",
+          "Get to know {selection} before deciding whether to include it in your seafood meal."
+        ],
+        [
+          "A seafood idea to think over",
+          "Let your next seafood meal take shape at your pace. Consider {selection} along the way."
+        ],
+        [
+          "Your seafood meal starts with a decision",
+          "Choose with your own plans in mind. Open {selection} to review the details."
+        ],
+        [
+          "See where your seafood ideas lead",
+          "An unfinished list is a good place to explore. Take a look at {selection}."
+        ],
+        [
+          "A fresh perspective on your list",
+          "Approach your seafood meal from another angle: explore {selection} before finalising your choices."
+        ],
+        [
+          "Let your next basket reflect your plans",
+          "Think about your seafood meal and see whether {selection} belongs on the list."
+        ],
+        [
+          "Fish browsing with a purpose",
+          "Know what you’re looking for? Check {selection} against the plans you’ve made."
+        ],
+        [
+          "Another way to begin your seafood meal",
+          "Instead of starting with a full list, begin by exploring {selection}."
+        ],
+        [
+          "Make a shortlist for your seafood meal",
+          "A few considered options can help you decide. Read about {selection} as you narrow your list."
+        ],
+        [
+          "Think it through, then choose",
+          "Put {selection} alongside your seafood ideas and see how it fits your next order."
+        ],
+        [
+          "Your seafood plan is yours to build",
+          "Keep the choices in your hands. Explore {selection} before putting together your basket."
+        ],
+        [
+          "Have you planned your seafood meal yet?",
+          "If your list is still taking shape, {selection} is one place to start browsing."
+        ],
+        [
+          "A local stop for seafood inspiration",
+          "Visit {selection} in the app while exploring ideas for your next seafood meal."
+        ],
+        [
+          "Turn a quiet moment into a browsing break",
+          "Use a spare moment to read about {selection} and think ahead to your seafood meal."
+        ],
+        [
+          "Start a conversation with your shopping list",
+          "What do you actually need for your seafood meal? Explore {selection} with that question in mind."
+        ],
+        [
+          "Your seafood plans, one choice at a time",
+          "You don’t have to decide everything at once. Begin with a look at {selection}."
+        ],
+        [
+          "Let the details guide your basket",
+          "Read up on {selection} and use the details to help plan your seafood meal."
+        ],
+        [
+          "Something to explore before you decide",
+          "Keep {selection} in view while you weigh up the options for your seafood meal."
+        ],
+        [
+          "A seafood idea for the planning stage",
+          "Still working things out? Browse {selection} before you settle on a shopping list."
+        ],
+        [
+          "Take another look at your seafood options",
+          "Whether your list is long or short, you can explore {selection} before ordering."
+        ],
+        [
+          "What would work for your next order?",
+          "Use your plans for seafood meal as a guide when looking at {selection}."
+        ],
+        [
+          "Your seafood meal can start with curiosity",
+          "Follow a simple question: could {selection} be right for what you’re planning?"
+        ],
+        [
+          "An idea to add to the conversation",
+          "Planning your seafood meal with someone? Take a look at {selection} together before deciding."
+        ],
+        [
+          "A little seafood browsing goes a long way",
+          "Get a clearer picture of your options by checking {selection} for your next seafood meal."
+        ],
+        [
+          "Keep your next basket intentional",
+          "Choose around what you need. Consider {selection} as part of your seafood meal."
+        ],
+        [
+          "Explore the possibility, check the details",
+          "Before putting {selection} on your list, open the page and see what’s listed."
+        ],
+        [
+          "Your seafood checklist, meet an option",
+          "Work through your list for seafood meal and see where {selection} might fit."
+        ],
+        [
+          "A starting point for shared plans",
+          "Putting together a seafood meal with others? Browse {selection} while you make your choices."
+        ],
+        [
+          "Plan a basket that makes sense for you",
+          "Look at {selection} through the lens of your own seafood needs."
+        ],
+        [
+          "Pause, browse, then plan your seafood meal",
+          "Take a moment to explore {selection} before moving from ideas to an order."
+        ],
+        [
+          "Your seafood ideas are taking shape",
+          "When you’re ready for more detail, open {selection} and continue planning."
+        ],
+        [
+          "Another possibility for your seafood meal",
+          "Your list may already have a few options. See whether {selection} deserves a closer look."
+        ],
+        [
+          "A seafood choice starts with information",
+          "Find out about {selection} before deciding what belongs in your basket."
+        ],
+        [
+          "Look into your next seafood idea",
+          "Move from wondering to browsing: take a closer look at {selection}."
+        ],
+        [
+          "A browse now can help you plan",
+          "Think ahead to your seafood meal by reviewing {selection} at your own pace."
+        ],
+        [
+          "Your next seafood meal is worth planning",
+          "Consider the details of {selection} before you make your shopping decisions."
+        ],
+        [
+          "Take your list on a local detour",
+          "Explore {selection} while looking for ideas that suit your next seafood meal."
+        ],
+        [
+          "Find a starting point, not a rush",
+          "Let {selection} be an option to consider for your seafood meal, then decide in your own time."
+        ],
+        [
+          "A seafood prompt for your next order",
+          "If you’re putting a basket together, have a look at {selection} along the way."
+        ],
+        [
+          "Match your basket to your seafood meal",
+          "Think about your plans first, then check whether {selection} fits the brief."
+        ],
+        [
+          "A closer look could help you choose",
+          "Open {selection} to get more information for your next seafood decision."
+        ],
+        [
+          "Your seafood plans have room to grow",
+          "Explore {selection} while your next seafood meal is still an idea in progress."
+        ],
+        [
+          "What’s the next choice on your list?",
+          "Consider {selection} as you work through your plans for seafood meal."
+        ],
+        [
+          "Start with a seafood question",
+          "What would suit your next seafood meal? Look at {selection} as one possible answer."
+        ],
+        [
+          "A small step towards your next basket",
+          "Read about {selection} and bring a little more detail to your seafood plans."
+        ],
+        [
+          "Put an idea beside your plans",
+          "See how {selection} fits alongside the other choices for your seafood meal."
+        ],
+        [
+          "Your seafood meal, a little more considered",
+          "Before you order, take time to review {selection} and the options shown in the app."
+        ],
+        [
+          "A seafood possibility, just a tap away",
+          "Open {selection} when you’re ready to explore something for your next seafood meal."
+        ],
+        [
+          "Give your list one more look",
+          "As you review your seafood plans, check whether {selection} belongs among your choices."
+        ],
+        [
+          "A local idea for your next decision",
+          "Browse {selection} and decide how it fits into your upcoming seafood meal."
+        ],
+        [
+          "Your seafood browsing starts with you",
+          "Your needs set the direction. Explore {selection} with your next seafood meal in mind."
+        ],
+        [
+          "From a possibility to a considered choice",
+          "Check {selection} carefully before deciding whether it works for your seafood meal."
+        ],
+        [
+          "What will inspire your seafood meal?",
+          "You might start with a plan or a question. Either way, take a look at {selection}."
+        ],
+        [
+          "End your browsing with your own choice",
+          "Explore {selection}, consider your seafood plans, and choose only what suits you."
         ]
       ]
     },
@@ -29,24 +409,404 @@
       "pattern": "dairy|egg|milk|cheese",
       "ideas": [
         [
-          "Breakfast plans? Start here 🍳",
-          "Find an idea for your breakfast basket"
+          "Breakfast plans? Start with a look",
+          "Thinking about breakfast? Take a closer look at {selection} before you make your list."
         ],
         [
-          "A little inspiration for your kitchen 🥣",
-          "Plan your next kitchen top-up"
+          "A little dairy and egg inspiration",
+          "Give your next breakfast a starting point: explore {selection} and see what suits your plans."
         ],
         [
-          "Something for your morning menu ☀️",
-          "Get your shopping list ready for breakfast"
+          "What’s on your dairy and egg list?",
+          "Your list doesn’t have to be finished yet. Consider {selection} as you put your breakfast together."
         ],
         [
-          "Check your fridge list 📝",
-          "Planning your next fridge restock"
+          "Make your next choice a local one",
+          "Meet {selection}, an option to explore while planning your breakfast."
         ],
         [
-          "Your next recipe needs a look 🍽️",
-          "Browse an option for your next homemade meal"
+          "An idea for your next breakfast",
+          "Not sure where to begin? Start with {selection} and check the details in the app."
+        ],
+        [
+          "Breakfast browsing, your way",
+          "Set your own pace. Browse {selection} when you’re ready to think about your next breakfast."
+        ],
+        [
+          "Your dairy and egg list has a starting point",
+          "One item can help shape a plan. See whether {selection} belongs in your breakfast."
+        ],
+        [
+          "Have a dairy and egg idea in mind?",
+          "Already picturing your breakfast? Open {selection} to see if it fits."
+        ],
+        [
+          "Take your dairy and egg plans a step further",
+          "Turn an idea into a shopping decision. Check {selection} before adding anything to your basket."
+        ],
+        [
+          "A closer look before your next order",
+          "There’s more to a choice than a name. Read about {selection} as you plan your breakfast."
+        ],
+        [
+          "Breakfast ideas for the undecided",
+          "Still weighing your options? Give {selection} a look without committing to an order."
+        ],
+        [
+          "Start with your list, explore from there",
+          "Bring your dairy and egg ideas along and see where {selection} fits into them."
+        ],
+        [
+          "A small spark for your breakfast",
+          "Sometimes you just need somewhere to start. Browse {selection} for your next breakfast."
+        ],
+        [
+          "Planning ahead? Think dairy and egg",
+          "Put your next breakfast on the calendar, then check {selection} as part of your planning."
+        ],
+        [
+          "Something to consider for breakfast",
+          "Before you settle on your list, take a moment to explore {selection}."
+        ],
+        [
+          "One more option for your dairy and egg list",
+          "Keep your choices open. View {selection} alongside the other ideas for your breakfast."
+        ],
+        [
+          "Let your dairy and egg plans take shape",
+          "From a rough idea to a shopping list: {selection} could be one of the options you consider."
+        ],
+        [
+          "A dairy and egg thought for your day",
+          "If your next breakfast is on your mind, have a look at {selection}."
+        ],
+        [
+          "What will your next basket include?",
+          "Build a basket that suits your breakfast. Start by checking the details of {selection}."
+        ],
+        [
+          "Your next breakfast, your choice",
+          "Take the lead on your plans. Browse {selection} and decide whether it’s right for you."
+        ],
+        [
+          "Explore a dairy and egg possibility",
+          "An idea is just an idea until you check it out. Find out more about {selection}."
+        ],
+        [
+          "Room for a dairy and egg idea?",
+          "Leave a little space for inspiration on your list. Take a look at {selection}."
+        ],
+        [
+          "A new page in your dairy and egg plans",
+          "Open {selection} and give your next breakfast a little more thought."
+        ],
+        [
+          "From dairy and egg idea to shopping list",
+          "Ready to write down your options? See whether {selection} makes your shortlist."
+        ],
+        [
+          "Put your breakfast in focus",
+          "Get specific about your plans: explore {selection} and review the details before ordering."
+        ],
+        [
+          "Keep your next breakfast in mind",
+          "When you’re working on your list, remember to take a look at {selection}."
+        ],
+        [
+          "Your dairy and egg shortlist starts here",
+          "Comparing options for your breakfast? Include {selection} in your browsing."
+        ],
+        [
+          "Let’s talk about your next basket",
+          "What matters for your breakfast? Check {selection} against your own preferences."
+        ],
+        [
+          "A thoughtful pause for dairy and egg",
+          "Before placing an order, give {selection} a moment of consideration."
+        ],
+        [
+          "Find your own dairy and egg inspiration",
+          "You know what suits your plans. Explore {selection} and make the choice yours."
+        ],
+        [
+          "Breakfast ideas without the rush",
+          "There’s no need to decide on the spot. Read about {selection} while planning your breakfast."
+        ],
+        [
+          "Build your basket around your plans",
+          "Your breakfast comes first. Check whether {selection} works for what you have in mind."
+        ],
+        [
+          "A dairy and egg option worth comparing",
+          "Take a closer look at {selection} as you compare choices for your next breakfast."
+        ],
+        [
+          "Follow your dairy and egg curiosity",
+          "Curious about what to choose? Start with the details of {selection}."
+        ],
+        [
+          "Give your breakfast a little thought",
+          "A few minutes of browsing can help with your list. Explore {selection} when you’re ready."
+        ],
+        [
+          "What suits your breakfast today?",
+          "There’s no single right basket. View {selection} and decide what works for your plans."
+        ],
+        [
+          "Bring your dairy and egg ideas along",
+          "Got a plan in mind? See how {selection} compares with what you’re looking for."
+        ],
+        [
+          "Your next list could begin here",
+          "Make {selection} one of the things you explore for your upcoming breakfast."
+        ],
+        [
+          "A moment to browse dairy and egg",
+          "Take a short browsing break and look into {selection} for your next breakfast."
+        ],
+        [
+          "Look beyond the usual list",
+          "If you’re considering different options for your breakfast, start by exploring {selection}."
+        ],
+        [
+          "Your dairy and egg plans deserve a closer look",
+          "Check the details that matter to you in {selection} before making your next choice."
+        ],
+        [
+          "An open invitation to explore dairy and egg",
+          "Come with a list or just an idea. Browse {selection} for your next breakfast."
+        ],
+        [
+          "Could this fit your next basket?",
+          "See whether {selection} lines up with your plans for breakfast."
+        ],
+        [
+          "A little direction for your dairy and egg list",
+          "Start with what you need for your breakfast, then take a look at {selection}."
+        ],
+        [
+          "Keep your options open for breakfast",
+          "You can explore before deciding. Read about {selection} and consider your next step."
+        ],
+        [
+          "Make space to explore dairy and egg",
+          "Your next breakfast may need a little planning. Have a look at {selection}."
+        ],
+        [
+          "Browse first, build your basket next",
+          "Get to know {selection} before deciding whether to include it in your breakfast."
+        ],
+        [
+          "A dairy and egg idea to think over",
+          "Let your next breakfast take shape at your pace. Consider {selection} along the way."
+        ],
+        [
+          "Your breakfast starts with a decision",
+          "Choose with your own plans in mind. Open {selection} to review the details."
+        ],
+        [
+          "See where your dairy and egg ideas lead",
+          "An unfinished list is a good place to explore. Take a look at {selection}."
+        ],
+        [
+          "A fresh perspective on your list",
+          "Approach your breakfast from another angle: explore {selection} before finalising your choices."
+        ],
+        [
+          "Let your next basket reflect your plans",
+          "Think about your breakfast and see whether {selection} belongs on the list."
+        ],
+        [
+          "Breakfast browsing with a purpose",
+          "Know what you’re looking for? Check {selection} against the plans you’ve made."
+        ],
+        [
+          "Another way to begin your breakfast",
+          "Instead of starting with a full list, begin by exploring {selection}."
+        ],
+        [
+          "Make a shortlist for your breakfast",
+          "A few considered options can help you decide. Read about {selection} as you narrow your list."
+        ],
+        [
+          "Think it through, then choose",
+          "Put {selection} alongside your dairy and egg ideas and see how it fits your next order."
+        ],
+        [
+          "Your dairy and egg plan is yours to build",
+          "Keep the choices in your hands. Explore {selection} before putting together your basket."
+        ],
+        [
+          "Have you planned your breakfast yet?",
+          "If your list is still taking shape, {selection} is one place to start browsing."
+        ],
+        [
+          "A local stop for dairy and egg inspiration",
+          "Visit {selection} in the app while exploring ideas for your next breakfast."
+        ],
+        [
+          "Turn a quiet moment into a browsing break",
+          "Use a spare moment to read about {selection} and think ahead to your breakfast."
+        ],
+        [
+          "Start a conversation with your shopping list",
+          "What do you actually need for your breakfast? Explore {selection} with that question in mind."
+        ],
+        [
+          "Your dairy and egg plans, one choice at a time",
+          "You don’t have to decide everything at once. Begin with a look at {selection}."
+        ],
+        [
+          "Let the details guide your basket",
+          "Read up on {selection} and use the details to help plan your breakfast."
+        ],
+        [
+          "Something to explore before you decide",
+          "Keep {selection} in view while you weigh up the options for your breakfast."
+        ],
+        [
+          "A dairy and egg idea for the planning stage",
+          "Still working things out? Browse {selection} before you settle on a shopping list."
+        ],
+        [
+          "Take another look at your dairy and egg options",
+          "Whether your list is long or short, you can explore {selection} before ordering."
+        ],
+        [
+          "What would work for your next order?",
+          "Use your plans for breakfast as a guide when looking at {selection}."
+        ],
+        [
+          "Your breakfast can start with curiosity",
+          "Follow a simple question: could {selection} be right for what you’re planning?"
+        ],
+        [
+          "An idea to add to the conversation",
+          "Planning your breakfast with someone? Take a look at {selection} together before deciding."
+        ],
+        [
+          "A little dairy and egg browsing goes a long way",
+          "Get a clearer picture of your options by checking {selection} for your next breakfast."
+        ],
+        [
+          "Keep your next basket intentional",
+          "Choose around what you need. Consider {selection} as part of your breakfast."
+        ],
+        [
+          "Explore the possibility, check the details",
+          "Before putting {selection} on your list, open the page and see what’s listed."
+        ],
+        [
+          "Your dairy and egg checklist, meet an option",
+          "Work through your list for breakfast and see where {selection} might fit."
+        ],
+        [
+          "A starting point for shared plans",
+          "Putting together a breakfast with others? Browse {selection} while you make your choices."
+        ],
+        [
+          "Plan a basket that makes sense for you",
+          "Look at {selection} through the lens of your own dairy and egg needs."
+        ],
+        [
+          "Pause, browse, then plan your breakfast",
+          "Take a moment to explore {selection} before moving from ideas to an order."
+        ],
+        [
+          "Your dairy and egg ideas are taking shape",
+          "When you’re ready for more detail, open {selection} and continue planning."
+        ],
+        [
+          "Another possibility for your breakfast",
+          "Your list may already have a few options. See whether {selection} deserves a closer look."
+        ],
+        [
+          "A dairy and egg choice starts with information",
+          "Find out about {selection} before deciding what belongs in your basket."
+        ],
+        [
+          "Look into your next dairy and egg idea",
+          "Move from wondering to browsing: take a closer look at {selection}."
+        ],
+        [
+          "A browse now can help you plan",
+          "Think ahead to your breakfast by reviewing {selection} at your own pace."
+        ],
+        [
+          "Your next breakfast is worth planning",
+          "Consider the details of {selection} before you make your shopping decisions."
+        ],
+        [
+          "Take your list on a local detour",
+          "Explore {selection} while looking for ideas that suit your next breakfast."
+        ],
+        [
+          "Find a starting point, not a rush",
+          "Let {selection} be an option to consider for your breakfast, then decide in your own time."
+        ],
+        [
+          "A dairy and egg prompt for your next order",
+          "If you’re putting a basket together, have a look at {selection} along the way."
+        ],
+        [
+          "Match your basket to your breakfast",
+          "Think about your plans first, then check whether {selection} fits the brief."
+        ],
+        [
+          "A closer look could help you choose",
+          "Open {selection} to get more information for your next dairy and egg decision."
+        ],
+        [
+          "Your dairy and egg plans have room to grow",
+          "Explore {selection} while your next breakfast is still an idea in progress."
+        ],
+        [
+          "What’s the next choice on your list?",
+          "Consider {selection} as you work through your plans for breakfast."
+        ],
+        [
+          "Start with a dairy and egg question",
+          "What would suit your next breakfast? Look at {selection} as one possible answer."
+        ],
+        [
+          "A small step towards your next basket",
+          "Read about {selection} and bring a little more detail to your dairy and egg plans."
+        ],
+        [
+          "Put an idea beside your plans",
+          "See how {selection} fits alongside the other choices for your breakfast."
+        ],
+        [
+          "Your breakfast, a little more considered",
+          "Before you order, take time to review {selection} and the options shown in the app."
+        ],
+        [
+          "A dairy and egg possibility, just a tap away",
+          "Open {selection} when you’re ready to explore something for your next breakfast."
+        ],
+        [
+          "Give your list one more look",
+          "As you review your dairy and egg plans, check whether {selection} belongs among your choices."
+        ],
+        [
+          "A local idea for your next decision",
+          "Browse {selection} and decide how it fits into your upcoming breakfast."
+        ],
+        [
+          "Your dairy and egg browsing starts with you",
+          "Your needs set the direction. Explore {selection} with your next breakfast in mind."
+        ],
+        [
+          "From a possibility to a considered choice",
+          "Check {selection} carefully before deciding whether it works for your breakfast."
+        ],
+        [
+          "What will inspire your breakfast?",
+          "You might start with a plan or a question. Either way, take a look at {selection}."
+        ],
+        [
+          "End your browsing with your own choice",
+          "Explore {selection}, consider your dairy and egg plans, and choose only what suits you."
         ]
       ]
     },
@@ -54,24 +814,404 @@
       "pattern": "vegetable|fruit|produce",
       "ideas": [
         [
-          "Add colour to your meal plan 🥕",
-          "Find inspiration for your next plate"
+          "Produce plans? Start with a look",
+          "Thinking about produce shop? Take a closer look at {selection} before you make your list."
         ],
         [
-          "What’s in your produce basket? 🧺",
-          "Plan your fruit and vegetable shopping"
+          "A little fruit and vegetable inspiration",
+          "Give your next produce shop a starting point: explore {selection} and see what suits your plans."
         ],
         [
-          "A colourful idea for your kitchen 🌈",
-          "Explore an option for your next recipe"
+          "What’s on your fruit and vegetable list?",
+          "Your list doesn’t have to be finished yet. Consider {selection} as you put your produce shop together."
         ],
         [
-          "Time to plan your produce shop 📝",
-          "Make a little room on your produce list"
+          "Make your next choice a local one",
+          "Meet {selection}, an option to explore while planning your produce shop."
         ],
         [
-          "Your next meal starts with an idea 🍽️",
-          "Find something to inspire your kitchen plans"
+          "An idea for your next produce shop",
+          "Not sure where to begin? Start with {selection} and check the details in the app."
+        ],
+        [
+          "Produce browsing, your way",
+          "Set your own pace. Browse {selection} when you’re ready to think about your next produce shop."
+        ],
+        [
+          "Your fruit and vegetable list has a starting point",
+          "One item can help shape a plan. See whether {selection} belongs in your produce shop."
+        ],
+        [
+          "Have a fruit and vegetable idea in mind?",
+          "Already picturing your produce shop? Open {selection} to see if it fits."
+        ],
+        [
+          "Take your fruit and vegetable plans a step further",
+          "Turn an idea into a shopping decision. Check {selection} before adding anything to your basket."
+        ],
+        [
+          "A closer look before your next order",
+          "There’s more to a choice than a name. Read about {selection} as you plan your produce shop."
+        ],
+        [
+          "Produce ideas for the undecided",
+          "Still weighing your options? Give {selection} a look without committing to an order."
+        ],
+        [
+          "Start with your list, explore from there",
+          "Bring your fruit and vegetable ideas along and see where {selection} fits into them."
+        ],
+        [
+          "A small spark for your produce shop",
+          "Sometimes you just need somewhere to start. Browse {selection} for your next produce shop."
+        ],
+        [
+          "Planning ahead? Think fruit and vegetable",
+          "Put your next produce shop on the calendar, then check {selection} as part of your planning."
+        ],
+        [
+          "Something to consider for produce shop",
+          "Before you settle on your list, take a moment to explore {selection}."
+        ],
+        [
+          "One more option for your fruit and vegetable list",
+          "Keep your choices open. View {selection} alongside the other ideas for your produce shop."
+        ],
+        [
+          "Let your fruit and vegetable plans take shape",
+          "From a rough idea to a shopping list: {selection} could be one of the options you consider."
+        ],
+        [
+          "A fruit and vegetable thought for your day",
+          "If your next produce shop is on your mind, have a look at {selection}."
+        ],
+        [
+          "What will your next basket include?",
+          "Build a basket that suits your produce shop. Start by checking the details of {selection}."
+        ],
+        [
+          "Your next produce shop, your choice",
+          "Take the lead on your plans. Browse {selection} and decide whether it’s right for you."
+        ],
+        [
+          "Explore a fruit and vegetable possibility",
+          "An idea is just an idea until you check it out. Find out more about {selection}."
+        ],
+        [
+          "Room for a fruit and vegetable idea?",
+          "Leave a little space for inspiration on your list. Take a look at {selection}."
+        ],
+        [
+          "A new page in your fruit and vegetable plans",
+          "Open {selection} and give your next produce shop a little more thought."
+        ],
+        [
+          "From fruit and vegetable idea to shopping list",
+          "Ready to write down your options? See whether {selection} makes your shortlist."
+        ],
+        [
+          "Put your produce shop in focus",
+          "Get specific about your plans: explore {selection} and review the details before ordering."
+        ],
+        [
+          "Keep your next produce shop in mind",
+          "When you’re working on your list, remember to take a look at {selection}."
+        ],
+        [
+          "Your fruit and vegetable shortlist starts here",
+          "Comparing options for your produce shop? Include {selection} in your browsing."
+        ],
+        [
+          "Let’s talk about your next basket",
+          "What matters for your produce shop? Check {selection} against your own preferences."
+        ],
+        [
+          "A thoughtful pause for fruit and vegetable",
+          "Before placing an order, give {selection} a moment of consideration."
+        ],
+        [
+          "Find your own fruit and vegetable inspiration",
+          "You know what suits your plans. Explore {selection} and make the choice yours."
+        ],
+        [
+          "Produce ideas without the rush",
+          "There’s no need to decide on the spot. Read about {selection} while planning your produce shop."
+        ],
+        [
+          "Build your basket around your plans",
+          "Your produce shop comes first. Check whether {selection} works for what you have in mind."
+        ],
+        [
+          "A fruit and vegetable option worth comparing",
+          "Take a closer look at {selection} as you compare choices for your next produce shop."
+        ],
+        [
+          "Follow your fruit and vegetable curiosity",
+          "Curious about what to choose? Start with the details of {selection}."
+        ],
+        [
+          "Give your produce shop a little thought",
+          "A few minutes of browsing can help with your list. Explore {selection} when you’re ready."
+        ],
+        [
+          "What suits your produce shop today?",
+          "There’s no single right basket. View {selection} and decide what works for your plans."
+        ],
+        [
+          "Bring your fruit and vegetable ideas along",
+          "Got a plan in mind? See how {selection} compares with what you’re looking for."
+        ],
+        [
+          "Your next list could begin here",
+          "Make {selection} one of the things you explore for your upcoming produce shop."
+        ],
+        [
+          "A moment to browse fruit and vegetable",
+          "Take a short browsing break and look into {selection} for your next produce shop."
+        ],
+        [
+          "Look beyond the usual list",
+          "If you’re considering different options for your produce shop, start by exploring {selection}."
+        ],
+        [
+          "Your fruit and vegetable plans deserve a closer look",
+          "Check the details that matter to you in {selection} before making your next choice."
+        ],
+        [
+          "An open invitation to explore fruit and vegetable",
+          "Come with a list or just an idea. Browse {selection} for your next produce shop."
+        ],
+        [
+          "Could this fit your next basket?",
+          "See whether {selection} lines up with your plans for produce shop."
+        ],
+        [
+          "A little direction for your fruit and vegetable list",
+          "Start with what you need for your produce shop, then take a look at {selection}."
+        ],
+        [
+          "Keep your options open for produce shop",
+          "You can explore before deciding. Read about {selection} and consider your next step."
+        ],
+        [
+          "Make space to explore fruit and vegetable",
+          "Your next produce shop may need a little planning. Have a look at {selection}."
+        ],
+        [
+          "Browse first, build your basket next",
+          "Get to know {selection} before deciding whether to include it in your produce shop."
+        ],
+        [
+          "A fruit and vegetable idea to think over",
+          "Let your next produce shop take shape at your pace. Consider {selection} along the way."
+        ],
+        [
+          "Your produce shop starts with a decision",
+          "Choose with your own plans in mind. Open {selection} to review the details."
+        ],
+        [
+          "See where your fruit and vegetable ideas lead",
+          "An unfinished list is a good place to explore. Take a look at {selection}."
+        ],
+        [
+          "A fresh perspective on your list",
+          "Approach your produce shop from another angle: explore {selection} before finalising your choices."
+        ],
+        [
+          "Let your next basket reflect your plans",
+          "Think about your produce shop and see whether {selection} belongs on the list."
+        ],
+        [
+          "Produce browsing with a purpose",
+          "Know what you’re looking for? Check {selection} against the plans you’ve made."
+        ],
+        [
+          "Another way to begin your produce shop",
+          "Instead of starting with a full list, begin by exploring {selection}."
+        ],
+        [
+          "Make a shortlist for your produce shop",
+          "A few considered options can help you decide. Read about {selection} as you narrow your list."
+        ],
+        [
+          "Think it through, then choose",
+          "Put {selection} alongside your fruit and vegetable ideas and see how it fits your next order."
+        ],
+        [
+          "Your fruit and vegetable plan is yours to build",
+          "Keep the choices in your hands. Explore {selection} before putting together your basket."
+        ],
+        [
+          "Have you planned your produce shop yet?",
+          "If your list is still taking shape, {selection} is one place to start browsing."
+        ],
+        [
+          "A local stop for fruit and vegetable inspiration",
+          "Visit {selection} in the app while exploring ideas for your next produce shop."
+        ],
+        [
+          "Turn a quiet moment into a browsing break",
+          "Use a spare moment to read about {selection} and think ahead to your produce shop."
+        ],
+        [
+          "Start a conversation with your shopping list",
+          "What do you actually need for your produce shop? Explore {selection} with that question in mind."
+        ],
+        [
+          "Your fruit and vegetable plans, one choice at a time",
+          "You don’t have to decide everything at once. Begin with a look at {selection}."
+        ],
+        [
+          "Let the details guide your basket",
+          "Read up on {selection} and use the details to help plan your produce shop."
+        ],
+        [
+          "Something to explore before you decide",
+          "Keep {selection} in view while you weigh up the options for your produce shop."
+        ],
+        [
+          "A fruit and vegetable idea for the planning stage",
+          "Still working things out? Browse {selection} before you settle on a shopping list."
+        ],
+        [
+          "Take another look at your fruit and vegetable options",
+          "Whether your list is long or short, you can explore {selection} before ordering."
+        ],
+        [
+          "What would work for your next order?",
+          "Use your plans for produce shop as a guide when looking at {selection}."
+        ],
+        [
+          "Your produce shop can start with curiosity",
+          "Follow a simple question: could {selection} be right for what you’re planning?"
+        ],
+        [
+          "An idea to add to the conversation",
+          "Planning your produce shop with someone? Take a look at {selection} together before deciding."
+        ],
+        [
+          "A little fruit and vegetable browsing goes a long way",
+          "Get a clearer picture of your options by checking {selection} for your next produce shop."
+        ],
+        [
+          "Keep your next basket intentional",
+          "Choose around what you need. Consider {selection} as part of your produce shop."
+        ],
+        [
+          "Explore the possibility, check the details",
+          "Before putting {selection} on your list, open the page and see what’s listed."
+        ],
+        [
+          "Your fruit and vegetable checklist, meet an option",
+          "Work through your list for produce shop and see where {selection} might fit."
+        ],
+        [
+          "A starting point for shared plans",
+          "Putting together a produce shop with others? Browse {selection} while you make your choices."
+        ],
+        [
+          "Plan a basket that makes sense for you",
+          "Look at {selection} through the lens of your own fruit and vegetable needs."
+        ],
+        [
+          "Pause, browse, then plan your produce shop",
+          "Take a moment to explore {selection} before moving from ideas to an order."
+        ],
+        [
+          "Your fruit and vegetable ideas are taking shape",
+          "When you’re ready for more detail, open {selection} and continue planning."
+        ],
+        [
+          "Another possibility for your produce shop",
+          "Your list may already have a few options. See whether {selection} deserves a closer look."
+        ],
+        [
+          "A fruit and vegetable choice starts with information",
+          "Find out about {selection} before deciding what belongs in your basket."
+        ],
+        [
+          "Look into your next fruit and vegetable idea",
+          "Move from wondering to browsing: take a closer look at {selection}."
+        ],
+        [
+          "A browse now can help you plan",
+          "Think ahead to your produce shop by reviewing {selection} at your own pace."
+        ],
+        [
+          "Your next produce shop is worth planning",
+          "Consider the details of {selection} before you make your shopping decisions."
+        ],
+        [
+          "Take your list on a local detour",
+          "Explore {selection} while looking for ideas that suit your next produce shop."
+        ],
+        [
+          "Find a starting point, not a rush",
+          "Let {selection} be an option to consider for your produce shop, then decide in your own time."
+        ],
+        [
+          "A fruit and vegetable prompt for your next order",
+          "If you’re putting a basket together, have a look at {selection} along the way."
+        ],
+        [
+          "Match your basket to your produce shop",
+          "Think about your plans first, then check whether {selection} fits the brief."
+        ],
+        [
+          "A closer look could help you choose",
+          "Open {selection} to get more information for your next fruit and vegetable decision."
+        ],
+        [
+          "Your fruit and vegetable plans have room to grow",
+          "Explore {selection} while your next produce shop is still an idea in progress."
+        ],
+        [
+          "What’s the next choice on your list?",
+          "Consider {selection} as you work through your plans for produce shop."
+        ],
+        [
+          "Start with a fruit and vegetable question",
+          "What would suit your next produce shop? Look at {selection} as one possible answer."
+        ],
+        [
+          "A small step towards your next basket",
+          "Read about {selection} and bring a little more detail to your fruit and vegetable plans."
+        ],
+        [
+          "Put an idea beside your plans",
+          "See how {selection} fits alongside the other choices for your produce shop."
+        ],
+        [
+          "Your produce shop, a little more considered",
+          "Before you order, take time to review {selection} and the options shown in the app."
+        ],
+        [
+          "A fruit and vegetable possibility, just a tap away",
+          "Open {selection} when you’re ready to explore something for your next produce shop."
+        ],
+        [
+          "Give your list one more look",
+          "As you review your fruit and vegetable plans, check whether {selection} belongs among your choices."
+        ],
+        [
+          "A local idea for your next decision",
+          "Browse {selection} and decide how it fits into your upcoming produce shop."
+        ],
+        [
+          "Your fruit and vegetable browsing starts with you",
+          "Your needs set the direction. Explore {selection} with your next produce shop in mind."
+        ],
+        [
+          "From a possibility to a considered choice",
+          "Check {selection} carefully before deciding whether it works for your produce shop."
+        ],
+        [
+          "What will inspire your produce shop?",
+          "You might start with a plan or a question. Either way, take a look at {selection}."
+        ],
+        [
+          "End your browsing with your own choice",
+          "Explore {selection}, consider your fruit and vegetable plans, and choose only what suits you."
         ]
       ]
     },
@@ -79,24 +1219,404 @@
       "pattern": "meat|chicken|poultry|mutton",
       "ideas": [
         [
-          "What’s cooking next? 🍲",
-          "Find an idea for your next home-cooked meal"
+          "Meat plans? Start with a look",
+          "Thinking about home-cooked meal? Take a closer look at {selection} before you make your list."
         ],
         [
-          "Dinner plans taking shape? 🍽️",
-          "Explore an option for your dinner menu"
+          "A little meat inspiration",
+          "Give your next home-cooked meal a starting point: explore {selection} and see what suits your plans."
         ],
         [
-          "Bring a new recipe to the table 🧑‍🍳",
-          "Start planning your next kitchen creation"
+          "What’s on your meat list?",
+          "Your list doesn’t have to be finished yet. Consider {selection} as you put your home-cooked meal together."
         ],
         [
-          "A meal idea worth a look 🍲",
-          "Find inspiration for your next family meal"
+          "Make your next choice a local one",
+          "Meet {selection}, an option to explore while planning your home-cooked meal."
         ],
         [
-          "Your next cooking plan starts here 📝",
-          "Build your shopping list around your next recipe"
+          "An idea for your next home-cooked meal",
+          "Not sure where to begin? Start with {selection} and check the details in the app."
+        ],
+        [
+          "Meat browsing, your way",
+          "Set your own pace. Browse {selection} when you’re ready to think about your next home-cooked meal."
+        ],
+        [
+          "Your meat list has a starting point",
+          "One item can help shape a plan. See whether {selection} belongs in your home-cooked meal."
+        ],
+        [
+          "Have a meat idea in mind?",
+          "Already picturing your home-cooked meal? Open {selection} to see if it fits."
+        ],
+        [
+          "Take your meat plans a step further",
+          "Turn an idea into a shopping decision. Check {selection} before adding anything to your basket."
+        ],
+        [
+          "A closer look before your next order",
+          "There’s more to a choice than a name. Read about {selection} as you plan your home-cooked meal."
+        ],
+        [
+          "Meat ideas for the undecided",
+          "Still weighing your options? Give {selection} a look without committing to an order."
+        ],
+        [
+          "Start with your list, explore from there",
+          "Bring your meat ideas along and see where {selection} fits into them."
+        ],
+        [
+          "A small spark for your home-cooked meal",
+          "Sometimes you just need somewhere to start. Browse {selection} for your next home-cooked meal."
+        ],
+        [
+          "Planning ahead? Think meat",
+          "Put your next home-cooked meal on the calendar, then check {selection} as part of your planning."
+        ],
+        [
+          "Something to consider for home-cooked meal",
+          "Before you settle on your list, take a moment to explore {selection}."
+        ],
+        [
+          "One more option for your meat list",
+          "Keep your choices open. View {selection} alongside the other ideas for your home-cooked meal."
+        ],
+        [
+          "Let your meat plans take shape",
+          "From a rough idea to a shopping list: {selection} could be one of the options you consider."
+        ],
+        [
+          "A meat thought for your day",
+          "If your next home-cooked meal is on your mind, have a look at {selection}."
+        ],
+        [
+          "What will your next basket include?",
+          "Build a basket that suits your home-cooked meal. Start by checking the details of {selection}."
+        ],
+        [
+          "Your next home-cooked meal, your choice",
+          "Take the lead on your plans. Browse {selection} and decide whether it’s right for you."
+        ],
+        [
+          "Explore a meat possibility",
+          "An idea is just an idea until you check it out. Find out more about {selection}."
+        ],
+        [
+          "Room for a meat idea?",
+          "Leave a little space for inspiration on your list. Take a look at {selection}."
+        ],
+        [
+          "A new page in your meat plans",
+          "Open {selection} and give your next home-cooked meal a little more thought."
+        ],
+        [
+          "From meat idea to shopping list",
+          "Ready to write down your options? See whether {selection} makes your shortlist."
+        ],
+        [
+          "Put your home-cooked meal in focus",
+          "Get specific about your plans: explore {selection} and review the details before ordering."
+        ],
+        [
+          "Keep your next home-cooked meal in mind",
+          "When you’re working on your list, remember to take a look at {selection}."
+        ],
+        [
+          "Your meat shortlist starts here",
+          "Comparing options for your home-cooked meal? Include {selection} in your browsing."
+        ],
+        [
+          "Let’s talk about your next basket",
+          "What matters for your home-cooked meal? Check {selection} against your own preferences."
+        ],
+        [
+          "A thoughtful pause for meat",
+          "Before placing an order, give {selection} a moment of consideration."
+        ],
+        [
+          "Find your own meat inspiration",
+          "You know what suits your plans. Explore {selection} and make the choice yours."
+        ],
+        [
+          "Meat ideas without the rush",
+          "There’s no need to decide on the spot. Read about {selection} while planning your home-cooked meal."
+        ],
+        [
+          "Build your basket around your plans",
+          "Your home-cooked meal comes first. Check whether {selection} works for what you have in mind."
+        ],
+        [
+          "A meat option worth comparing",
+          "Take a closer look at {selection} as you compare choices for your next home-cooked meal."
+        ],
+        [
+          "Follow your meat curiosity",
+          "Curious about what to choose? Start with the details of {selection}."
+        ],
+        [
+          "Give your home-cooked meal a little thought",
+          "A few minutes of browsing can help with your list. Explore {selection} when you’re ready."
+        ],
+        [
+          "What suits your home-cooked meal today?",
+          "There’s no single right basket. View {selection} and decide what works for your plans."
+        ],
+        [
+          "Bring your meat ideas along",
+          "Got a plan in mind? See how {selection} compares with what you’re looking for."
+        ],
+        [
+          "Your next list could begin here",
+          "Make {selection} one of the things you explore for your upcoming home-cooked meal."
+        ],
+        [
+          "A moment to browse meat",
+          "Take a short browsing break and look into {selection} for your next home-cooked meal."
+        ],
+        [
+          "Look beyond the usual list",
+          "If you’re considering different options for your home-cooked meal, start by exploring {selection}."
+        ],
+        [
+          "Your meat plans deserve a closer look",
+          "Check the details that matter to you in {selection} before making your next choice."
+        ],
+        [
+          "An open invitation to explore meat",
+          "Come with a list or just an idea. Browse {selection} for your next home-cooked meal."
+        ],
+        [
+          "Could this fit your next basket?",
+          "See whether {selection} lines up with your plans for home-cooked meal."
+        ],
+        [
+          "A little direction for your meat list",
+          "Start with what you need for your home-cooked meal, then take a look at {selection}."
+        ],
+        [
+          "Keep your options open for home-cooked meal",
+          "You can explore before deciding. Read about {selection} and consider your next step."
+        ],
+        [
+          "Make space to explore meat",
+          "Your next home-cooked meal may need a little planning. Have a look at {selection}."
+        ],
+        [
+          "Browse first, build your basket next",
+          "Get to know {selection} before deciding whether to include it in your home-cooked meal."
+        ],
+        [
+          "A meat idea to think over",
+          "Let your next home-cooked meal take shape at your pace. Consider {selection} along the way."
+        ],
+        [
+          "Your home-cooked meal starts with a decision",
+          "Choose with your own plans in mind. Open {selection} to review the details."
+        ],
+        [
+          "See where your meat ideas lead",
+          "An unfinished list is a good place to explore. Take a look at {selection}."
+        ],
+        [
+          "A fresh perspective on your list",
+          "Approach your home-cooked meal from another angle: explore {selection} before finalising your choices."
+        ],
+        [
+          "Let your next basket reflect your plans",
+          "Think about your home-cooked meal and see whether {selection} belongs on the list."
+        ],
+        [
+          "Meat browsing with a purpose",
+          "Know what you’re looking for? Check {selection} against the plans you’ve made."
+        ],
+        [
+          "Another way to begin your home-cooked meal",
+          "Instead of starting with a full list, begin by exploring {selection}."
+        ],
+        [
+          "Make a shortlist for your home-cooked meal",
+          "A few considered options can help you decide. Read about {selection} as you narrow your list."
+        ],
+        [
+          "Think it through, then choose",
+          "Put {selection} alongside your meat ideas and see how it fits your next order."
+        ],
+        [
+          "Your meat plan is yours to build",
+          "Keep the choices in your hands. Explore {selection} before putting together your basket."
+        ],
+        [
+          "Have you planned your home-cooked meal yet?",
+          "If your list is still taking shape, {selection} is one place to start browsing."
+        ],
+        [
+          "A local stop for meat inspiration",
+          "Visit {selection} in the app while exploring ideas for your next home-cooked meal."
+        ],
+        [
+          "Turn a quiet moment into a browsing break",
+          "Use a spare moment to read about {selection} and think ahead to your home-cooked meal."
+        ],
+        [
+          "Start a conversation with your shopping list",
+          "What do you actually need for your home-cooked meal? Explore {selection} with that question in mind."
+        ],
+        [
+          "Your meat plans, one choice at a time",
+          "You don’t have to decide everything at once. Begin with a look at {selection}."
+        ],
+        [
+          "Let the details guide your basket",
+          "Read up on {selection} and use the details to help plan your home-cooked meal."
+        ],
+        [
+          "Something to explore before you decide",
+          "Keep {selection} in view while you weigh up the options for your home-cooked meal."
+        ],
+        [
+          "A meat idea for the planning stage",
+          "Still working things out? Browse {selection} before you settle on a shopping list."
+        ],
+        [
+          "Take another look at your meat options",
+          "Whether your list is long or short, you can explore {selection} before ordering."
+        ],
+        [
+          "What would work for your next order?",
+          "Use your plans for home-cooked meal as a guide when looking at {selection}."
+        ],
+        [
+          "Your home-cooked meal can start with curiosity",
+          "Follow a simple question: could {selection} be right for what you’re planning?"
+        ],
+        [
+          "An idea to add to the conversation",
+          "Planning your home-cooked meal with someone? Take a look at {selection} together before deciding."
+        ],
+        [
+          "A little meat browsing goes a long way",
+          "Get a clearer picture of your options by checking {selection} for your next home-cooked meal."
+        ],
+        [
+          "Keep your next basket intentional",
+          "Choose around what you need. Consider {selection} as part of your home-cooked meal."
+        ],
+        [
+          "Explore the possibility, check the details",
+          "Before putting {selection} on your list, open the page and see what’s listed."
+        ],
+        [
+          "Your meat checklist, meet an option",
+          "Work through your list for home-cooked meal and see where {selection} might fit."
+        ],
+        [
+          "A starting point for shared plans",
+          "Putting together a home-cooked meal with others? Browse {selection} while you make your choices."
+        ],
+        [
+          "Plan a basket that makes sense for you",
+          "Look at {selection} through the lens of your own meat needs."
+        ],
+        [
+          "Pause, browse, then plan your home-cooked meal",
+          "Take a moment to explore {selection} before moving from ideas to an order."
+        ],
+        [
+          "Your meat ideas are taking shape",
+          "When you’re ready for more detail, open {selection} and continue planning."
+        ],
+        [
+          "Another possibility for your home-cooked meal",
+          "Your list may already have a few options. See whether {selection} deserves a closer look."
+        ],
+        [
+          "A meat choice starts with information",
+          "Find out about {selection} before deciding what belongs in your basket."
+        ],
+        [
+          "Look into your next meat idea",
+          "Move from wondering to browsing: take a closer look at {selection}."
+        ],
+        [
+          "A browse now can help you plan",
+          "Think ahead to your home-cooked meal by reviewing {selection} at your own pace."
+        ],
+        [
+          "Your next home-cooked meal is worth planning",
+          "Consider the details of {selection} before you make your shopping decisions."
+        ],
+        [
+          "Take your list on a local detour",
+          "Explore {selection} while looking for ideas that suit your next home-cooked meal."
+        ],
+        [
+          "Find a starting point, not a rush",
+          "Let {selection} be an option to consider for your home-cooked meal, then decide in your own time."
+        ],
+        [
+          "A meat prompt for your next order",
+          "If you’re putting a basket together, have a look at {selection} along the way."
+        ],
+        [
+          "Match your basket to your home-cooked meal",
+          "Think about your plans first, then check whether {selection} fits the brief."
+        ],
+        [
+          "A closer look could help you choose",
+          "Open {selection} to get more information for your next meat decision."
+        ],
+        [
+          "Your meat plans have room to grow",
+          "Explore {selection} while your next home-cooked meal is still an idea in progress."
+        ],
+        [
+          "What’s the next choice on your list?",
+          "Consider {selection} as you work through your plans for home-cooked meal."
+        ],
+        [
+          "Start with a meat question",
+          "What would suit your next home-cooked meal? Look at {selection} as one possible answer."
+        ],
+        [
+          "A small step towards your next basket",
+          "Read about {selection} and bring a little more detail to your meat plans."
+        ],
+        [
+          "Put an idea beside your plans",
+          "See how {selection} fits alongside the other choices for your home-cooked meal."
+        ],
+        [
+          "Your home-cooked meal, a little more considered",
+          "Before you order, take time to review {selection} and the options shown in the app."
+        ],
+        [
+          "A meat possibility, just a tap away",
+          "Open {selection} when you’re ready to explore something for your next home-cooked meal."
+        ],
+        [
+          "Give your list one more look",
+          "As you review your meat plans, check whether {selection} belongs among your choices."
+        ],
+        [
+          "A local idea for your next decision",
+          "Browse {selection} and decide how it fits into your upcoming home-cooked meal."
+        ],
+        [
+          "Your meat browsing starts with you",
+          "Your needs set the direction. Explore {selection} with your next home-cooked meal in mind."
+        ],
+        [
+          "From a possibility to a considered choice",
+          "Check {selection} carefully before deciding whether it works for your home-cooked meal."
+        ],
+        [
+          "What will inspire your home-cooked meal?",
+          "You might start with a plan or a question. Either way, take a look at {selection}."
+        ],
+        [
+          "End your browsing with your own choice",
+          "Explore {selection}, consider your meat plans, and choose only what suits you."
         ]
       ]
     },
@@ -104,24 +1624,404 @@
       "pattern": "bakery|bread|cake|dessert|sweet|snack|biscuit",
       "ideas": [
         [
-          "Something for your break? ☕",
-          "Explore an idea for your next break"
+          "Snack plans? Start with a look",
+          "Thinking about tea-time break? Take a closer look at {selection} before you make your list."
         ],
         [
-          "Make room on your snack list 📝",
-          "Find inspiration for your snack cupboard"
+          "A little snack and bakery inspiration",
+          "Give your next tea-time break a starting point: explore {selection} and see what suits your plans."
         ],
         [
-          "A little treat to explore ✨",
-          "Browse something for your next treat-time plan"
+          "What’s on your snack and bakery list?",
+          "Your list doesn’t have to be finished yet. Consider {selection} as you put your tea-time break together."
         ],
         [
-          "Planning a tea-time break? 🫖",
-          "Take a look while planning your tea-time basket"
+          "Make your next choice a local one",
+          "Meet {selection}, an option to explore while planning your tea-time break."
         ],
         [
-          "Your next snack idea is here 🧺",
-          "Discover an option for your next snack shop"
+          "An idea for your next tea-time break",
+          "Not sure where to begin? Start with {selection} and check the details in the app."
+        ],
+        [
+          "Snack browsing, your way",
+          "Set your own pace. Browse {selection} when you’re ready to think about your next tea-time break."
+        ],
+        [
+          "Your snack and bakery list has a starting point",
+          "One item can help shape a plan. See whether {selection} belongs in your tea-time break."
+        ],
+        [
+          "Have a snack and bakery idea in mind?",
+          "Already picturing your tea-time break? Open {selection} to see if it fits."
+        ],
+        [
+          "Take your snack and bakery plans a step further",
+          "Turn an idea into a shopping decision. Check {selection} before adding anything to your basket."
+        ],
+        [
+          "A closer look before your next order",
+          "There’s more to a choice than a name. Read about {selection} as you plan your tea-time break."
+        ],
+        [
+          "Snack ideas for the undecided",
+          "Still weighing your options? Give {selection} a look without committing to an order."
+        ],
+        [
+          "Start with your list, explore from there",
+          "Bring your snack and bakery ideas along and see where {selection} fits into them."
+        ],
+        [
+          "A small spark for your tea-time break",
+          "Sometimes you just need somewhere to start. Browse {selection} for your next tea-time break."
+        ],
+        [
+          "Planning ahead? Think snack and bakery",
+          "Put your next tea-time break on the calendar, then check {selection} as part of your planning."
+        ],
+        [
+          "Something to consider for tea-time break",
+          "Before you settle on your list, take a moment to explore {selection}."
+        ],
+        [
+          "One more option for your snack and bakery list",
+          "Keep your choices open. View {selection} alongside the other ideas for your tea-time break."
+        ],
+        [
+          "Let your snack and bakery plans take shape",
+          "From a rough idea to a shopping list: {selection} could be one of the options you consider."
+        ],
+        [
+          "A snack and bakery thought for your day",
+          "If your next tea-time break is on your mind, have a look at {selection}."
+        ],
+        [
+          "What will your next basket include?",
+          "Build a basket that suits your tea-time break. Start by checking the details of {selection}."
+        ],
+        [
+          "Your next tea-time break, your choice",
+          "Take the lead on your plans. Browse {selection} and decide whether it’s right for you."
+        ],
+        [
+          "Explore a snack and bakery possibility",
+          "An idea is just an idea until you check it out. Find out more about {selection}."
+        ],
+        [
+          "Room for a snack and bakery idea?",
+          "Leave a little space for inspiration on your list. Take a look at {selection}."
+        ],
+        [
+          "A new page in your snack and bakery plans",
+          "Open {selection} and give your next tea-time break a little more thought."
+        ],
+        [
+          "From snack and bakery idea to shopping list",
+          "Ready to write down your options? See whether {selection} makes your shortlist."
+        ],
+        [
+          "Put your tea-time break in focus",
+          "Get specific about your plans: explore {selection} and review the details before ordering."
+        ],
+        [
+          "Keep your next tea-time break in mind",
+          "When you’re working on your list, remember to take a look at {selection}."
+        ],
+        [
+          "Your snack and bakery shortlist starts here",
+          "Comparing options for your tea-time break? Include {selection} in your browsing."
+        ],
+        [
+          "Let’s talk about your next basket",
+          "What matters for your tea-time break? Check {selection} against your own preferences."
+        ],
+        [
+          "A thoughtful pause for snack and bakery",
+          "Before placing an order, give {selection} a moment of consideration."
+        ],
+        [
+          "Find your own snack and bakery inspiration",
+          "You know what suits your plans. Explore {selection} and make the choice yours."
+        ],
+        [
+          "Snack ideas without the rush",
+          "There’s no need to decide on the spot. Read about {selection} while planning your tea-time break."
+        ],
+        [
+          "Build your basket around your plans",
+          "Your tea-time break comes first. Check whether {selection} works for what you have in mind."
+        ],
+        [
+          "A snack and bakery option worth comparing",
+          "Take a closer look at {selection} as you compare choices for your next tea-time break."
+        ],
+        [
+          "Follow your snack and bakery curiosity",
+          "Curious about what to choose? Start with the details of {selection}."
+        ],
+        [
+          "Give your tea-time break a little thought",
+          "A few minutes of browsing can help with your list. Explore {selection} when you’re ready."
+        ],
+        [
+          "What suits your tea-time break today?",
+          "There’s no single right basket. View {selection} and decide what works for your plans."
+        ],
+        [
+          "Bring your snack and bakery ideas along",
+          "Got a plan in mind? See how {selection} compares with what you’re looking for."
+        ],
+        [
+          "Your next list could begin here",
+          "Make {selection} one of the things you explore for your upcoming tea-time break."
+        ],
+        [
+          "A moment to browse snack and bakery",
+          "Take a short browsing break and look into {selection} for your next tea-time break."
+        ],
+        [
+          "Look beyond the usual list",
+          "If you’re considering different options for your tea-time break, start by exploring {selection}."
+        ],
+        [
+          "Your snack and bakery plans deserve a closer look",
+          "Check the details that matter to you in {selection} before making your next choice."
+        ],
+        [
+          "An open invitation to explore snack and bakery",
+          "Come with a list or just an idea. Browse {selection} for your next tea-time break."
+        ],
+        [
+          "Could this fit your next basket?",
+          "See whether {selection} lines up with your plans for tea-time break."
+        ],
+        [
+          "A little direction for your snack and bakery list",
+          "Start with what you need for your tea-time break, then take a look at {selection}."
+        ],
+        [
+          "Keep your options open for tea-time break",
+          "You can explore before deciding. Read about {selection} and consider your next step."
+        ],
+        [
+          "Make space to explore snack and bakery",
+          "Your next tea-time break may need a little planning. Have a look at {selection}."
+        ],
+        [
+          "Browse first, build your basket next",
+          "Get to know {selection} before deciding whether to include it in your tea-time break."
+        ],
+        [
+          "A snack and bakery idea to think over",
+          "Let your next tea-time break take shape at your pace. Consider {selection} along the way."
+        ],
+        [
+          "Your tea-time break starts with a decision",
+          "Choose with your own plans in mind. Open {selection} to review the details."
+        ],
+        [
+          "See where your snack and bakery ideas lead",
+          "An unfinished list is a good place to explore. Take a look at {selection}."
+        ],
+        [
+          "A fresh perspective on your list",
+          "Approach your tea-time break from another angle: explore {selection} before finalising your choices."
+        ],
+        [
+          "Let your next basket reflect your plans",
+          "Think about your tea-time break and see whether {selection} belongs on the list."
+        ],
+        [
+          "Snack browsing with a purpose",
+          "Know what you’re looking for? Check {selection} against the plans you’ve made."
+        ],
+        [
+          "Another way to begin your tea-time break",
+          "Instead of starting with a full list, begin by exploring {selection}."
+        ],
+        [
+          "Make a shortlist for your tea-time break",
+          "A few considered options can help you decide. Read about {selection} as you narrow your list."
+        ],
+        [
+          "Think it through, then choose",
+          "Put {selection} alongside your snack and bakery ideas and see how it fits your next order."
+        ],
+        [
+          "Your snack and bakery plan is yours to build",
+          "Keep the choices in your hands. Explore {selection} before putting together your basket."
+        ],
+        [
+          "Have you planned your tea-time break yet?",
+          "If your list is still taking shape, {selection} is one place to start browsing."
+        ],
+        [
+          "A local stop for snack and bakery inspiration",
+          "Visit {selection} in the app while exploring ideas for your next tea-time break."
+        ],
+        [
+          "Turn a quiet moment into a browsing break",
+          "Use a spare moment to read about {selection} and think ahead to your tea-time break."
+        ],
+        [
+          "Start a conversation with your shopping list",
+          "What do you actually need for your tea-time break? Explore {selection} with that question in mind."
+        ],
+        [
+          "Your snack and bakery plans, one choice at a time",
+          "You don’t have to decide everything at once. Begin with a look at {selection}."
+        ],
+        [
+          "Let the details guide your basket",
+          "Read up on {selection} and use the details to help plan your tea-time break."
+        ],
+        [
+          "Something to explore before you decide",
+          "Keep {selection} in view while you weigh up the options for your tea-time break."
+        ],
+        [
+          "A snack and bakery idea for the planning stage",
+          "Still working things out? Browse {selection} before you settle on a shopping list."
+        ],
+        [
+          "Take another look at your snack and bakery options",
+          "Whether your list is long or short, you can explore {selection} before ordering."
+        ],
+        [
+          "What would work for your next order?",
+          "Use your plans for tea-time break as a guide when looking at {selection}."
+        ],
+        [
+          "Your tea-time break can start with curiosity",
+          "Follow a simple question: could {selection} be right for what you’re planning?"
+        ],
+        [
+          "An idea to add to the conversation",
+          "Planning your tea-time break with someone? Take a look at {selection} together before deciding."
+        ],
+        [
+          "A little snack and bakery browsing goes a long way",
+          "Get a clearer picture of your options by checking {selection} for your next tea-time break."
+        ],
+        [
+          "Keep your next basket intentional",
+          "Choose around what you need. Consider {selection} as part of your tea-time break."
+        ],
+        [
+          "Explore the possibility, check the details",
+          "Before putting {selection} on your list, open the page and see what’s listed."
+        ],
+        [
+          "Your snack and bakery checklist, meet an option",
+          "Work through your list for tea-time break and see where {selection} might fit."
+        ],
+        [
+          "A starting point for shared plans",
+          "Putting together a tea-time break with others? Browse {selection} while you make your choices."
+        ],
+        [
+          "Plan a basket that makes sense for you",
+          "Look at {selection} through the lens of your own snack and bakery needs."
+        ],
+        [
+          "Pause, browse, then plan your tea-time break",
+          "Take a moment to explore {selection} before moving from ideas to an order."
+        ],
+        [
+          "Your snack and bakery ideas are taking shape",
+          "When you’re ready for more detail, open {selection} and continue planning."
+        ],
+        [
+          "Another possibility for your tea-time break",
+          "Your list may already have a few options. See whether {selection} deserves a closer look."
+        ],
+        [
+          "A snack and bakery choice starts with information",
+          "Find out about {selection} before deciding what belongs in your basket."
+        ],
+        [
+          "Look into your next snack and bakery idea",
+          "Move from wondering to browsing: take a closer look at {selection}."
+        ],
+        [
+          "A browse now can help you plan",
+          "Think ahead to your tea-time break by reviewing {selection} at your own pace."
+        ],
+        [
+          "Your next tea-time break is worth planning",
+          "Consider the details of {selection} before you make your shopping decisions."
+        ],
+        [
+          "Take your list on a local detour",
+          "Explore {selection} while looking for ideas that suit your next tea-time break."
+        ],
+        [
+          "Find a starting point, not a rush",
+          "Let {selection} be an option to consider for your tea-time break, then decide in your own time."
+        ],
+        [
+          "A snack and bakery prompt for your next order",
+          "If you’re putting a basket together, have a look at {selection} along the way."
+        ],
+        [
+          "Match your basket to your tea-time break",
+          "Think about your plans first, then check whether {selection} fits the brief."
+        ],
+        [
+          "A closer look could help you choose",
+          "Open {selection} to get more information for your next snack and bakery decision."
+        ],
+        [
+          "Your snack and bakery plans have room to grow",
+          "Explore {selection} while your next tea-time break is still an idea in progress."
+        ],
+        [
+          "What’s the next choice on your list?",
+          "Consider {selection} as you work through your plans for tea-time break."
+        ],
+        [
+          "Start with a snack and bakery question",
+          "What would suit your next tea-time break? Look at {selection} as one possible answer."
+        ],
+        [
+          "A small step towards your next basket",
+          "Read about {selection} and bring a little more detail to your snack and bakery plans."
+        ],
+        [
+          "Put an idea beside your plans",
+          "See how {selection} fits alongside the other choices for your tea-time break."
+        ],
+        [
+          "Your tea-time break, a little more considered",
+          "Before you order, take time to review {selection} and the options shown in the app."
+        ],
+        [
+          "A snack and bakery possibility, just a tap away",
+          "Open {selection} when you’re ready to explore something for your next tea-time break."
+        ],
+        [
+          "Give your list one more look",
+          "As you review your snack and bakery plans, check whether {selection} belongs among your choices."
+        ],
+        [
+          "A local idea for your next decision",
+          "Browse {selection} and decide how it fits into your upcoming tea-time break."
+        ],
+        [
+          "Your snack and bakery browsing starts with you",
+          "Your needs set the direction. Explore {selection} with your next tea-time break in mind."
+        ],
+        [
+          "From a possibility to a considered choice",
+          "Check {selection} carefully before deciding whether it works for your tea-time break."
+        ],
+        [
+          "What will inspire your tea-time break?",
+          "You might start with a plan or a question. Either way, take a look at {selection}."
+        ],
+        [
+          "End your browsing with your own choice",
+          "Explore {selection}, consider your snack and bakery plans, and choose only what suits you."
         ]
       ]
     },
@@ -129,24 +2029,404 @@
       "pattern": "beverage|drink|juice|coffee|tea",
       "ideas": [
         [
-          "What’s in your cup next? ☕",
-          "Find inspiration for your next drinks order"
+          "Drink plans? Start with a look",
+          "Thinking about drinks break? Take a closer look at {selection} before you make your list."
         ],
         [
-          "Take a sip of inspiration 🥤",
-          "Explore an option for your drinks list"
+          "A little drink inspiration",
+          "Give your next drinks break a starting point: explore {selection} and see what suits your plans."
         ],
         [
-          "Planning your next break? 🫖",
-          "Browse something for your next drinks break"
+          "What’s on your drink list?",
+          "Your list doesn’t have to be finished yet. Consider {selection} as you put your drinks break together."
         ],
         [
-          "Check your drinks shelf 📝",
-          "Plan your next beverage top-up"
+          "Make your next choice a local one",
+          "Meet {selection}, an option to explore while planning your drinks break."
         ],
         [
-          "A drink idea worth exploring ✨",
-          "Discover an option for your next drinks basket"
+          "An idea for your next drinks break",
+          "Not sure where to begin? Start with {selection} and check the details in the app."
+        ],
+        [
+          "Drink browsing, your way",
+          "Set your own pace. Browse {selection} when you’re ready to think about your next drinks break."
+        ],
+        [
+          "Your drink list has a starting point",
+          "One item can help shape a plan. See whether {selection} belongs in your drinks break."
+        ],
+        [
+          "Have a drink idea in mind?",
+          "Already picturing your drinks break? Open {selection} to see if it fits."
+        ],
+        [
+          "Take your drink plans a step further",
+          "Turn an idea into a shopping decision. Check {selection} before adding anything to your basket."
+        ],
+        [
+          "A closer look before your next order",
+          "There’s more to a choice than a name. Read about {selection} as you plan your drinks break."
+        ],
+        [
+          "Drink ideas for the undecided",
+          "Still weighing your options? Give {selection} a look without committing to an order."
+        ],
+        [
+          "Start with your list, explore from there",
+          "Bring your drink ideas along and see where {selection} fits into them."
+        ],
+        [
+          "A small spark for your drinks break",
+          "Sometimes you just need somewhere to start. Browse {selection} for your next drinks break."
+        ],
+        [
+          "Planning ahead? Think drink",
+          "Put your next drinks break on the calendar, then check {selection} as part of your planning."
+        ],
+        [
+          "Something to consider for drinks break",
+          "Before you settle on your list, take a moment to explore {selection}."
+        ],
+        [
+          "One more option for your drink list",
+          "Keep your choices open. View {selection} alongside the other ideas for your drinks break."
+        ],
+        [
+          "Let your drink plans take shape",
+          "From a rough idea to a shopping list: {selection} could be one of the options you consider."
+        ],
+        [
+          "A drink thought for your day",
+          "If your next drinks break is on your mind, have a look at {selection}."
+        ],
+        [
+          "What will your next basket include?",
+          "Build a basket that suits your drinks break. Start by checking the details of {selection}."
+        ],
+        [
+          "Your next drinks break, your choice",
+          "Take the lead on your plans. Browse {selection} and decide whether it’s right for you."
+        ],
+        [
+          "Explore a drink possibility",
+          "An idea is just an idea until you check it out. Find out more about {selection}."
+        ],
+        [
+          "Room for a drink idea?",
+          "Leave a little space for inspiration on your list. Take a look at {selection}."
+        ],
+        [
+          "A new page in your drink plans",
+          "Open {selection} and give your next drinks break a little more thought."
+        ],
+        [
+          "From drink idea to shopping list",
+          "Ready to write down your options? See whether {selection} makes your shortlist."
+        ],
+        [
+          "Put your drinks break in focus",
+          "Get specific about your plans: explore {selection} and review the details before ordering."
+        ],
+        [
+          "Keep your next drinks break in mind",
+          "When you’re working on your list, remember to take a look at {selection}."
+        ],
+        [
+          "Your drink shortlist starts here",
+          "Comparing options for your drinks break? Include {selection} in your browsing."
+        ],
+        [
+          "Let’s talk about your next basket",
+          "What matters for your drinks break? Check {selection} against your own preferences."
+        ],
+        [
+          "A thoughtful pause for drink",
+          "Before placing an order, give {selection} a moment of consideration."
+        ],
+        [
+          "Find your own drink inspiration",
+          "You know what suits your plans. Explore {selection} and make the choice yours."
+        ],
+        [
+          "Drink ideas without the rush",
+          "There’s no need to decide on the spot. Read about {selection} while planning your drinks break."
+        ],
+        [
+          "Build your basket around your plans",
+          "Your drinks break comes first. Check whether {selection} works for what you have in mind."
+        ],
+        [
+          "A drink option worth comparing",
+          "Take a closer look at {selection} as you compare choices for your next drinks break."
+        ],
+        [
+          "Follow your drink curiosity",
+          "Curious about what to choose? Start with the details of {selection}."
+        ],
+        [
+          "Give your drinks break a little thought",
+          "A few minutes of browsing can help with your list. Explore {selection} when you’re ready."
+        ],
+        [
+          "What suits your drinks break today?",
+          "There’s no single right basket. View {selection} and decide what works for your plans."
+        ],
+        [
+          "Bring your drink ideas along",
+          "Got a plan in mind? See how {selection} compares with what you’re looking for."
+        ],
+        [
+          "Your next list could begin here",
+          "Make {selection} one of the things you explore for your upcoming drinks break."
+        ],
+        [
+          "A moment to browse drink",
+          "Take a short browsing break and look into {selection} for your next drinks break."
+        ],
+        [
+          "Look beyond the usual list",
+          "If you’re considering different options for your drinks break, start by exploring {selection}."
+        ],
+        [
+          "Your drink plans deserve a closer look",
+          "Check the details that matter to you in {selection} before making your next choice."
+        ],
+        [
+          "An open invitation to explore drink",
+          "Come with a list or just an idea. Browse {selection} for your next drinks break."
+        ],
+        [
+          "Could this fit your next basket?",
+          "See whether {selection} lines up with your plans for drinks break."
+        ],
+        [
+          "A little direction for your drink list",
+          "Start with what you need for your drinks break, then take a look at {selection}."
+        ],
+        [
+          "Keep your options open for drinks break",
+          "You can explore before deciding. Read about {selection} and consider your next step."
+        ],
+        [
+          "Make space to explore drink",
+          "Your next drinks break may need a little planning. Have a look at {selection}."
+        ],
+        [
+          "Browse first, build your basket next",
+          "Get to know {selection} before deciding whether to include it in your drinks break."
+        ],
+        [
+          "A drink idea to think over",
+          "Let your next drinks break take shape at your pace. Consider {selection} along the way."
+        ],
+        [
+          "Your drinks break starts with a decision",
+          "Choose with your own plans in mind. Open {selection} to review the details."
+        ],
+        [
+          "See where your drink ideas lead",
+          "An unfinished list is a good place to explore. Take a look at {selection}."
+        ],
+        [
+          "A fresh perspective on your list",
+          "Approach your drinks break from another angle: explore {selection} before finalising your choices."
+        ],
+        [
+          "Let your next basket reflect your plans",
+          "Think about your drinks break and see whether {selection} belongs on the list."
+        ],
+        [
+          "Drink browsing with a purpose",
+          "Know what you’re looking for? Check {selection} against the plans you’ve made."
+        ],
+        [
+          "Another way to begin your drinks break",
+          "Instead of starting with a full list, begin by exploring {selection}."
+        ],
+        [
+          "Make a shortlist for your drinks break",
+          "A few considered options can help you decide. Read about {selection} as you narrow your list."
+        ],
+        [
+          "Think it through, then choose",
+          "Put {selection} alongside your drink ideas and see how it fits your next order."
+        ],
+        [
+          "Your drink plan is yours to build",
+          "Keep the choices in your hands. Explore {selection} before putting together your basket."
+        ],
+        [
+          "Have you planned your drinks break yet?",
+          "If your list is still taking shape, {selection} is one place to start browsing."
+        ],
+        [
+          "A local stop for drink inspiration",
+          "Visit {selection} in the app while exploring ideas for your next drinks break."
+        ],
+        [
+          "Turn a quiet moment into a browsing break",
+          "Use a spare moment to read about {selection} and think ahead to your drinks break."
+        ],
+        [
+          "Start a conversation with your shopping list",
+          "What do you actually need for your drinks break? Explore {selection} with that question in mind."
+        ],
+        [
+          "Your drink plans, one choice at a time",
+          "You don’t have to decide everything at once. Begin with a look at {selection}."
+        ],
+        [
+          "Let the details guide your basket",
+          "Read up on {selection} and use the details to help plan your drinks break."
+        ],
+        [
+          "Something to explore before you decide",
+          "Keep {selection} in view while you weigh up the options for your drinks break."
+        ],
+        [
+          "A drink idea for the planning stage",
+          "Still working things out? Browse {selection} before you settle on a shopping list."
+        ],
+        [
+          "Take another look at your drink options",
+          "Whether your list is long or short, you can explore {selection} before ordering."
+        ],
+        [
+          "What would work for your next order?",
+          "Use your plans for drinks break as a guide when looking at {selection}."
+        ],
+        [
+          "Your drinks break can start with curiosity",
+          "Follow a simple question: could {selection} be right for what you’re planning?"
+        ],
+        [
+          "An idea to add to the conversation",
+          "Planning your drinks break with someone? Take a look at {selection} together before deciding."
+        ],
+        [
+          "A little drink browsing goes a long way",
+          "Get a clearer picture of your options by checking {selection} for your next drinks break."
+        ],
+        [
+          "Keep your next basket intentional",
+          "Choose around what you need. Consider {selection} as part of your drinks break."
+        ],
+        [
+          "Explore the possibility, check the details",
+          "Before putting {selection} on your list, open the page and see what’s listed."
+        ],
+        [
+          "Your drink checklist, meet an option",
+          "Work through your list for drinks break and see where {selection} might fit."
+        ],
+        [
+          "A starting point for shared plans",
+          "Putting together a drinks break with others? Browse {selection} while you make your choices."
+        ],
+        [
+          "Plan a basket that makes sense for you",
+          "Look at {selection} through the lens of your own drink needs."
+        ],
+        [
+          "Pause, browse, then plan your drinks break",
+          "Take a moment to explore {selection} before moving from ideas to an order."
+        ],
+        [
+          "Your drink ideas are taking shape",
+          "When you’re ready for more detail, open {selection} and continue planning."
+        ],
+        [
+          "Another possibility for your drinks break",
+          "Your list may already have a few options. See whether {selection} deserves a closer look."
+        ],
+        [
+          "A drink choice starts with information",
+          "Find out about {selection} before deciding what belongs in your basket."
+        ],
+        [
+          "Look into your next drink idea",
+          "Move from wondering to browsing: take a closer look at {selection}."
+        ],
+        [
+          "A browse now can help you plan",
+          "Think ahead to your drinks break by reviewing {selection} at your own pace."
+        ],
+        [
+          "Your next drinks break is worth planning",
+          "Consider the details of {selection} before you make your shopping decisions."
+        ],
+        [
+          "Take your list on a local detour",
+          "Explore {selection} while looking for ideas that suit your next drinks break."
+        ],
+        [
+          "Find a starting point, not a rush",
+          "Let {selection} be an option to consider for your drinks break, then decide in your own time."
+        ],
+        [
+          "A drink prompt for your next order",
+          "If you’re putting a basket together, have a look at {selection} along the way."
+        ],
+        [
+          "Match your basket to your drinks break",
+          "Think about your plans first, then check whether {selection} fits the brief."
+        ],
+        [
+          "A closer look could help you choose",
+          "Open {selection} to get more information for your next drink decision."
+        ],
+        [
+          "Your drink plans have room to grow",
+          "Explore {selection} while your next drinks break is still an idea in progress."
+        ],
+        [
+          "What’s the next choice on your list?",
+          "Consider {selection} as you work through your plans for drinks break."
+        ],
+        [
+          "Start with a drink question",
+          "What would suit your next drinks break? Look at {selection} as one possible answer."
+        ],
+        [
+          "A small step towards your next basket",
+          "Read about {selection} and bring a little more detail to your drink plans."
+        ],
+        [
+          "Put an idea beside your plans",
+          "See how {selection} fits alongside the other choices for your drinks break."
+        ],
+        [
+          "Your drinks break, a little more considered",
+          "Before you order, take time to review {selection} and the options shown in the app."
+        ],
+        [
+          "A drink possibility, just a tap away",
+          "Open {selection} when you’re ready to explore something for your next drinks break."
+        ],
+        [
+          "Give your list one more look",
+          "As you review your drink plans, check whether {selection} belongs among your choices."
+        ],
+        [
+          "A local idea for your next decision",
+          "Browse {selection} and decide how it fits into your upcoming drinks break."
+        ],
+        [
+          "Your drink browsing starts with you",
+          "Your needs set the direction. Explore {selection} with your next drinks break in mind."
+        ],
+        [
+          "From a possibility to a considered choice",
+          "Check {selection} carefully before deciding whether it works for your drinks break."
+        ],
+        [
+          "What will inspire your drinks break?",
+          "You might start with a plan or a question. Either way, take a look at {selection}."
+        ],
+        [
+          "End your browsing with your own choice",
+          "Explore {selection}, consider your drink plans, and choose only what suits you."
         ]
       ]
     },
@@ -154,70 +2434,808 @@
       "pattern": "food|grocery|groceries|rice|grain|pulse|spice|pantry|staple|oil",
       "ideas": [
         [
-          "What’s cooking in your kitchen? 🍲",
-          "Find inspiration for your next meal"
+          "Pantry plans? Start with a look",
+          "Thinking about meal plan? Take a closer look at {selection} before you make your list."
         ],
         [
-          "Check your pantry list 📝",
-          "Plan your next pantry top-up"
+          "A little grocery inspiration",
+          "Give your next meal plan a starting point: explore {selection} and see what suits your plans."
         ],
         [
-          "Your next recipe starts here 🧑‍🍳",
-          "Explore an option for your cooking plans"
+          "What’s on your grocery list?",
+          "Your list doesn’t have to be finished yet. Consider {selection} as you put your meal plan together."
         ],
         [
-          "Make room in your meal plan 🍽️",
-          "Build your basket for your next homemade meal"
+          "Make your next choice a local one",
+          "Meet {selection}, an option to explore while planning your meal plan."
         ],
         [
-          "A kitchen idea worth exploring 🧺",
-          "Discover something for your next grocery shop"
+          "An idea for your next meal plan",
+          "Not sure where to begin? Start with {selection} and check the details in the app."
+        ],
+        [
+          "Pantry browsing, your way",
+          "Set your own pace. Browse {selection} when you’re ready to think about your next meal plan."
+        ],
+        [
+          "Your grocery list has a starting point",
+          "One item can help shape a plan. See whether {selection} belongs in your meal plan."
+        ],
+        [
+          "Have a grocery idea in mind?",
+          "Already picturing your meal plan? Open {selection} to see if it fits."
+        ],
+        [
+          "Take your grocery plans a step further",
+          "Turn an idea into a shopping decision. Check {selection} before adding anything to your basket."
+        ],
+        [
+          "A closer look before your next order",
+          "There’s more to a choice than a name. Read about {selection} as you plan your meal plan."
+        ],
+        [
+          "Pantry ideas for the undecided",
+          "Still weighing your options? Give {selection} a look without committing to an order."
+        ],
+        [
+          "Start with your list, explore from there",
+          "Bring your grocery ideas along and see where {selection} fits into them."
+        ],
+        [
+          "A small spark for your meal plan",
+          "Sometimes you just need somewhere to start. Browse {selection} for your next meal plan."
+        ],
+        [
+          "Planning ahead? Think grocery",
+          "Put your next meal plan on the calendar, then check {selection} as part of your planning."
+        ],
+        [
+          "Something to consider for meal plan",
+          "Before you settle on your list, take a moment to explore {selection}."
+        ],
+        [
+          "One more option for your grocery list",
+          "Keep your choices open. View {selection} alongside the other ideas for your meal plan."
+        ],
+        [
+          "Let your grocery plans take shape",
+          "From a rough idea to a shopping list: {selection} could be one of the options you consider."
+        ],
+        [
+          "A grocery thought for your day",
+          "If your next meal plan is on your mind, have a look at {selection}."
+        ],
+        [
+          "What will your next basket include?",
+          "Build a basket that suits your meal plan. Start by checking the details of {selection}."
+        ],
+        [
+          "Your next meal plan, your choice",
+          "Take the lead on your plans. Browse {selection} and decide whether it’s right for you."
+        ],
+        [
+          "Explore a grocery possibility",
+          "An idea is just an idea until you check it out. Find out more about {selection}."
+        ],
+        [
+          "Room for a grocery idea?",
+          "Leave a little space for inspiration on your list. Take a look at {selection}."
+        ],
+        [
+          "A new page in your grocery plans",
+          "Open {selection} and give your next meal plan a little more thought."
+        ],
+        [
+          "From grocery idea to shopping list",
+          "Ready to write down your options? See whether {selection} makes your shortlist."
+        ],
+        [
+          "Put your meal plan in focus",
+          "Get specific about your plans: explore {selection} and review the details before ordering."
+        ],
+        [
+          "Keep your next meal plan in mind",
+          "When you’re working on your list, remember to take a look at {selection}."
+        ],
+        [
+          "Your grocery shortlist starts here",
+          "Comparing options for your meal plan? Include {selection} in your browsing."
+        ],
+        [
+          "Let’s talk about your next basket",
+          "What matters for your meal plan? Check {selection} against your own preferences."
+        ],
+        [
+          "A thoughtful pause for grocery",
+          "Before placing an order, give {selection} a moment of consideration."
+        ],
+        [
+          "Find your own grocery inspiration",
+          "You know what suits your plans. Explore {selection} and make the choice yours."
+        ],
+        [
+          "Pantry ideas without the rush",
+          "There’s no need to decide on the spot. Read about {selection} while planning your meal plan."
+        ],
+        [
+          "Build your basket around your plans",
+          "Your meal plan comes first. Check whether {selection} works for what you have in mind."
+        ],
+        [
+          "A grocery option worth comparing",
+          "Take a closer look at {selection} as you compare choices for your next meal plan."
+        ],
+        [
+          "Follow your grocery curiosity",
+          "Curious about what to choose? Start with the details of {selection}."
+        ],
+        [
+          "Give your meal plan a little thought",
+          "A few minutes of browsing can help with your list. Explore {selection} when you’re ready."
+        ],
+        [
+          "What suits your meal plan today?",
+          "There’s no single right basket. View {selection} and decide what works for your plans."
+        ],
+        [
+          "Bring your grocery ideas along",
+          "Got a plan in mind? See how {selection} compares with what you’re looking for."
+        ],
+        [
+          "Your next list could begin here",
+          "Make {selection} one of the things you explore for your upcoming meal plan."
+        ],
+        [
+          "A moment to browse grocery",
+          "Take a short browsing break and look into {selection} for your next meal plan."
+        ],
+        [
+          "Look beyond the usual list",
+          "If you’re considering different options for your meal plan, start by exploring {selection}."
+        ],
+        [
+          "Your grocery plans deserve a closer look",
+          "Check the details that matter to you in {selection} before making your next choice."
+        ],
+        [
+          "An open invitation to explore grocery",
+          "Come with a list or just an idea. Browse {selection} for your next meal plan."
+        ],
+        [
+          "Could this fit your next basket?",
+          "See whether {selection} lines up with your plans for meal plan."
+        ],
+        [
+          "A little direction for your grocery list",
+          "Start with what you need for your meal plan, then take a look at {selection}."
+        ],
+        [
+          "Keep your options open for meal plan",
+          "You can explore before deciding. Read about {selection} and consider your next step."
+        ],
+        [
+          "Make space to explore grocery",
+          "Your next meal plan may need a little planning. Have a look at {selection}."
+        ],
+        [
+          "Browse first, build your basket next",
+          "Get to know {selection} before deciding whether to include it in your meal plan."
+        ],
+        [
+          "A grocery idea to think over",
+          "Let your next meal plan take shape at your pace. Consider {selection} along the way."
+        ],
+        [
+          "Your meal plan starts with a decision",
+          "Choose with your own plans in mind. Open {selection} to review the details."
+        ],
+        [
+          "See where your grocery ideas lead",
+          "An unfinished list is a good place to explore. Take a look at {selection}."
+        ],
+        [
+          "A fresh perspective on your list",
+          "Approach your meal plan from another angle: explore {selection} before finalising your choices."
+        ],
+        [
+          "Let your next basket reflect your plans",
+          "Think about your meal plan and see whether {selection} belongs on the list."
+        ],
+        [
+          "Pantry browsing with a purpose",
+          "Know what you’re looking for? Check {selection} against the plans you’ve made."
+        ],
+        [
+          "Another way to begin your meal plan",
+          "Instead of starting with a full list, begin by exploring {selection}."
+        ],
+        [
+          "Make a shortlist for your meal plan",
+          "A few considered options can help you decide. Read about {selection} as you narrow your list."
+        ],
+        [
+          "Think it through, then choose",
+          "Put {selection} alongside your grocery ideas and see how it fits your next order."
+        ],
+        [
+          "Your grocery plan is yours to build",
+          "Keep the choices in your hands. Explore {selection} before putting together your basket."
+        ],
+        [
+          "Have you planned your meal plan yet?",
+          "If your list is still taking shape, {selection} is one place to start browsing."
+        ],
+        [
+          "A local stop for grocery inspiration",
+          "Visit {selection} in the app while exploring ideas for your next meal plan."
+        ],
+        [
+          "Turn a quiet moment into a browsing break",
+          "Use a spare moment to read about {selection} and think ahead to your meal plan."
+        ],
+        [
+          "Start a conversation with your shopping list",
+          "What do you actually need for your meal plan? Explore {selection} with that question in mind."
+        ],
+        [
+          "Your grocery plans, one choice at a time",
+          "You don’t have to decide everything at once. Begin with a look at {selection}."
+        ],
+        [
+          "Let the details guide your basket",
+          "Read up on {selection} and use the details to help plan your meal plan."
+        ],
+        [
+          "Something to explore before you decide",
+          "Keep {selection} in view while you weigh up the options for your meal plan."
+        ],
+        [
+          "A grocery idea for the planning stage",
+          "Still working things out? Browse {selection} before you settle on a shopping list."
+        ],
+        [
+          "Take another look at your grocery options",
+          "Whether your list is long or short, you can explore {selection} before ordering."
+        ],
+        [
+          "What would work for your next order?",
+          "Use your plans for meal plan as a guide when looking at {selection}."
+        ],
+        [
+          "Your meal plan can start with curiosity",
+          "Follow a simple question: could {selection} be right for what you’re planning?"
+        ],
+        [
+          "An idea to add to the conversation",
+          "Planning your meal plan with someone? Take a look at {selection} together before deciding."
+        ],
+        [
+          "A little grocery browsing goes a long way",
+          "Get a clearer picture of your options by checking {selection} for your next meal plan."
+        ],
+        [
+          "Keep your next basket intentional",
+          "Choose around what you need. Consider {selection} as part of your meal plan."
+        ],
+        [
+          "Explore the possibility, check the details",
+          "Before putting {selection} on your list, open the page and see what’s listed."
+        ],
+        [
+          "Your grocery checklist, meet an option",
+          "Work through your list for meal plan and see where {selection} might fit."
+        ],
+        [
+          "A starting point for shared plans",
+          "Putting together a meal plan with others? Browse {selection} while you make your choices."
+        ],
+        [
+          "Plan a basket that makes sense for you",
+          "Look at {selection} through the lens of your own grocery needs."
+        ],
+        [
+          "Pause, browse, then plan your meal plan",
+          "Take a moment to explore {selection} before moving from ideas to an order."
+        ],
+        [
+          "Your grocery ideas are taking shape",
+          "When you’re ready for more detail, open {selection} and continue planning."
+        ],
+        [
+          "Another possibility for your meal plan",
+          "Your list may already have a few options. See whether {selection} deserves a closer look."
+        ],
+        [
+          "A grocery choice starts with information",
+          "Find out about {selection} before deciding what belongs in your basket."
+        ],
+        [
+          "Look into your next grocery idea",
+          "Move from wondering to browsing: take a closer look at {selection}."
+        ],
+        [
+          "A browse now can help you plan",
+          "Think ahead to your meal plan by reviewing {selection} at your own pace."
+        ],
+        [
+          "Your next meal plan is worth planning",
+          "Consider the details of {selection} before you make your shopping decisions."
+        ],
+        [
+          "Take your list on a local detour",
+          "Explore {selection} while looking for ideas that suit your next meal plan."
+        ],
+        [
+          "Find a starting point, not a rush",
+          "Let {selection} be an option to consider for your meal plan, then decide in your own time."
+        ],
+        [
+          "A grocery prompt for your next order",
+          "If you’re putting a basket together, have a look at {selection} along the way."
+        ],
+        [
+          "Match your basket to your meal plan",
+          "Think about your plans first, then check whether {selection} fits the brief."
+        ],
+        [
+          "A closer look could help you choose",
+          "Open {selection} to get more information for your next grocery decision."
+        ],
+        [
+          "Your grocery plans have room to grow",
+          "Explore {selection} while your next meal plan is still an idea in progress."
+        ],
+        [
+          "What’s the next choice on your list?",
+          "Consider {selection} as you work through your plans for meal plan."
+        ],
+        [
+          "Start with a grocery question",
+          "What would suit your next meal plan? Look at {selection} as one possible answer."
+        ],
+        [
+          "A small step towards your next basket",
+          "Read about {selection} and bring a little more detail to your grocery plans."
+        ],
+        [
+          "Put an idea beside your plans",
+          "See how {selection} fits alongside the other choices for your meal plan."
+        ],
+        [
+          "Your meal plan, a little more considered",
+          "Before you order, take time to review {selection} and the options shown in the app."
+        ],
+        [
+          "A grocery possibility, just a tap away",
+          "Open {selection} when you’re ready to explore something for your next meal plan."
+        ],
+        [
+          "Give your list one more look",
+          "As you review your grocery plans, check whether {selection} belongs among your choices."
+        ],
+        [
+          "A local idea for your next decision",
+          "Browse {selection} and decide how it fits into your upcoming meal plan."
+        ],
+        [
+          "Your grocery browsing starts with you",
+          "Your needs set the direction. Explore {selection} with your next meal plan in mind."
+        ],
+        [
+          "From a possibility to a considered choice",
+          "Check {selection} carefully before deciding whether it works for your meal plan."
+        ],
+        [
+          "What will inspire your meal plan?",
+          "You might start with a plan or a question. Either way, take a look at {selection}."
+        ],
+        [
+          "End your browsing with your own choice",
+          "Explore {selection}, consider your grocery plans, and choose only what suits you."
         ]
       ]
     }
   ],
   "general": [
     [
-      "What’s on your list? 🛍️",
-      "Find inspiration for your next basket"
+      "Shopping plans? Start with a look",
+      "Thinking about shopping trip? Take a closer look at {selection} before you make your list."
     ],
     [
-      "Your next local find awaits ✨",
-      "Explore an idea for your next shopping trip"
+      "A little shopping inspiration",
+      "Give your next shopping trip a starting point: explore {selection} and see what suits your plans."
     ],
     [
-      "A little shopping inspiration 💡",
-      "Take a look while planning your next order"
+      "What’s on your shopping list?",
+      "Your list doesn’t have to be finished yet. Consider {selection} as you put your shopping trip together."
     ],
     [
-      "Make room on your shopping list 📝",
-      "Discover an option for your next basket"
+      "Make your next choice a local one",
+      "Meet {selection}, an option to explore while planning your shopping trip."
     ],
     [
-      "Shopping plans? Start here 🧺",
-      "Explore something for your next local shop"
+      "An idea for your next shopping trip",
+      "Not sure where to begin? Start with {selection} and check the details in the app."
+    ],
+    [
+      "Shopping browsing, your way",
+      "Set your own pace. Browse {selection} when you’re ready to think about your next shopping trip."
+    ],
+    [
+      "Your shopping list has a starting point",
+      "One item can help shape a plan. See whether {selection} belongs in your shopping trip."
+    ],
+    [
+      "Have a shopping idea in mind?",
+      "Already picturing your shopping trip? Open {selection} to see if it fits."
+    ],
+    [
+      "Take your shopping plans a step further",
+      "Turn an idea into a shopping decision. Check {selection} before adding anything to your basket."
+    ],
+    [
+      "A closer look before your shopping trip",
+      "There’s more to a choice than a name. Read about {selection} as you plan your shopping trip."
+    ],
+    [
+      "Shopping ideas for the undecided",
+      "Still weighing your options? Give {selection} a look without committing to an order."
+    ],
+    [
+      "Start with your list, explore from there",
+      "Bring your shopping ideas along and see where {selection} fits into them."
+    ],
+    [
+      "A small spark for your shopping trip",
+      "Sometimes you just need somewhere to start. Browse {selection} for your next shopping trip."
+    ],
+    [
+      "Planning ahead? Think shopping",
+      "Put your next shopping trip on the calendar, then check {selection} as part of your planning."
+    ],
+    [
+      "Something to consider for shopping trip",
+      "Before you settle on your list, take a moment to explore {selection}."
+    ],
+    [
+      "One more option for your shopping list",
+      "Keep your choices open. View {selection} alongside the other ideas for your shopping trip."
+    ],
+    [
+      "Let your shopping plans take shape",
+      "From a rough idea to a shopping list: {selection} could be one of the options you consider."
+    ],
+    [
+      "A shopping thought for your day",
+      "If your next shopping trip is on your mind, have a look at {selection}."
+    ],
+    [
+      "What will your next basket include?",
+      "Build a basket that suits your shopping trip. Start by checking the details of {selection}."
+    ],
+    [
+      "Your next shopping trip, your choice",
+      "Take the lead on your plans. Browse {selection} and decide whether it’s right for you."
+    ],
+    [
+      "Explore a shopping possibility",
+      "An idea is just an idea until you check it out. Find out more about {selection}."
+    ],
+    [
+      "Room for a shopping idea?",
+      "Leave a little space for inspiration on your list. Take a look at {selection}."
+    ],
+    [
+      "A new page in your shopping plans",
+      "Open {selection} and give your next shopping trip a little more thought."
+    ],
+    [
+      "From shopping idea to shopping list",
+      "Ready to write down your options? See whether {selection} makes your shortlist."
+    ],
+    [
+      "Put your shopping trip in focus",
+      "Get specific about your plans: explore {selection} and review the details before ordering."
+    ],
+    [
+      "Keep your next shopping trip in mind",
+      "When you’re working on your list, remember to take a look at {selection}."
+    ],
+    [
+      "Your shopping shortlist starts here",
+      "Comparing options for your shopping trip? Include {selection} in your browsing."
+    ],
+    [
+      "Let’s talk about your next basket",
+      "What matters for your shopping trip? Check {selection} against your own preferences."
+    ],
+    [
+      "A thoughtful pause for shopping",
+      "Before placing an order, give {selection} a moment of consideration."
+    ],
+    [
+      "Find your own shopping inspiration",
+      "You know what suits your plans. Explore {selection} and make the choice yours."
+    ],
+    [
+      "Shopping ideas without the rush",
+      "There’s no need to decide on the spot. Read about {selection} while planning your shopping trip."
+    ],
+    [
+      "Build your basket around your plans",
+      "Your shopping trip comes first. Check whether {selection} works for what you have in mind."
+    ],
+    [
+      "A shopping option worth comparing",
+      "Take a closer look at {selection} as you compare choices for your next shopping trip."
+    ],
+    [
+      "Follow your shopping curiosity",
+      "Curious about what to choose? Start with the details of {selection}."
+    ],
+    [
+      "Give your shopping trip a little thought",
+      "A few minutes of browsing can help with your list. Explore {selection} when you’re ready."
+    ],
+    [
+      "What suits your shopping trip today?",
+      "There’s no single right basket. View {selection} and decide what works for your plans."
+    ],
+    [
+      "Bring your shopping ideas along",
+      "Got a plan in mind? See how {selection} compares with what you’re looking for."
+    ],
+    [
+      "Your next list could begin here",
+      "Make {selection} one of the things you explore for your upcoming shopping trip."
+    ],
+    [
+      "A moment to browse shopping",
+      "Take a short browsing break and look into {selection} for your next shopping trip."
+    ],
+    [
+      "Look beyond the usual list",
+      "If you’re considering different options for your shopping trip, start by exploring {selection}."
+    ],
+    [
+      "Your shopping plans deserve a closer look",
+      "Check the details that matter to you in {selection} before making your next choice."
+    ],
+    [
+      "An open invitation to explore shopping",
+      "Come with a list or just an idea. Browse {selection} for your next shopping trip."
+    ],
+    [
+      "Could this fit your next basket?",
+      "See whether {selection} lines up with your plans for shopping trip."
+    ],
+    [
+      "A little direction for your shopping list",
+      "Start with what you need for your shopping trip, then take a look at {selection}."
+    ],
+    [
+      "Keep your options open for shopping trip",
+      "You can explore before deciding. Read about {selection} and consider your next step."
+    ],
+    [
+      "Make space to explore shopping",
+      "Your next shopping trip may need a little planning. Have a look at {selection}."
+    ],
+    [
+      "Browse first, build your basket next",
+      "Get to know {selection} before deciding whether to include it in your shopping trip."
+    ],
+    [
+      "A shopping idea to think over",
+      "Let your next shopping trip take shape at your pace. Consider {selection} along the way."
+    ],
+    [
+      "Your shopping trip starts with a decision",
+      "Choose with your own plans in mind. Open {selection} to review the details."
+    ],
+    [
+      "See where your shopping ideas lead",
+      "An unfinished list is a good place to explore. Take a look at {selection}."
+    ],
+    [
+      "A fresh perspective on your list",
+      "Approach your shopping trip from another angle: explore {selection} before finalising your choices."
+    ],
+    [
+      "Let your next basket reflect your plans",
+      "Think about your shopping trip and see whether {selection} belongs on the list."
+    ],
+    [
+      "Shopping browsing with a purpose",
+      "Know what you’re looking for? Check {selection} against the plans you’ve made."
+    ],
+    [
+      "Another way to begin your shopping trip",
+      "Instead of starting with a full list, begin by exploring {selection}."
+    ],
+    [
+      "Make a shortlist for your shopping trip",
+      "A few considered options can help you decide. Read about {selection} as you narrow your list."
+    ],
+    [
+      "Think it through, then choose",
+      "Put {selection} alongside your shopping ideas and see how it fits your shopping trip."
+    ],
+    [
+      "Your shopping plan is yours to build",
+      "Keep the choices in your hands. Explore {selection} before putting together your basket."
+    ],
+    [
+      "Have you planned your shopping trip yet?",
+      "If your list is still taking shape, {selection} is one place to start browsing."
+    ],
+    [
+      "A local stop for shopping inspiration",
+      "Visit {selection} in the app while exploring ideas for your next shopping trip."
+    ],
+    [
+      "Turn a quiet moment into a browsing break",
+      "Use a spare moment to read about {selection} and think ahead to your shopping trip."
+    ],
+    [
+      "Start a conversation with your shopping list",
+      "What do you actually need for your shopping trip? Explore {selection} with that question in mind."
+    ],
+    [
+      "Your shopping plans, one choice at a time",
+      "You don’t have to decide everything at once. Begin with a look at {selection}."
+    ],
+    [
+      "Let the details guide your basket",
+      "Read up on {selection} and use the details to help plan your shopping trip."
+    ],
+    [
+      "Something to explore before you decide",
+      "Keep {selection} in view while you weigh up the options for your shopping trip."
+    ],
+    [
+      "A shopping idea for the planning stage",
+      "Still working things out? Browse {selection} before you settle on a shopping list."
+    ],
+    [
+      "Take another look at your shopping options",
+      "Whether your list is long or short, you can explore {selection} before ordering."
+    ],
+    [
+      "What would work for your shopping trip?",
+      "Use your plans for shopping trip as a guide when looking at {selection}."
+    ],
+    [
+      "Your shopping trip can start with curiosity",
+      "Follow a simple question: could {selection} be right for what you’re planning?"
+    ],
+    [
+      "An idea to add to the conversation",
+      "Planning your shopping trip with someone? Take a look at {selection} together before deciding."
+    ],
+    [
+      "A little shopping browsing goes a long way",
+      "Get a clearer picture of your options by checking {selection} for your next shopping trip."
+    ],
+    [
+      "Keep your next basket intentional",
+      "Choose around what you need. Consider {selection} as part of your shopping trip."
+    ],
+    [
+      "Explore the possibility, check the details",
+      "Before putting {selection} on your list, open the page and see what’s listed."
+    ],
+    [
+      "Your shopping checklist, meet an option",
+      "Work through your list for shopping trip and see where {selection} might fit."
+    ],
+    [
+      "A starting point for shared plans",
+      "Putting together a shopping trip with others? Browse {selection} while you make your choices."
+    ],
+    [
+      "Plan a basket that makes sense for you",
+      "Look at {selection} through the lens of your own shopping needs."
+    ],
+    [
+      "Pause, browse, then plan your shopping trip",
+      "Take a moment to explore {selection} before moving from ideas to an order."
+    ],
+    [
+      "Your shopping ideas are taking shape",
+      "When you’re ready for more detail, open {selection} and continue planning."
+    ],
+    [
+      "Another possibility for your shopping trip",
+      "Your list may already have a few options. See whether {selection} deserves a closer look."
+    ],
+    [
+      "A shopping choice starts with information",
+      "Find out about {selection} before deciding what belongs in your basket."
+    ],
+    [
+      "Look into your next shopping idea",
+      "Move from wondering to browsing: take a closer look at {selection}."
+    ],
+    [
+      "A browse now can help you plan",
+      "Think ahead to your shopping trip by reviewing {selection} at your own pace."
+    ],
+    [
+      "Your next shopping trip is worth planning",
+      "Consider the details of {selection} before you make your shopping decisions."
+    ],
+    [
+      "Take your list on a local detour",
+      "Explore {selection} while looking for ideas that suit your next shopping trip."
+    ],
+    [
+      "Find a starting point, not a rush",
+      "Let {selection} be an option to consider for your shopping trip, then decide in your own time."
+    ],
+    [
+      "A shopping prompt for your shopping trip",
+      "If you’re putting a basket together, have a look at {selection} along the way."
+    ],
+    [
+      "Match your basket to your shopping trip",
+      "Think about your plans first, then check whether {selection} fits the brief."
+    ],
+    [
+      "A closer look could help you choose",
+      "Open {selection} to get more information for your next shopping decision."
+    ],
+    [
+      "Your shopping plans have room to grow",
+      "Explore {selection} while your next shopping trip is still an idea in progress."
+    ],
+    [
+      "What’s the next choice on your list?",
+      "Consider {selection} as you work through your plans for shopping trip."
+    ],
+    [
+      "Start with a shopping question",
+      "What would suit your next shopping trip? Look at {selection} as one possible answer."
+    ],
+    [
+      "A small step towards your next basket",
+      "Read about {selection} and bring a little more detail to your shopping plans."
+    ],
+    [
+      "Put an idea beside your plans",
+      "See how {selection} fits alongside the other choices for your shopping trip."
+    ],
+    [
+      "Your shopping trip, a little more considered",
+      "Before you order, take time to review {selection} and the options shown in the app."
+    ],
+    [
+      "A shopping possibility, just a tap away",
+      "Open {selection} when you’re ready to explore something for your next shopping trip."
+    ],
+    [
+      "Give your list one more look",
+      "As you review your shopping plans, check whether {selection} belongs among your choices."
+    ],
+    [
+      "A local idea for your next decision",
+      "Browse {selection} and decide how it fits into your upcoming shopping trip."
+    ],
+    [
+      "Your shopping browsing starts with you",
+      "Your needs set the direction. Explore {selection} with your next shopping trip in mind."
+    ],
+    [
+      "From a possibility to a considered choice",
+      "Check {selection} carefully before deciding whether it works for your shopping trip."
+    ],
+    [
+      "What will inspire your shopping trip?",
+      "You might start with a plan or a question. Either way, take a look at {selection}."
+    ],
+    [
+      "End your browsing with your own choice",
+      "Explore {selection}, consider your shopping plans, and choose only what suits you."
     ]
-  ],
-  "actions": [
-    "Tap for current prices and availability.",
-    "Open the shop and take a closer look.",
-    "View the details before you choose.",
-    "See if it belongs in your next basket.",
-    "Browse at your own pace.",
-    "Check the options for your next order.",
-    "Take a look and plan your shopping.",
-    "Your next choice starts with a tap.",
-    "Explore the details from your phone.",
-    "Compare it with what’s on your list.",
-    "Open the page for a closer look.",
-    "Discover the options before ordering.",
-    "Find out more and choose what suits you.",
-    "Check current availability in the app.",
-    "See the latest price before you order.",
-    "Take your shopping list one step further.",
-    "Browse now and decide what works for you.",
-    "See what fits your plans today.",
-    "Visit the shop without leaving the app.",
-    "Take a moment to explore your next pick."
   ]
 }

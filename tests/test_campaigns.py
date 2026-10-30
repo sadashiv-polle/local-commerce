@@ -144,6 +144,7 @@ class CampaignTests(unittest.TestCase):
             product = {"item_name": "Selected product", "item_group": category}
             ideas = [self.service.daily_wording(product, "Shop", index) for index in range(100)]
             self.assertEqual(len(set(body for _, body in ideas)), 100)
+            self.assertEqual(len(set(title for title, _ in ideas)), 100)
             self.assertTrue(all(len(title) <= 80 and len(body) <= 240 for title, body in ideas))
             self.assertEqual(self.service.daily_wording(product, "Shop", 100), ideas[0])
 
