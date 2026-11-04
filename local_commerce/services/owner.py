@@ -306,6 +306,7 @@ def serialize_product(doc, product, stock, price, currency):
                 "item_group",
                 "stock_uom",
                 "lc_description",
+                "lc_food_type",
                 "lc_sold_out",
                 "lc_low_stock",
                 "disabled",
@@ -351,6 +352,7 @@ def catalog(shop, start=0, search="", status="All"):
             "item_group",
             "stock_uom",
             "lc_description",
+            "lc_food_type",
             "lc_sold_out",
             "lc_low_stock",
             "disabled",
@@ -429,7 +431,7 @@ def catalog(shop, start=0, search="", status="All"):
 
 def update_product(
     shop, item, modified, item_name, description="", low_stock=0, sold_out=0, archived=0,
-    price=None, selling_options=None, validity_hours=None
+    price=None, selling_options=None, validity_hours=None, lc_food_type=None
 ):
     doc, product = own_item(shop, item, True)
     if str(product.modified) != str(modified):
@@ -455,6 +457,12 @@ def update_product(
         except ValueError as exc:
             reject(str(exc))
         product.lc_stock_validity_hours = float(validity_hours)
+    if lc_food_type is not None:
+        from local_commerce.services.food_type import validate
+        try:
+            product.lc_food_type = validate(lc_food_type)
+        except ValueError as exc:
+            reject(str(exc))
     product.item_name = item_name.strip()
     product.lc_description = description
     product.description = escape(description) if description else escape(product.item_name)

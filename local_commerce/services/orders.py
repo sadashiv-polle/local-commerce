@@ -341,6 +341,7 @@ def product_data(shop, item, browsing=False):
         "item": item.name,
         "item_name": item.item_name,
         "item_group": item.item_group,
+        "lc_food_type": item.get("lc_food_type") or "",
         "image": images[0] if images else "",
         "images": images,
         "uom": item.stock_uom,
@@ -416,7 +417,7 @@ def public_product(shop, item):
     return product_data(doc, frappe.get_doc("Item", item), browsing=True)
 
 
-def catalog(shop, start=0, search="", category="", in_stock=0):
+def catalog(shop, start=0, search="", category="", in_stock=0, food_type=""):
     doc = public_shop(shop, browsing=True)
     location = shop_location(doc)
     start = offset(start)
@@ -436,6 +437,11 @@ def catalog(shop, start=0, search="", category="", in_stock=0):
     categories = sorted(set(frappe.get_all(
         "Item", filters=filters, pluck="item_group", limit_page_length=0
     )) - {None, ""})
+    from local_commerce.services.food_type import catalog_filter
+    try:
+        filters.update(catalog_filter(food_type))
+    except ValueError as exc:
+        reject(str(exc))
     if category:
         filters["item_group"] = category
     names = frappe.get_all(

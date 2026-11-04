@@ -1,4 +1,5 @@
 <script setup>
+import FoodTypeBadge from './FoodTypeBadge.vue'
 import CheckoutSummary from './CheckoutSummary.vue'
 import { displayTime } from './display-time.js'
 import { loadCashfree } from './cashfree-sdk.js'
@@ -14,6 +15,7 @@ import SellingOptionPicker from './SellingOptionPicker.vue'
 import { readCart, writeCart, clearCart, changeQuantity, cartKey } from './cart.js'
 import { distanceKm } from './location.js'
 const route = useRoute(), router = useRouter(), session = inject('session')
+const foodType = ref('')
 const search = ref(''), category = ref(''), inStockOnly = ref(false)
 let searchTimer, catalogGeneration = 0, openedProduct = ''
 const catalog = ref(null), error = ref(''), loading = ref(false), busy = ref(false), start = ref(0)
@@ -102,7 +104,7 @@ async function load(delta = 0) {
   const generation = ++catalogGeneration
   loading.value = true; error.value = ''; start.value = Math.max(0, start.value + delta)
   try {
-    const result = await call('orders.catalog', { shop: route.params.shop, start: start.value, search: search.value, category: category.value, in_stock: inStockOnly.value ? 1 : 0 })
+    const result = await call('orders.catalog', { shop: route.params.shop, start: start.value, search: search.value, category: category.value, in_stock: inStockOnly.value ? 1 : 0, food_type: foodType.value })
     if (generation !== catalogGeneration) return
     catalog.value = result
     if (route.query.item && openedProduct !== `${route.params.shop}:${route.query.item}`) {
@@ -127,7 +129,7 @@ watch(search, () => {
   catalogGeneration++
   searchTimer = window.setTimeout(filterProducts, 300)
 })
-watch([category, inStockOnly], filterProducts)
+watch([category, inStockOnly, foodType], filterProducts)
 function updateQuantity(item, delta) {
   error.value = ''
   if (item.selling_options?.length && !item.option_id) { openProduct(item); return }
@@ -240,6 +242,10 @@ onBeforeUnmount(() => { window.removeEventListener('lc-refresh-notification-prod
       <p class="shop-hours-notice">{{ catalog.availability.message }}<small v-if="catalog.scheduled_enabled"> · Normal ordering hours; scheduled slots have their own cutoff.</small></p>
       <p v-if="catalog.accepting_orders" class="muted">Delivery within {{ Number(catalog.shop_location.service_radius_km).toFixed(1) }} km · Base delivery fee: {{ money(catalog.delivery_fee) }}</p>
       <p v-if="pending" class="lc-notice">Your last request is not confirmed. Retry it below before starting another.</p>
+      <div class="food-type-filter" role="group" aria-label="Filter products by food type" :style="{ '--food-tab': foodType === 'Veg' ? 1 : foodType === 'Non-veg' ? 2 : 0 }">
+        <span class="food-type-slider" aria-hidden="true" />
+        <button v-for="choice in ['', 'Veg', 'Non-veg']" :key="choice" type="button" :aria-pressed="foodType === choice" @click="foodType = choice"><FoodTypeBadge v-if="choice" :value="choice" /><span v-else>All</span></button>
+      </div>
       <section class="product-discovery" aria-label="Find products">
         <label class="product-search"><span aria-hidden="true">⌕</span><input v-model="search" type="search" maxlength="140" placeholder="Search this shop…" aria-label="Search products by name"><button v-if="search" type="button" aria-label="Clear search" @click="search = ''">×</button></label>
         <div class="product-filter-row"><div class="product-category-tabs" aria-label="Product categories"><button type="button" :class="{ active: !category }" :aria-pressed="!category" @click="category = ''">All items</button><button v-for="group in catalog.categories" :key="group" type="button" :class="{ active: category === group }" :aria-pressed="category === group" @click="category = group">{{ group }}</button></div><label class="check-label stock-filter"><input v-model="inStockOnly" type="checkbox">In stock only</label></div>
@@ -250,7 +256,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-refresh-notification-prod
             <FavouriteButton :item="item.item" :shop="route.params.shop" />
             <button type="button" class="product-art product-preview-button" :aria-label="`View ${item.item_name}`" aria-haspopup="dialog" @click="openProduct(item)"><img v-if="item.image" :src="item.image" :alt="item.item_name" loading="lazy" decoding="async" @error="item.image = ''"><span v-else aria-hidden="true">{{ item.item_name.slice(0, 1).toUpperCase() }}</span><small class="photo-hint">{{ item.images?.length > 1 ? `${item.images.length} photos` : 'View details ↗' }}</small></button>
             <p class="product-availability" :class="{ 'is-sold-out': item.available <= 0 }">{{ item.available <= 0 ? 'Sold out' : item.selling_options?.length ? (item.available > 0 ? 'In stock' : 'Sold out') : `${item.available} ${item.uom} available` }}</p>
-            <h3><button type="button" class="product-name-button" @click="openProduct(item)">{{ item.item_name }}</button></h3><p v-if="item.description" class="product-description">{{ item.description }}</p>
+            <FoodTypeBadge :value="item.lc_food_type || ''" /><h3><button type="button" class="product-name-button" @click="openProduct(item)">{{ item.item_name }}</button></h3><p v-if="item.description" class="product-description">{{ item.description }}</p>
             <div class="product-card-footer">
               <div class="product-buy-row">
                 <strong class="product-card-price"><small v-if="displayPrice(item).from" class="price-prefix">From</small>{{ money(displayPrice(item).rate) }}<small v-if="displayPrice(item).rate != null">{{ displayPrice(item).from ? 'Choose a pack' : item.uom === 'Nos' ? 'per piece' : `per ${item.uom}` }}</small></strong>
@@ -285,7 +291,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-refresh-notification-prod
           </div>
           <div class="product-detail-info">
             <FavouriteButton :key="selectedProduct.item" :item="selectedProduct.item" :shop="route.params.shop" />
-            <span class="eyebrow">{{ catalog.shop_name }}</span><h2 id="product-detail-title">{{ selectedProduct.item_name }}</h2><span class="product-detail-unit">{{ selectedProduct.selling_options?.length ? 'Choose your selling option' : selectedProduct.fixed_piece_pricing ? 'Price per piece' : selectedProduct.uom }}</span><p class="product-detail-description">{{ selectedProduct.description || 'From your local shop.' }}</p><p v-if="selectedProduct.fixed_piece_pricing" class="muted">Sold by the piece. Size and weight may vary; your price stays fixed when you order.</p><p class="product-detail-stock">{{ selectedProduct.available > 0 ? selectedProduct.selling_options?.length ? 'In stock' : `${selectedProduct.available} ${selectedProduct.uom} available` : 'Currently sold out' }}</p>
+            <span class="eyebrow">{{ catalog.shop_name }}</span><h2 id="product-detail-title">{{ selectedProduct.item_name }}</h2><FoodTypeBadge :value="selectedProduct.lc_food_type || ''" /><span class="product-detail-unit">{{ selectedProduct.selling_options?.length ? 'Choose your selling option' : selectedProduct.fixed_piece_pricing ? 'Price per piece' : selectedProduct.uom }}</span><p class="product-detail-description">{{ selectedProduct.description || 'From your local shop.' }}</p><p v-if="selectedProduct.fixed_piece_pricing" class="muted">Sold by the piece. Size and weight may vary; your price stays fixed when you order.</p><p class="product-detail-stock">{{ selectedProduct.available > 0 ? selectedProduct.selling_options?.length ? 'In stock' : `${selectedProduct.available} ${selectedProduct.uom} available` : 'Currently sold out' }}</p>
             <StockAlertButton v-if="selectedProduct.available <= 0" :shop="route.params.shop" :item="selectedProduct.item" />
             <SellingOptionPicker v-if="selectedProduct.selling_options?.length" :product="selectedProduct" :cart="cart" :disabled="busy || !!pending" @change="updateQuantity" /><div v-else class="product-detail-buy"><strong>{{ money(selectedProduct.rate) }}<small v-if="selectedProduct.rate != null">per {{ selectedProduct.uom }}</small></strong><div v-if="cart[selectedProduct.item]" class="quantity-stepper"><button type="button" :disabled="busy || !!pending" aria-label="Remove one item" @click="updateQuantity(selectedProduct, -1)">−</button><strong aria-live="polite">{{ cart[selectedProduct.item].quantity }}</strong><button type="button" :disabled="busy || !!pending || cart[selectedProduct.item].quantity >= selectedProduct.available" aria-label="Add one item" @click="updateQuantity(selectedProduct, 1)">+</button></div><button v-else type="button" class="add-item-button" :disabled="busy || !!pending || selectedProduct.available <= 0 || selectedProduct.rate == null" @click="updateQuantity(selectedProduct, 1)">{{ selectedProduct.rate == null ? 'Price coming soon' : selectedProduct.available > 0 ? 'Add to cart +' : 'Sold out' }}</button></div>
           </div>
@@ -317,3 +323,11 @@ onBeforeUnmount(() => { window.removeEventListener('lc-refresh-notification-prod
     </template>
   </div>
 </template>
+
+<style scoped>
+.food-type-filter { position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(100%, 360px); padding: 4px; border-radius: 14px; background: #edf2ec; margin: 16px 0; }
+.food-type-filter button { position: relative; display: flex; justify-content: center; align-items: center; min-height: 44px; padding: 8px; border: 0; background: transparent; box-shadow: none; color: #234936; border-radius: 10px; }
+.food-type-filter button[aria-pressed="true"] { font-weight: 700; }
+.food-type-slider { position: absolute; z-index: -1; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 10px; background: white; box-shadow: 0 1px 4px #163f2520; transform: translateX(calc(var(--food-tab) * 100%)); transition: transform .18s ease; }
+@media (prefers-reduced-motion: reduce) { .food-type-slider { transition: none; } }
+</style>

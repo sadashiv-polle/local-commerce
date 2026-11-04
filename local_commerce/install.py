@@ -113,6 +113,14 @@ def after_migrate():
         {
             "Item": [
                 {
+                    "fieldname": "lc_food_type",
+                    "label": "Food type",
+                    "fieldtype": "Select",
+                    "options": "\nVeg\nNon-veg",
+                    "insert_after": "lc_shop",
+                    "search_index": 1,
+                },
+                {
                     "fieldname": "lc_creation_key",
                     "label": "LC Creation Key",
                     "fieldtype": "Data",

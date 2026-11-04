@@ -28,11 +28,11 @@ def configure(shop, warehouse, account, cost_center):
 @workspace_validation
 def update_product(
     shop, item, modified, item_name, description="", low_stock=0, sold_out=0, archived=0,
-    price=None, selling_options=None, validity_hours=None
+    price=None, selling_options=None, validity_hours=None, lc_food_type=None
 ):
     return owner.update_product(
         shop, item, modified, item_name, description, low_stock, sold_out, archived, price,
-        selling_options, validity_hours
+        selling_options, validity_hours, lc_food_type
     )
 
 

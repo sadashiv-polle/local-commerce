@@ -20,8 +20,8 @@ def list_items(shop, start=0):
 
 @frappe.whitelist(methods=["POST"])
 def create_item(
-    shop, item_name, item_group, stock_uom, request_key=None, pieces=None, approximate_weight=None
+    shop, item_name, item_group, stock_uom, request_key=None, pieces=None, approximate_weight=None, lc_food_type=""
 ):
     return products.create_item(
-        shop, item_name, item_group, stock_uom, request_key, pieces, approximate_weight
+        shop, item_name, item_group, stock_uom, request_key, pieces, approximate_weight, lc_food_type
     )

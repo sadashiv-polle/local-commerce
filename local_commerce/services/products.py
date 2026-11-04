@@ -42,6 +42,11 @@ def item_query(user=None):
 
 
 def validate_item(doc, method=None):
+    from local_commerce.services.food_type import validate
+    try:
+        validate(doc.get('lc_food_type') or '')
+    except ValueError as exc:
+        frappe.throw(str(exc))
     previous = doc.get_doc_before_save()
     if (previous and doc.get("lc_shop") and previous.stock_uom != doc.stock_uom
             and frappe.db.get_value("LC Shop", doc.lc_shop, "shop_type") == "Fish"):
@@ -140,9 +145,14 @@ def list_items(shop, start=0):
 
 
 def create_item(
-    shop, item_name, item_group, stock_uom, request_key=None, pieces=None, approximate_weight=None
+    shop, item_name, item_group, stock_uom, request_key=None, pieces=None, approximate_weight=None, lc_food_type=""
 ):
     require_shop(shop, "write")
+    from local_commerce.services.food_type import validate
+    try:
+        lc_food_type = validate(lc_food_type)
+    except ValueError as exc:
+        frappe.throw(str(exc))
     shop_doc = frappe.get_doc("LC Shop", shop)
     if shop_doc.status == "Disabled":
         frappe.throw("This shop is disabled")
@@ -187,14 +197,15 @@ def create_item(
         existing = frappe.db.get_value(
             "Item",
             {"lc_creation_key": creation_key},
-            ["name", "item_name", "item_group", "stock_uom"],
+            ["name", "item_name", "item_group", "stock_uom", "lc_food_type"],
             as_dict=True,
         )
         if existing:
-            if (existing.item_name, existing.item_group, existing.stock_uom) != (
+            if (existing.item_name, existing.item_group, existing.stock_uom, existing.get("lc_food_type") or "") != (
                 item_name.strip(),
                 item_group,
                 stock_uom,
+                lc_food_type,
             ):
                 frappe.throw("This request key was already used for a different product")
             return existing
@@ -207,6 +218,7 @@ def create_item(
             "item_group": item_group,
             "stock_uom": stock_uom,
             "lc_shop": shop_doc.name,
+            "lc_food_type": lc_food_type,
             "is_stock_item": 1,
             "item_defaults": [{"company": shop_doc.company,
                 "default_warehouse": shop_doc.warehouse,
@@ -225,7 +237,7 @@ def create_item(
         doc.insert(ignore_permissions=True)
     finally:
         _item_creation.reset(token)
-    return {key: doc.get(key) for key in ("name", "item_name", "item_group", "stock_uom")}
+    return {key: doc.get(key) for key in ("name", "item_name", "item_group", "stock_uom", "lc_food_type")}
 
 
 def scope_creation_defaults(doc, method=None):
