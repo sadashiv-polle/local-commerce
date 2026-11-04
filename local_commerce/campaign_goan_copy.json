@@ -1,0 +1,762 @@
+[
+  {
+    "id": "goan-01",
+    "category": "Fish seller",
+    "fish": "bangde",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐟 O bai, bangde zai?",
+      "message": "App open kor ani polee! Aiz bangde fry koruya?"
+    },
+    "devanagari": {
+      "title": "🐟 ओ बाय, बांगडे जाय?",
+      "message": "ॲप ओपन कर आनी पळय! आयज बांगडे फ्राय करूया?"
+    }
+  },
+  {
+    "id": "goan-02",
+    "category": "Fish seller",
+    "fish": "talle",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐠 Talle zai kai?",
+      "message": "Talle fry ani bhat? Aiz ho plan koruya!"
+    },
+    "devanagari": {
+      "title": "🐠 ताले जाय काय?",
+      "message": "ताले फ्राय आनी भात? आयज हो प्लॅन करूया!"
+    }
+  },
+  {
+    "id": "goan-03",
+    "category": "Fish seller",
+    "fish": "isvon",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐟 Isvon cha plan?",
+      "message": "Curry ki fry? Isvon polee ani decide kor!"
+    },
+    "devanagari": {
+      "title": "🐟 इसवणाचा प्लॅन?",
+      "message": "करी की फ्राय? इसवण पळय आनी डिसाइड कर!"
+    }
+  },
+  {
+    "id": "goan-04",
+    "category": "Fish seller",
+    "fish": "chonak",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐠 Chonak gheuya?",
+      "message": "Gharant vichar, curry zai ki fry!"
+    },
+    "devanagari": {
+      "title": "🐠 चोणक घेऊया?",
+      "message": "घरांत विचार, करी जाय की फ्राय!"
+    }
+  },
+  {
+    "id": "goan-05",
+    "category": "Fish seller",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "📣 O bai, nustem zai?",
+      "message": "Baher yev naka, app open kor!"
+    },
+    "devanagari": {
+      "title": "📣 ओ बाय, नुस्तें जाय?",
+      "message": "भायर येव नाका, ॲप ओपन कर!"
+    }
+  },
+  {
+    "id": "goan-06",
+    "category": "Fish seller",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🧺 Topli rav di!",
+      "message": "Aiz phone var nustem polee!"
+    },
+    "devanagari": {
+      "title": "🧺 टोपली राव दी!",
+      "message": "आयज फोनवर नुस्तें पळय!"
+    }
+  },
+  {
+    "id": "goan-07",
+    "category": "Fish seller",
+    "fish": "bangde",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐟 Bangde polee re!",
+      "message": "Recipe save keli? Ata bangde polee!"
+    },
+    "devanagari": {
+      "title": "🐟 बांगडे पळय रे!",
+      "message": "रेसिपी सेव्ह केली? आतां बांगडे पळय!"
+    }
+  },
+  {
+    "id": "goan-08",
+    "category": "Fish seller",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "📱 Door naka, app open kor!",
+      "message": "Nustem polee, rate polee, magir order kor!"
+    },
+    "devanagari": {
+      "title": "📱 डोअर नाका, ॲप ओपन कर!",
+      "message": "नुस्तें पळय, रेट पळय, मागीर ऑर्डर कर!"
+    }
+  },
+  {
+    "id": "goan-09",
+    "category": "Fish seller",
+    "fish": "talle",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🍳 Talle fry koruya?",
+      "message": "Tovo asa? Masalo asa? Ata talle polee!"
+    },
+    "devanagari": {
+      "title": "🍳 ताले फ्राय करूया?",
+      "message": "तवो आसा? मसालो आसा? आतां ताले पळय!"
+    }
+  },
+  {
+    "id": "goan-10",
+    "category": "Fish seller",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🍛 Bhat ready asa?",
+      "message": "Nustea curry cha plan koruya?"
+    },
+    "devanagari": {
+      "title": "🍛 भात रेडी आसा?",
+      "message": "नुस्त्याच्या करीचा प्लॅन करूया?"
+    }
+  },
+  {
+    "id": "goan-11",
+    "category": "Fish seller",
+    "fish": "isvon",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐟 Aiz isvon gheuya!",
+      "message": "Roz toch plan? Aiz thoddem change koruya!"
+    },
+    "devanagari": {
+      "title": "🐟 आयज इसवण घेऊया!",
+      "message": "रोज तोच प्लॅन? आयज थोडें चेंज करूया!"
+    }
+  },
+  {
+    "id": "goan-12",
+    "category": "Fish seller",
+    "fish": "chonak",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐠 Chonak curry zai?",
+      "message": "Masalo tu decide kor, chonak appant polee!"
+    },
+    "devanagari": {
+      "title": "🐠 चोणक करी जाय?",
+      "message": "मसालो तूं डिसाइड कर, चोणक ॲपांत पळय!"
+    }
+  },
+  {
+    "id": "goan-13",
+    "category": "Fish seller",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "📝 Nustem listant asa?",
+      "message": "Visor naka bai, ekda list check kor!"
+    },
+    "devanagari": {
+      "title": "📝 नुस्तें लिस्टांत आसा?",
+      "message": "विसर नाका बाय, एकदा लिस्ट चेक कर!"
+    }
+  },
+  {
+    "id": "goan-14",
+    "category": "Fish seller",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "📣 O bai, hanga polee!",
+      "message": "Scroll korche adim nustem polee!"
+    },
+    "devanagari": {
+      "title": "📣 ओ बाय, हांगा पळय!",
+      "message": "स्क्रोल करचे आदीं नुस्तें पळय!"
+    }
+  },
+  {
+    "id": "goan-15",
+    "category": "Fish seller",
+    "fish": "bangde",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐟 Makrel zai?",
+      "message": "Product polee, pack polee, magir plan kor!"
+    },
+    "devanagari": {
+      "title": "🐟 मॅकरेल जाय?",
+      "message": "प्रॉडक्ट पळय, पॅक पळय, मागीर प्लॅन कर!"
+    }
+  },
+  {
+    "id": "goan-16",
+    "category": "Fish seller",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🧺 Shopping list ready?",
+      "message": "Bhat, masalo… nustem add kelem?"
+    },
+    "devanagari": {
+      "title": "🧺 शॉपिंग लिस्ट रेडी?",
+      "message": "भात, मसालो… नुस्तें ॲड केलें?"
+    }
+  },
+  {
+    "id": "goan-17",
+    "category": "Fish seller",
+    "fish": "talle",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🍳 Fry cha mood asa?",
+      "message": "Talle polee! Aiz kitchenant konn asa?"
+    },
+    "devanagari": {
+      "title": "🍳 फ्रायचा मूड आसा?",
+      "message": "ताले पळय! आयज किचनांत कोण आसा?"
+    }
+  },
+  {
+    "id": "goan-18",
+    "category": "Fish seller",
+    "fish": "bangde",
+    "weekdays": [],
+    "period": "lunch",
+    "latin": {
+      "title": "🐟 Bangdyacho hooman?",
+      "message": "Gharant sang, aiz lunch cha plan mell'lo!"
+    },
+    "devanagari": {
+      "title": "🐟 बांगड्याचो हूमण?",
+      "message": "घरांत सांग, आयज लंचचा प्लॅन मेळ्ळो!"
+    }
+  },
+  {
+    "id": "goan-19",
+    "category": "Fish seller",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🍛 Curry konn korta?",
+      "message": "Chef decide kor, nustem appant polee!"
+    },
+    "devanagari": {
+      "title": "🍛 करी कोण करता?",
+      "message": "शेफ डिसाइड कर, नुस्तें ॲपांत पळय!"
+    }
+  },
+  {
+    "id": "goan-20",
+    "category": "Fish seller",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐟 Bai, choice tuji!",
+      "message": "Curry kor vo fry kor, poilem nustem polee!"
+    },
+    "devanagari": {
+      "title": "🐟 बाय, चॉइस तुजी!",
+      "message": "करी कर वा फ्राय कर, पयलें नुस्तें पळय!"
+    }
+  },
+  {
+    "id": "goan-21",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "😂 Aiz jevnak kitem?",
+      "message": "Ajun decide na? Nustem polee ani plan kor!"
+    },
+    "devanagari": {
+      "title": "😂 आयज जेवणाक कितें?",
+      "message": "अजून डिसाइड ना? नुस्तें पळय आनी प्लॅन कर!"
+    }
+  },
+  {
+    "id": "goan-22",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐟 O bai, busy asa?",
+      "message": "Jevnacho plan korunk ek minute kadd!"
+    },
+    "devanagari": {
+      "title": "🐟 ओ बाय, बिझी आसा?",
+      "message": "जेवणाचो प्लॅन करूंक एक मिनिट काड!"
+    }
+  },
+  {
+    "id": "goan-23",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "😂 Phone silent asa?",
+      "message": "Bhuk mat silent ravona re!"
+    },
+    "devanagari": {
+      "title": "😂 फोन सायलेंट आसा?",
+      "message": "भूक मात सायलेंट रावना रे!"
+    }
+  },
+  {
+    "id": "goan-24",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🍛 Bhat ekloch asa!",
+      "message": "Sangata curry zai na? Nustem polee!"
+    },
+    "devanagari": {
+      "title": "🍛 भात एकलोच आसा!",
+      "message": "सांगाता करी जाय ना? नुस्तें पळय!"
+    }
+  },
+  {
+    "id": "goan-25",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "😂 Photo khatolo kai?",
+      "message": "Photo polee, pun jevnacho plan-ui kor!"
+    },
+    "devanagari": {
+      "title": "😂 फोटो खातलो काय?",
+      "message": "फोटो पळय, पूण जेवणाचो प्लॅनूय कर!"
+    }
+  },
+  {
+    "id": "goan-26",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐟 Gharant voting koruya!",
+      "message": "Curry ki fry? Tuzo vote kitem?"
+    },
+    "devanagari": {
+      "title": "🐟 घरांत व्होटिंग करूया!",
+      "message": "करी की फ्राय? तुजो व्होट कितें?"
+    }
+  },
+  {
+    "id": "goan-27",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "👨‍🍳 Aiz chef konn?",
+      "message": "Khavpak soglle ready, randpak konn ready?"
+    },
+    "devanagari": {
+      "title": "👨‍🍳 आयज शेफ कोण?",
+      "message": "खावपाक सगळे रेडी, रांदपाक कोण रेडी?"
+    }
+  },
+  {
+    "id": "goan-28",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🍳 Masalo ready?",
+      "message": "Ata main item visor naka! Nustem polee!"
+    },
+    "devanagari": {
+      "title": "🍳 मसालो रेडी?",
+      "message": "आतां मेन आयटम विसर नाका! नुस्तें पळय!"
+    }
+  },
+  {
+    "id": "goan-29",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "😂 Recipe saved, jevn pending!",
+      "message": "Recipe video poro zala? Ata ingredients polee!"
+    },
+    "devanagari": {
+      "title": "😂 रेसिपी सेव्ह्ड, जेवण पेंडिंग!",
+      "message": "रेसिपी व्हिडिओ पुरो जालो? आतां इंग्रेडियंट्स पळय!"
+    }
+  },
+  {
+    "id": "goan-30",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🍽️ Soglle table lagim?",
+      "message": "Jevnacho plan konn kelo re baba?"
+    },
+    "devanagari": {
+      "title": "🍽️ सगळे टेबल लागीं?",
+      "message": "जेवणाचो प्लॅन कोणी केलो रे बाबा?"
+    }
+  },
+  {
+    "id": "goan-31",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "📝 List double-check kor!",
+      "message": "Saglem ghetlem, nustem mat visorlu kai?"
+    },
+    "devanagari": {
+      "title": "📝 लिस्ट डबल-चेक कर!",
+      "message": "सगळें घेतलें, नुस्तें मात विसरलें काय?"
+    }
+  },
+  {
+    "id": "goan-32",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "😂 Pot notification dita!",
+      "message": "Ho message ignore kor, bhuk koshi ignore kortolo?"
+    },
+    "devanagari": {
+      "title": "😂 पोट नोटिफिकेशन दिता!",
+      "message": "हो मेसेज इग्नोर कर, भूक कशी इग्नोर करतलो?"
+    }
+  },
+  {
+    "id": "goan-33",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🏡 Gharant konn vicharta?",
+      "message": "“Aiz kitem randta?” Uttar ready dovor!"
+    },
+    "devanagari": {
+      "title": "🏡 घरांत कोण विचारता?",
+      "message": "“आयज कितें रांदता?” उत्तर रेडी दवर!"
+    }
+  },
+  {
+    "id": "goan-34",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "evening",
+    "latin": {
+      "title": "📱 Scroll break ghe!",
+      "message": "Reels uprant polee, poilem dinner plan kor!"
+    },
+    "devanagari": {
+      "title": "📱 स्क्रोल ब्रेक घे!",
+      "message": "रील्स उपरांत पळय, पयलें डिनर प्लॅन कर!"
+    }
+  },
+  {
+    "id": "goan-35",
+    "category": "Village conversation",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🍛 Thali ready, plan na?",
+      "message": "Nustem polee, aiz kitem korchem tem thoroi!"
+    },
+    "devanagari": {
+      "title": "🍛 थाळी रेडी, प्लॅन ना?",
+      "message": "नुस्तें पळय, आयज कितें करचें तें थाराय!"
+    }
+  },
+  {
+    "id": "goan-36",
+    "category": "Bargaining",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "💰 Rate kami kor, bai!",
+      "message": "Poilem rate polee, magir dialogue mar!"
+    },
+    "devanagari": {
+      "title": "💰 रेट कमी कर, बाय!",
+      "message": "पयलें रेट पळय, मागीर डायलॉग मार!"
+    }
+  },
+  {
+    "id": "goan-37",
+    "category": "Bargaining",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "😂 Kitlo rate re?",
+      "message": "App open kor ani polee, rate hanga asa!"
+    },
+    "devanagari": {
+      "title": "😂 कितलो रेट रे?",
+      "message": "ॲप ओपन कर आनी पळय, रेट हांगा आसा!"
+    }
+  },
+  {
+    "id": "goan-38",
+    "category": "Bargaining",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐟 Extra zai kai?",
+      "message": "Joke extra dita! Pack details mat vach!"
+    },
+    "devanagari": {
+      "title": "🐟 एक्स्ट्रा जाय काय?",
+      "message": "जोक एक्स्ट्रा दिता! पॅक डिटेल्स मात वाच!"
+    }
+  },
+  {
+    "id": "goan-39",
+    "category": "Bargaining",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🧮 Poilem count kor!",
+      "message": "Jevpak kitle zann? Pack te pormannem ghe!"
+    },
+    "devanagari": {
+      "title": "🧮 पयलें काउंट कर!",
+      "message": "जेवपाक कितले जाण? पॅक ते प्रमाणें घे!"
+    }
+  },
+  {
+    "id": "goan-40",
+    "category": "Bargaining",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "😂 Phone sangata bargain?",
+      "message": "Screenak “kami kor” mhunn, reply yeta kai polee!"
+    },
+    "devanagari": {
+      "title": "😂 फोन सांगाता बार्गेन?",
+      "message": "स्क्रीनाक “कमी कर” म्हण, रिप्लाय येता काय पळय!"
+    }
+  },
+  {
+    "id": "goan-41",
+    "category": "Bargaining",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🧺 Ek pack ki don?",
+      "message": "Gharant bhuk kitli asa, tem poilem vichar!"
+    },
+    "devanagari": {
+      "title": "🧺 एक पॅक की दोन?",
+      "message": "घरांत भूक कितली आसा, तें पयलें विचार!"
+    }
+  },
+  {
+    "id": "goan-42",
+    "category": "Bargaining",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "💰 Budget boss tu!",
+      "message": "Rate ani quantity polee, magir order kor!"
+    },
+    "devanagari": {
+      "title": "💰 बजेट बॉस तूं!",
+      "message": "रेट आनी क्वांटिटी पळय, मागीर ऑर्डर कर!"
+    }
+  },
+  {
+    "id": "goan-43",
+    "category": "Bargaining",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "😂 Smile dila, discount na!",
+      "message": "Joke asa bai! Kharo rate appant polee!"
+    },
+    "devanagari": {
+      "title": "😂 स्माइल दिला, डिस्काउंट ना!",
+      "message": "जोक आसा बाय! खरो रेट ॲपांत पळय!"
+    }
+  },
+  {
+    "id": "goan-44",
+    "category": "Bargaining",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "🐟 Photo zoom kelo?",
+      "message": "Zoom kelean pack vhodd zaina! Quantity polee!"
+    },
+    "devanagari": {
+      "title": "🐟 फोटो झूम केलो?",
+      "message": "झूम केल्यान पॅक व्हड जायना! क्वांटिटी पळय!"
+    }
+  },
+  {
+    "id": "goan-45",
+    "category": "Bargaining",
+    "fish": "fish",
+    "weekdays": [],
+    "period": "",
+    "latin": {
+      "title": "💰 Order korche adim!",
+      "message": "Pack check kor. “Mhaka veglem dislem” sang naka!"
+    },
+    "devanagari": {
+      "title": "💰 ऑर्डर करचे आदीं!",
+      "message": "पॅक चेक कर. “म्हाका वेगळें दिसलें” सांग नाका!"
+    }
+  },
+  {
+    "id": "goan-46",
+    "category": "Weekend",
+    "fish": "bangde",
+    "weekdays": [
+      6
+    ],
+    "period": "",
+    "latin": {
+      "title": "☀️ Sunday cha plan kitem?",
+      "message": "Bangde fry ani bhat koruya?"
+    },
+    "devanagari": {
+      "title": "☀️ संडेचा प्लॅन कितें?",
+      "message": "बांगडे फ्राय आनी भात करूया?"
+    }
+  },
+  {
+    "id": "goan-47",
+    "category": "Weekend",
+    "fish": "bangde",
+    "weekdays": [
+      6
+    ],
+    "period": "lunch",
+    "latin": {
+      "title": "🐟 Sunday hooman koruya!",
+      "message": "Bangde polee, lunch cha plan set kor!"
+    },
+    "devanagari": {
+      "title": "🐟 संडे हूमण करूया!",
+      "message": "बांगडे पळय, लंचचा प्लॅन सेट कर!"
+    }
+  },
+  {
+    "id": "goan-48",
+    "category": "Weekend",
+    "fish": "fish",
+    "weekdays": [
+      5
+    ],
+    "period": "",
+    "latin": {
+      "title": "🍛 Saturday kitchen konn sambalta?",
+      "message": "Aiz chef tu kai? Nustem polee ani menu kor!"
+    },
+    "devanagari": {
+      "title": "🍛 सॅटरडे किचन कोण सांबाळटा?",
+      "message": "आयज शेफ तूं काय? नुस्तें पळय आनी मेनू कर!"
+    }
+  },
+  {
+    "id": "goan-49",
+    "category": "Weekend",
+    "fish": "fish",
+    "weekdays": [
+      6
+    ],
+    "period": "lunch",
+    "latin": {
+      "title": "😂 Sunday sleep pori?",
+      "message": "Uth re baba, lunch cha plan ajun baki!"
+    },
+    "devanagari": {
+      "title": "😂 संडे स्लीप पुरी?",
+      "message": "उठ रे बाबा, लंचचा प्लॅन अजून बाकी!"
+    }
+  },
+  {
+    "id": "goan-50",
+    "category": "Weekend",
+    "fish": "chonak",
+    "weekdays": [
+      6
+    ],
+    "period": "lunch",
+    "latin": {
+      "title": "🐠 Sunday family lunch?",
+      "message": "Chonak curry ki fry? Family vote ghe!"
+    },
+    "devanagari": {
+      "title": "🐠 संडे फॅमिली लंच?",
+      "message": "चोणक करी की फ्राय? फॅमिली व्होट घे!"
+    }
+  }
+]

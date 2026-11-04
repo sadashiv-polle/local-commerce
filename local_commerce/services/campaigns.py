@@ -54,28 +54,34 @@ def options(shop=""):
     shops = frappe.get_all("LC Shop", filters={"status": "Active"}, fields=["name", "shop_name"], limit_page_length=500)
     products = frappe.get_all("Item", filters={"lc_shop": shop, "disabled": 0},
                               fields=["name", "item_name", "item_group"], limit_page_length=500) if shop else []
-    return {"shops": shops, "products": products}
+    from local_commerce.services.campaign_templates import library, settings
+    return {"shops": shops, "products": products, "templates": library(), "template_settings": settings()}
 
 
 def listing():
     require_platform()
-    rows = frappe.get_all("LC Campaign", fields=["name", "title", "message", "automatic_key", "status", "send_at", "queued_count", "skipped_count"],
+    rows = frappe.get_all("LC Campaign", fields=["name", "title", "message", "automatic_key", "status", "send_at", "queued_count", "skipped_count", "template_id", "template_script", "campaign_audience"],
                           order_by="creation desc", limit_page_length=50)
     for row in rows:
+        row["suppressed_count"] = frappe.db.count("LC Notification", {"campaign": row.name, "campaign_test": 0, "campaign_push_state": "Expired"})
         row["read_count"] = frappe.db.count("LC Notification", {"campaign": row.name, "campaign_test": 0, "read": 1})
     return rows
 
 
-def save(shop, title, message, item=""):
+def save(shop, title, message, item="", template_id="", template_script="latin", campaign_audience="All", campaign_period=""):
     require_platform()
     _target(shop, item)
+    from local_commerce.services.campaign_templates import validate_campaign
+    validate_campaign(template_id, template_script, item, campaign_audience, campaign_period)
     title, message = str(title).strip(), str(message).strip()
     if not 1 <= len(title) <= 80 or not 1 <= len(message) <= 240:
         reject("Use a title up to 80 characters and a message up to 240 characters")
     token = _operation.set(True)
     try:
         doc = frappe.get_doc({"doctype": "LC Campaign", "shop": shop, "item": item,
-                              "title": title, "message": message, "status": "Draft"}).insert(ignore_permissions=True)
+                              "title": title, "message": message, "status": "Draft",
+                              "template_id": template_id, "template_script": template_script,
+                              "campaign_audience": campaign_audience, "campaign_period": campaign_period}).insert(ignore_permissions=True)
     finally:
         _operation.reset(token)
     return {"name": doc.name}
@@ -95,10 +101,19 @@ def send(name, send_at=""):
     when = get_datetime(send_at) if send_at else now_datetime()
     if send_at and when < now_datetime():
         reject("Choose a future time")
+    from local_commerce.services.campaign_templates import validate_campaign, delivery_state
+    validate_campaign(doc.get('template_id'), doc.get('template_script') or 'latin', doc.item,
+                      doc.get('campaign_audience') or 'All', doc.get('campaign_period') or '')
+    state = delivery_state(doc, when)
+    if state != 'ready':
+        reject('Choose a time within the template day, sending window and Goan hours' if state == 'wait' else state)
     # Snapshot consented users; opt-outs and enabled accounts are checked again by the worker.
     users = set(frappe.get_all("LC Promotion Preference", filters={"enabled": 1}, pluck="user", limit_page_length=0))
     users.update(frappe.get_all("LC Push Subscription", filters={"enabled": 1}, pluck="user", limit_page_length=0))
     users = sorted(account for account in users if allowed(account))
+    if doc.get('campaign_audience') == 'Shop customers':
+        customers = set(frappe.get_all('LC Order', filters={'shop': doc.shop}, pluck='customer_user', limit_page_length=0))
+        users = [account for account in users if account in customers]
     frappe.db.set_value("LC Campaign", name, {"status": "Queued", "send_at": when, "recipients": json.dumps(users)})
     return {"status": "Queued"}
 
@@ -112,6 +127,11 @@ def cancel(name):
 
 
 def _notify(doc, account, test=False):
+    # Production callers hold the campaign row lock; repeated jobs reuse the record.
+    if not test and frappe.db.exists('LC Notification', {
+        'campaign': doc.name, 'recipient_user': account, 'campaign_test': 0,
+    }):
+        return False
     from local_commerce.services.notifications import _notification_operation
     token = _notification_operation.set(True)
     try:
@@ -126,6 +146,7 @@ def _notify(doc, account, test=False):
                        enqueue_after_commit=True, queue="short")
     finally:
         _notification_operation.reset(token)
+    return True
 
 
 def test(name):
@@ -164,7 +185,10 @@ def process_one(name):
     now = now_datetime()
     if doc.status != "Queued" or get_datetime(doc.send_at) > now or not shop_is_open(doc.shop, now):
         return
-    _target(doc.shop, doc.item)
+    from local_commerce.services.campaign_templates import delivery_state
+    state = delivery_state(doc, now)
+    if state == 'wait':
+        return
     users = json.loads(doc.recipients or "[]")
     cursor, queued, skipped = doc.cursor or 0, doc.queued_count or 0, doc.skipped_count or 0
     for account in users[cursor:cursor + 100]:
@@ -172,9 +196,9 @@ def process_one(name):
             break
         # Serialize campaigns for the same user so concurrent workers respect the cap.
         frappe.db.sql("select name from tabUser where name=%s for update", (account,))
-        if allowed(account):
-            _notify(doc, account)
-            queued += 1
+        if state == 'ready' and allowed(account):
+            if _notify(doc, account):
+                queued += 1
         else:
             skipped += 1
         cursor += 1
@@ -275,11 +299,15 @@ def process_daily():
             name = frappe.db.get_value("LC Campaign", {"automatic_key": key}, "name")
             if not name:
                 title, message = daily_wording(product, frappe.db.get_value("LC Shop", shop, "shop_name"), rotation)
+                from local_commerce.services.campaign_templates import automatic_choice
+                choice = automatic_choice(shop, item, now) or {}
+                title, message = choice.get('title', title), choice.get('message', message)
                 token = _operation.set(True)
                 try:
                     campaign = frappe.get_doc({"doctype": "LC Campaign", "shop": shop, "item": item,
                         "title": title, "message": message, "automatic_key": key, "status": "Completed",
-                        "send_at": now}).insert(ignore_permissions=True)
+                        "send_at": now, "template_id": choice.get("template_id"),
+                        "template_script": choice.get("template_script")}).insert(ignore_permissions=True)
                     name = campaign.name
                 finally:
                     _operation.reset(token)
@@ -291,6 +319,10 @@ def process_daily():
             if not restocked(public_product(shop, campaign.item)):
                 frappe.db.commit()
                 continue
+            from local_commerce.services.campaign_templates import delivery_state
+            if delivery_state(campaign, now) != 'ready':
+                frappe.db.commit()
+                continue
             users = set(frappe.get_all("LC Promotion Preference", filters={"enabled": 1}, pluck="user", limit_page_length=0))
             users.update(frappe.get_all("LC Push Subscription", filters={"enabled": 1}, pluck="user", limit_page_length=0))
             sent = 0
@@ -299,8 +331,8 @@ def process_daily():
                     break
                 frappe.db.sql("select name from tabUser where name=%s for update", (account,))
                 if allowed(account) and automatic_due(account, now):
-                    _notify(campaign, account)
-                    sent += 1
+                    if _notify(campaign, account):
+                        sent += 1
                 if sent >= 100:
                     break
             if sent:

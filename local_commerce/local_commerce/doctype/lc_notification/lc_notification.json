@@ -19,7 +19,8 @@
     "item",
     "campaign",
     "campaign_test",
-    "campaign_push_state"
+    "campaign_push_state",
+    "campaign_suppression_reason"
   ],
   "fields": [
     {
@@ -122,6 +123,12 @@
       "options": "\nPending\nAttempted\nExpired",
       "read_only": 1,
       "search_index": 1
+    },
+    {
+      "fieldname": "campaign_suppression_reason",
+      "label": "Promotion suppression reason",
+      "fieldtype": "Data",
+      "read_only": 1
     }
   ],
   "permissions": [

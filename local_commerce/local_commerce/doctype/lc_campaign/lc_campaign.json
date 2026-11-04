@@ -15,7 +15,11 @@
     "cursor",
     "queued_count",
     "skipped_count",
-    "automatic_key"
+    "automatic_key",
+    "template_id",
+    "template_script",
+    "campaign_audience",
+    "campaign_period"
   ],
   "fields": [
     {
@@ -81,6 +85,29 @@
       "fieldtype": "Data",
       "unique": 1,
       "read_only": 1
+    },
+    {
+      "fieldname": "template_id",
+      "label": "Goan template",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "template_script",
+      "label": "Template script",
+      "fieldtype": "Select",
+      "options": "latin\ndevanagari"
+    },
+    {
+      "fieldname": "campaign_audience",
+      "label": "Campaign audience",
+      "fieldtype": "Select",
+      "options": "All\nShop customers"
+    },
+    {
+      "fieldname": "campaign_period",
+      "label": "Sending window",
+      "fieldtype": "Select",
+      "options": "\nmorning\nlunch\nevening"
     }
   ],
   "permissions": [

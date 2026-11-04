@@ -211,6 +211,7 @@ async function place() {
   } finally { busy.value = false }
 }
 watch(() => [route.params.shop, route.query.item], () => {
+  openedProduct = ''; selectedProduct.value = null; productDialog.value?.close()
   search.value = ''; category.value = ''; inStockOnly.value = false
   start.value = 0; pending.value = null; cartOpen.value = false; checkout.value = false
   try {
@@ -226,8 +227,9 @@ watch(cart, value => {
   try { writeCart(localStorage, route.params.shop, value) } catch { error.value = 'Your browser could not save this cart. Enable local storage before logging in.' }
   if (!Object.keys(value).length) cartOpen.value = false
 }, { deep: true })
-onMounted(() => { window.addEventListener('lc-open-cart', openCartEvent); window.addEventListener('lc-address-change', loadSavedAddresses) })
-onBeforeUnmount(() => { window.removeEventListener('lc-address-change', loadSavedAddresses); window.removeEventListener('lc-open-cart', openCartEvent); window.clearTimeout(quoteTimer); window.clearTimeout(searchTimer); catalogGeneration++; quoteGeneration++ })
+function refreshNotificationProduct() { openedProduct = ''; selectedProduct.value = null; productDialog.value?.close(); load() }
+onMounted(() => { window.addEventListener('lc-refresh-notification-product', refreshNotificationProduct); window.addEventListener('lc-open-cart', openCartEvent); window.addEventListener('lc-address-change', loadSavedAddresses) })
+onBeforeUnmount(() => { window.removeEventListener('lc-refresh-notification-product', refreshNotificationProduct); window.removeEventListener('lc-address-change', loadSavedAddresses); window.removeEventListener('lc-open-cart', openCartEvent); window.clearTimeout(quoteTimer); window.clearTimeout(searchTimer); catalogGeneration++; quoteGeneration++ })
 </script>
 <template>
   <div class="store-page customer-shop">

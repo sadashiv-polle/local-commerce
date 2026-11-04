@@ -26,6 +26,13 @@ class CampaignTests(unittest.TestCase):
             "local_commerce.services.owner": owner,
         })
         modules.start()
+        template_spec = importlib.util.spec_from_file_location('template_test', Path('local_commerce/services/campaign_templates.py'))
+        self.templates = importlib.util.module_from_spec(template_spec)
+        template_spec.loader.exec_module(self.templates)
+        self.frappe.db.get_single_value.return_value = None
+        template_patch = patch.dict(sys.modules, {'local_commerce.services.campaign_templates': self.templates})
+        template_patch.start()
+        self.addCleanup(template_patch.stop)
         self.addCleanup(modules.stop)
         spec = importlib.util.spec_from_file_location("campaign_test", Path("local_commerce/services/campaigns.py"))
         self.service = importlib.util.module_from_spec(spec)
@@ -33,9 +40,11 @@ class CampaignTests(unittest.TestCase):
         self.doc = SimpleNamespace(name="campaign", status="Queued", shop="shop", item="",
                                    send_at=self.now, recipients=json.dumps(["a", "b", "c"]),
                                    cursor=0, queued_count=0, skipped_count=0)
+        self.doc.get = lambda key: getattr(self.doc, key, None)
         self.frappe.get_doc.return_value = self.doc
         self.service._target = Mock()
         self.service.shop_is_open = Mock(return_value=True)
+        self.original_notify = self.service._notify
         self.service._notify = Mock()
 
     def test_manual_campaign_has_no_frequency_limit_but_respects_opt_out(self):
@@ -198,6 +207,124 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(self.service._notify.call_count, 5)
         self.assertEqual(self.frappe.db.set_value.call_args.args[2]["queued_count"], 105)
 
+    def test_goan_library_has_exactly_50_bilingual_unique_pairs(self):
+        rows = self.templates.library()
+        from collections import Counter
+        self.assertEqual(len(rows), 50)
+        self.assertEqual(len({r['id'] for r in rows}), 50)
+        self.assertEqual(sorted(Counter(r['category'] for r in rows).values()), [5, 10, 15, 20])
+        for script in ('latin', 'devanagari'):
+            self.assertEqual(len({r[script]['title'] for r in rows}), 50)
+            self.assertEqual(len({r[script]['message'] for r in rows}), 50)
+            for row in rows:
+                self.assertLessEqual(len(row[script]['title']), 80)
+                self.assertLessEqual(len(row[script]['message']), 120)
+        self.assertNotIn('polle', json.dumps(rows))
+
+    def test_goan_fish_mapping_is_explicit_not_a_name_guess(self):
+        config = self.templates.validate_settings({'fish_tags': {'eggs': 'fish', 'fish': 'bangde'}})
+        bangde = self.templates.template('goan-01')
+        self.assertTrue(self.templates.matches(bangde, 'fish', config))
+        self.assertFalse(self.templates.matches(bangde, 'eggs', config))
+        self.assertFalse(self.templates.matches(bangde, 'Bangde Pack', config))
+
+    def test_goan_weekend_and_time_boundaries(self):
+        config = self.templates.validate_settings({})
+        sunday = self.templates.template('goan-47')
+        self.assertFalse(self.templates.time_allowed(sunday, datetime(2026, 11, 7, 12), config))
+        self.assertTrue(self.templates.time_allowed(sunday, datetime(2026, 11, 8, 12), config))
+        self.assertFalse(self.templates.time_allowed(sunday, datetime(2026, 11, 8, 14), config))
+        generic = self.templates.template('goan-05')
+        self.assertFalse(self.templates.time_allowed(generic, datetime(2026, 11, 8, 7, 59), config))
+        self.assertTrue(self.templates.time_allowed(generic, datetime(2026, 11, 8, 8), config))
+        self.assertFalse(self.templates.time_allowed(generic, datetime(2026, 11, 8, 19), config))
+
+    def test_goan_settings_validate_and_require_admin(self):
+        for value in ({'disabled': ['bad']}, {'fish_tags': {'x': []}}, {'start': 19, 'end': 8}, {'script': 'other'}, {'automatic': 'false'}):
+            with self.assertRaises(ValueError):
+                self.templates.validate_settings(value)
+        self.scope.require_platform.side_effect = PermissionError
+        with self.assertRaises(PermissionError):
+            self.templates.configure({})
+        self.frappe.db.set_single_value.assert_not_called()
+
+    def test_goan_disabled_and_wrong_product_rejected(self):
+        self.frappe.db.get_single_value.return_value = json.dumps({'fish_tags': {'fish': 'bangde'}, 'disabled': ['goan-01']})
+        with self.assertRaises(ValueError):
+            self.templates.validate_campaign('goan-01', 'latin', 'fish', 'All', '')
+        with self.assertRaises(ValueError):
+            self.templates.validate_campaign('goan-02', 'latin', 'fish', 'All', '')
+        self.templates.validate_campaign('goan-05', 'devanagari', 'fish', 'All', '')
+
+    def test_delivery_rechecks_sold_out_product_and_template_disable(self):
+        self.doc.item = 'fish'
+        self.doc.template_id = 'goan-01'
+        self.frappe.db.get_single_value.return_value = json.dumps({'fish_tags': {'fish': 'bangde'}})
+        stock = Mock(return_value=False)
+        with patch.dict(sys.modules, {
+            'local_commerce.services.orders': SimpleNamespace(public_product=Mock(return_value={})),
+            'local_commerce.services.stock_alerts': SimpleNamespace(restocked=stock),
+        }):
+            self.assertEqual(self.templates.delivery_state(self.doc), 'Product unavailable')
+            stock.return_value = True
+            self.assertEqual(self.templates.delivery_state(self.doc), 'ready')
+            self.frappe.db.get_single_value.return_value = json.dumps({'disabled': ['goan-01'], 'fish_tags': {'fish': 'bangde'}})
+            self.assertEqual(self.templates.delivery_state(self.doc), 'Template disabled')
+
+    def test_shop_audience_intersects_consent_snapshot(self):
+        self.doc.status = 'Draft'
+        self.doc.campaign_audience = 'Shop customers'
+        self.service.allowed = lambda account: account != 'opted-out'
+        self.frappe.get_all.side_effect = [['customer', 'outsider', 'opted-out'], [], ['customer', 'opted-out']]
+        self.service.send('campaign')
+        self.assertEqual(json.loads(self.frappe.db.set_value.call_args.args[2]['recipients']), ['customer'])
+
+    def test_automatic_goan_is_off_by_default_and_avoids_last_template(self):
+        self.assertIsNone(self.templates.automatic_choice('shop', 'fish', self.now))
+        self.frappe.db.get_single_value.return_value = json.dumps({'automatic': True, 'fish_tags': {'fish': 'bangde'}, 'script': 'devanagari'})
+        self.frappe.get_all.return_value = [{'template_id': 'goan-01'}]
+        choice = self.templates.automatic_choice('shop', 'fish', self.now)
+        self.assertNotEqual(choice['template_id'], 'goan-01')
+        self.assertEqual(choice['template_script'], 'devanagari')
+
+    def test_manual_sold_out_campaign_is_skipped(self):
+        self.doc.item = 'fish'
+        with patch.dict(sys.modules, {
+            'local_commerce.services.orders': SimpleNamespace(public_product=Mock(return_value={})),
+            'local_commerce.services.stock_alerts': SimpleNamespace(restocked=lambda product: False),
+        }):
+            self.service.process_one('campaign')
+        self.service._notify.assert_not_called()
+        self.assertEqual(self.frappe.db.set_value.call_args.args[2]['skipped_count'], 3)
+
+
+    def test_duplicate_campaign_recipient_is_not_inserted_again(self):
+        self.frappe.db.exists.return_value = True
+        self.frappe.get_doc.reset_mock()
+        self.assertFalse(self.original_notify(self.doc, 'customer'))
+        self.frappe.get_doc.assert_not_called()
+        self.frappe.enqueue.assert_not_called()
+
+    def test_push_worker_suppresses_unavailable_and_defers_time_window(self):
+        spec = importlib.util.spec_from_file_location('push_test', Path('local_commerce/services/push.py'))
+        push = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(push)
+        push._private_key_path = Mock(return_value=SimpleNamespace(is_file=lambda: True))
+        row = SimpleNamespace(campaign='campaign', campaign_test=0, campaign_push_state='Pending',
+                              creation=self.now, shop='shop', recipient_user='customer')
+        row.get = lambda key: getattr(row, key, None)
+        self.service.allowed = Mock(return_value=True)
+        with patch.dict(sys.modules, {'local_commerce.services.campaigns': self.service}):
+            for state in ('Product unavailable', 'wait', 'Template disabled'):
+                self.frappe.db.set_value.reset_mock()
+                self.frappe.db.get_value.side_effect = [row, 'Completed']
+                with patch.object(self.templates, 'delivery_state', return_value=state):
+                    push.send_notification('notification')
+                if state == 'wait':
+                    self.frappe.db.set_value.assert_not_called()
+                else:
+                    self.assertEqual(self.frappe.db.set_value.call_args.args[2]['campaign_suppression_reason'], state)
+        self.frappe.get_all.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()

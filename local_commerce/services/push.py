@@ -144,6 +144,15 @@ def send_notification(notification):
         if not allowed(row.recipient_user) or frappe.db.get_value("LC Campaign", row.campaign, "status") == "Cancelled":
             frappe.db.set_value("LC Notification", notification, "campaign_push_state", "Expired", update_modified=False)
             return
+        from local_commerce.services.campaign_templates import delivery_state
+        state = delivery_state(frappe.get_doc('LC Campaign', row.campaign))
+        if state == 'wait':
+            return
+        if state != 'ready':
+            frappe.db.set_value('LC Notification', notification, {
+                'campaign_push_state': 'Expired', 'campaign_suppression_reason': state,
+            }, update_modified=False)
+            return
         frappe.db.set_value("LC Notification", notification, "campaign_push_state", "Attempted", update_modified=False)
     from pywebpush import WebPushException, webpush
 

@@ -23,8 +23,8 @@ def listing():
 
 
 @frappe.whitelist(methods=["POST"])
-def save(shop, title, message, item=""):
-    return campaigns.save(shop, title, message, item)
+def save(shop, title, message, item="", template_id="", template_script="latin", campaign_audience="All", campaign_period=""):
+    return campaigns.save(shop, title, message, item, template_id, template_script, campaign_audience, campaign_period)
 
 
 @frappe.whitelist(methods=["POST"])
@@ -45,3 +45,9 @@ def cancel(name):
 @frappe.whitelist(methods=["GET"])
 def wording_history(shop, item=""):
     return campaigns.wording_history(shop, item)
+
+
+@frappe.whitelist(methods=["POST"])
+def template_settings(value):
+    from local_commerce.services.campaign_templates import configure
+    return configure(value)

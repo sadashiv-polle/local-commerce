@@ -177,6 +177,7 @@ async function openNotification(notification) {
   await router.push(notification.target)
   if (route.fullPath === router.resolve(notification.target).fullPath) {
     if (notificationMenu.value) notificationMenu.value.open = false
+    window.dispatchEvent(new Event('lc-refresh-notification-product'))
     await markOpenedNotification(notification.name)
   }
 }
@@ -199,6 +200,7 @@ async function receiveNotification(event) {
       !/^\/(orders|delivery|shop|store)(\/|\?|$)/.test(path)) return
   await router.push(path)
   if (route.fullPath === router.resolve(path).fullPath) {
+    window.dispatchEvent(new Event('lc-refresh-notification-product'))
     await markOpenedNotification(event.data.notification_id)
   }
 }

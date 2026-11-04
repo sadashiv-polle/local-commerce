@@ -50,7 +50,8 @@
     "commission_item",
     "commission_due_days",
     "commission_reminders",
-    "installed_app_icon"
+    "installed_app_icon",
+    "campaign_goan_settings"
   ],
   "fields": [
     {
@@ -333,6 +334,14 @@
       "fieldtype": "Select",
       "options": "Original\nWordmark",
       "default": "Wordmark"
+    },
+    {
+      "fieldname": "campaign_goan_settings",
+      "label": "Goan campaign settings",
+      "fieldtype": "Code",
+      "options": "JSON",
+      "read_only": 1,
+      "hidden": 1
     }
   ],
   "permissions": [
