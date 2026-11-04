@@ -946,3 +946,7 @@ html { scroll-behavior: smooth; }
 #lc-app .shop-map-results button.selected { border-color: #176547; background: #f0f6e9; }
 #lc-app .shop-map-results small { color: #64766a; }
 @media (max-width: 760px) { #lc-app .shop-discovery-layout { grid-template-columns: minmax(0, 1fr); } #lc-app .shop-discovery-map { position: relative; top: auto; } #lc-app .shop-discovery-canvas { height: 50dvh; min-height: 300px; } #lc-app .shop-map-heading { align-items: flex-start; flex-direction: column; gap: 6px; } }
+
+/* Keep dietary labels distinct from product names and inventory metadata. */
+#lc-app .product-identity > div > .food-type-badge { display: flex; width: fit-content; margin: 7px 0; }
+#lc-app .customer-product-card > .food-type-badge { margin-bottom: 8px; }
