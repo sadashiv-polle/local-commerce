@@ -238,7 +238,9 @@ onBeforeUnmount(() => { window.removeEventListener('lc-refresh-notification-prod
     <RouterLink to="/store">← All shops</RouterLink> · <RouterLink to="/orders">My orders</RouterLink>
     <p v-if="error" class="lc-notice" role="alert">{{ error }}</p><p v-if="loading" role="status">Loading products…</p>
     <template v-if="catalog">
-      <h1>{{ catalog.shop_name }}</h1><p><span class="shop-open-status" :class="{ closed: !catalog.accepting_orders }">{{ catalog.availability.label }}</span> {{ catalog.accepting_orders ? 'Delivery requests · Shop confirmation required' : catalog.availability.message }}</p>
+      <h1>{{ catalog.shop_name }}</h1>
+      <p v-if="catalog.fssai_number" class="shop-fssai">FSSAI: {{ catalog.fssai_number }}</p>
+      <p><span class="shop-open-status" :class="{ closed: !catalog.accepting_orders }">{{ catalog.availability.label }}</span> {{ catalog.accepting_orders ? 'Delivery requests · Shop confirmation required' : catalog.availability.message }}</p>
       <p class="shop-hours-notice">{{ catalog.availability.message }}<small v-if="catalog.scheduled_enabled"> · Normal ordering hours; scheduled slots have their own cutoff.</small></p>
       <p v-if="catalog.accepting_orders" class="muted">Delivery within {{ Number(catalog.shop_location.service_radius_km).toFixed(1) }} km · Base delivery fee: {{ money(catalog.delivery_fee) }}</p>
       <p v-if="pending" class="lc-notice">Your last request is not confirmed. Retry it below before starting another.</p>
@@ -325,6 +327,7 @@ onBeforeUnmount(() => { window.removeEventListener('lc-refresh-notification-prod
 </template>
 
 <style scoped>
+.shop-fssai { margin: 8px 0 16px; color: #52675b; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
 .food-type-filter { position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(100%, 360px); padding: 4px; border-radius: 14px; background: #edf2ec; margin: 16px 0; }
 #lc-app .food-type-filter button { position: relative; display: flex; justify-content: center; align-items: center; min-height: 46px; padding: 8px 6px; font-size: 13px; font-weight: 600; line-height: 20px; border: 0; background: transparent; box-shadow: none; color: #234936; border-radius: 10px; }
 #lc-app .food-type-filter button[aria-pressed="true"] { font-weight: 700; }

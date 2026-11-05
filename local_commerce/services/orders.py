@@ -473,6 +473,7 @@ def catalog(shop, start=0, search="", category="", in_stock=0, food_type=""):
     hours = shop_availability(doc)
     return {
         "shop_name": doc.shop_name,
+        "fssai_number": doc.get("fssai_number") or "",
         "shop_location": location,
         "map": map_config(),
         "accepting_orders": bool(
