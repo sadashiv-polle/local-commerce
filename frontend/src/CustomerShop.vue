@@ -31,7 +31,8 @@ async function openProduct(item) {
   selectedProduct.value = item
   selectedPhoto.value = 0
   await nextTick()
-  productDialog.value.showModal()
+  if (selectedProduct.value !== item || !productDialog.value) return
+  if (!productDialog.value.open) productDialog.value.showModal()
   photoViewport.value?.scrollTo({ left: 0, behavior: 'instant' })
 }
 const photoViewport = ref(null)
@@ -212,7 +213,7 @@ async function place() {
     if ([400, 403, 417].includes(e.status)) { sessionStorage.removeItem(storageKey.value); pending.value = null }
   } finally { busy.value = false }
 }
-watch(() => [route.params.shop, route.query.item], () => {
+watch([() => route.params.shop, () => route.query.item], () => {
   openedProduct = ''; selectedProduct.value = null; productDialog.value?.close()
   search.value = ''; category.value = ''; inStockOnly.value = false
   start.value = 0; pending.value = null; cartOpen.value = false; checkout.value = false

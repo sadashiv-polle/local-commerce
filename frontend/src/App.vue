@@ -198,14 +198,21 @@ function moveNotificationTouch(event) {
   const touch = event.touches[0]
   if (notificationTouchStart && Math.hypot(touch.clientX - notificationTouchStart.clientX, touch.clientY - notificationTouchStart.clientY) > 8) notificationTouchMoved = true
 }
+let openingNotification = false
 async function openNotification(notification) {
+  if (openingNotification) return
   if (notificationTouchMoved) { notificationTouchMoved = false; return }
+  openingNotification = true
+  try {
+  const target = router.resolve(notification.target)
+  const sameProduct = route.path === target.path && route.query.item === target.query.item
   await router.push(notification.target)
   if (route.fullPath === router.resolve(notification.target).fullPath) {
     if (notificationMenu.value) notificationMenu.value.open = false
-    window.dispatchEvent(new Event('lc-refresh-notification-product'))
+    if (sameProduct) window.dispatchEvent(new Event('lc-refresh-notification-product'))
     await markOpenedNotification(notification.name)
   }
+  } finally { openingNotification = false }
 }
 function toggleNotifications() {
   if (notificationMenu.value?.open) {
@@ -224,9 +231,11 @@ async function receiveNotification(event) {
   const path = event.data?.path
   if (event.data?.type !== 'lc-open-notification' || typeof path !== 'string' ||
       !/^\/(orders|delivery|shop|store)(\/|\?|$)/.test(path)) return
+  const target = router.resolve(path)
+  const sameProduct = route.path === target.path && route.query.item === target.query.item
   await router.push(path)
   if (route.fullPath === router.resolve(path).fullPath) {
-    window.dispatchEvent(new Event('lc-refresh-notification-product'))
+    if (sameProduct) window.dispatchEvent(new Event('lc-refresh-notification-product'))
     await markOpenedNotification(event.data.notification_id)
   }
 }
