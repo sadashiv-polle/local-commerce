@@ -21,6 +21,10 @@ class LCShop(Document):
         create_vendor_company(self)
 
     def validate(self):
+        number = str(self.get("fssai_number") or "").strip()
+        if number and (len(number) != 14 or any(c not in "0123456789" for c in number)):
+            frappe.throw("Enter a 14-digit FSSAI licence or registration number")
+        self.fssai_number = number
 
         if self.get("order_acceptance") not in (None, "", "Manual", "Automatic"):
             frappe.throw("Choose Manual or Automatic order acceptance")

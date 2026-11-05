@@ -49,6 +49,7 @@ def get_shop(shop):
             "fish_wastage_account",
             "shop_name",
             "shop_email",
+            "fssai_number",
             "company",
             "status",
             "description",
@@ -102,6 +103,7 @@ def update_shop(
     fish_wastage_account=None,
     order_acceptance=None,
     shop_email=None,
+    fssai_number=None,
 ):
     require_shop(shop, "write")
     doc = frappe.get_doc("LC Shop", shop)
@@ -118,6 +120,8 @@ def update_shop(
     if fish_wastage_account is not None:
         require_settings(shop)
         doc.fish_wastage_account = fish_wastage_account
+    if fssai_number is not None:
+        doc.fssai_number = str(fssai_number).strip()
     if shop_email is not None:
         doc.shop_email = str(shop_email).strip()
     doc.shop_name, doc.status, doc.description = shop_name, status, description

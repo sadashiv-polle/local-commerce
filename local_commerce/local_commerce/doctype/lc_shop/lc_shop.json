@@ -8,6 +8,7 @@
   "field_order": [
     "shop_name",
     "shop_email",
+    "fssai_number",
     "business_model",
     "company",
     "company_country",
@@ -592,6 +593,12 @@
       "fieldtype": "Long Text",
       "read_only": 1,
       "hidden": 1
+    },
+    {
+      "fieldname": "fssai_number",
+      "label": "FSSAI licence / registration number",
+      "fieldtype": "Data",
+      "description": "14-digit number provided by the shop. Saving does not verify registration."
     }
   ],
   "permissions": [

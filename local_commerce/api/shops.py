@@ -43,6 +43,7 @@ def update_shop(
     fish_wastage_account=None,
     order_acceptance=None,
     shop_email=None,
+    fssai_number=None,
 ):
     return shops.update_shop(
         shop,
@@ -68,6 +69,7 @@ def update_shop(
         fish_wastage_account,
         order_acceptance,
         shop_email,
+        fssai_number,
     )
 
 
