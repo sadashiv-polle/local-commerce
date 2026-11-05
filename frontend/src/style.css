@@ -956,3 +956,9 @@ html { scroll-behavior: smooth; }
 #lc-app .notification-tabs button[aria-pressed="true"] { background: #eaf4e9; color: #176547; font-weight: 700; }
 #lc-app .notification-row { border-bottom: 1px solid #e6ebe3; }
 #lc-app .notification-mark-read { margin: 0 18px 12px 36px; color: #176547; font-size: 12px; }
+
+#lc-app .commerce-app .notification-panel { display: flex; flex-direction: column; overflow: hidden; max-height: min(560px, calc(100dvh - 190px)); }
+#lc-app .notification-panel > header, #lc-app .notification-tabs, #lc-app .notification-panel > .push-settings { flex-shrink: 0; }
+#lc-app .notification-panel > header { flex-wrap: wrap; }
+#lc-app .notification-panel header button { min-height: 40px; font-size: 12px; }
+#lc-app .notification-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }

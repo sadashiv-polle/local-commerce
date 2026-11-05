@@ -271,34 +271,33 @@ def list_notifications(start=0, channel=None):
         reject("Invalid notification page")
     if start < 0:
         reject("Invalid notification page")
-    filters = {"recipient_user": user}
+    from datetime import timedelta
+    from frappe.utils import get_datetime
+    from local_commerce.services.notification_expiry import expires_at
     if channel not in (None, "", "notifications", "updates"):
         reject("Invalid notification channel")
-    if channel:
-        filters["campaign"] = ["is", "set" if channel == "updates" else "not set"]
+    current = now_datetime()
     rows = frappe.get_all(
         "LC Notification",
-        filters=filters,
-        fields=[
-            "name",
-            "order",
-            "shop",
-            "audience",
-            "title",
-            "message",
-            "target",
-            "read",
-            "creation",
-        ],
-        order_by="creation desc",
-        start=start,
-        limit_page_length=20,
+        filters={"recipient_user": user, "creation": [">", current - timedelta(hours=10)]},
+        fields=["name", "order", "shop", "audience", "title", "message", "target",
+                "read", "creation", "campaign"],
+        order_by="creation desc, name desc",
+        limit_page_length=0,
     )
-    return {
-        "items": rows,
-        "unread": frappe.db.count("LC Notification", {"recipient_user": user, "read": 0}),
-        "has_more": len(rows) == 20,
-    }
+    hours = {}
+    visible = []
+    for row in rows:
+        shop = row.get("shop")
+        if shop and shop not in hours:
+            hours[shop] = frappe.db.get_value("LC Shop", shop, "opening_hours_json")
+        if current < expires_at(get_datetime(row.creation), hours.get(shop)):
+            visible.append(row)
+    unread = sum(not row.read for row in visible)
+    if channel:
+        visible = [row for row in visible if bool(row.get("campaign")) == (channel == "updates")]
+    return {"items": visible[start:start + 20], "unread": unread,
+            "has_more": len(visible) > start + 20}
 
 
 def mark_read(name):
