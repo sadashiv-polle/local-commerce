@@ -261,7 +261,7 @@ def driver_assigned(order, previous_driver=None):
         )
 
 
-def list_notifications(start=0):
+def list_notifications(start=0, channel=None):
     user = frappe.session.user
     if user == "Guest":
         frappe.throw("Please sign in to view notifications", frappe.AuthenticationError)
@@ -271,9 +271,14 @@ def list_notifications(start=0):
         reject("Invalid notification page")
     if start < 0:
         reject("Invalid notification page")
+    filters = {"recipient_user": user}
+    if channel not in (None, "", "notifications", "updates"):
+        reject("Invalid notification channel")
+    if channel:
+        filters["campaign"] = ["is", "set" if channel == "updates" else "not set"]
     rows = frappe.get_all(
         "LC Notification",
-        filters={"recipient_user": user},
+        filters=filters,
         fields=[
             "name",
             "order",

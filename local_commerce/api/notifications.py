@@ -4,8 +4,8 @@ from local_commerce.services import notifications
 
 
 @frappe.whitelist(methods=["GET"])
-def list_notifications(start=0):
-    return notifications.list_notifications(start)
+def list_notifications(start=0, channel=None):
+    return notifications.list_notifications(start, channel)
 
 
 @frappe.whitelist(methods=["POST"])

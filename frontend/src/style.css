@@ -950,3 +950,9 @@ html { scroll-behavior: smooth; }
 /* Keep dietary labels distinct from product names and inventory metadata. */
 #lc-app .product-identity > div > .food-type-badge { display: flex; width: fit-content; margin: 7px 0; }
 #lc-app .customer-product-card > .food-type-badge { margin-bottom: 8px; }
+
+#lc-app .notification-tabs { display: flex; gap: 8px; padding: 12px 18px; }
+#lc-app .notification-tabs button { flex: 1; font-size: 13px; }
+#lc-app .notification-tabs button[aria-pressed="true"] { background: #eaf4e9; color: #176547; font-weight: 700; }
+#lc-app .notification-row { border-bottom: 1px solid #e6ebe3; }
+#lc-app .notification-mark-read { margin: 0 18px 12px 36px; color: #176547; font-size: 12px; }
