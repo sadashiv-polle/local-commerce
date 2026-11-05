@@ -29,9 +29,10 @@ const productDialog = ref(null), selectedProduct = ref(null), selectedPhoto = re
 const productPhotos = computed(() => selectedProduct.value?.images?.length ? selectedProduct.value.images : selectedProduct.value?.image ? [selectedProduct.value.image] : [])
 async function openProduct(item) {
   selectedProduct.value = item
+  const selection = selectedProduct.value
   selectedPhoto.value = 0
   await nextTick()
-  if (selectedProduct.value !== item || !productDialog.value) return
+  if (selectedProduct.value !== selection || !productDialog.value) return
   if (!productDialog.value.open) productDialog.value.showModal()
   photoViewport.value?.scrollTo({ left: 0, behavior: 'instant' })
 }
