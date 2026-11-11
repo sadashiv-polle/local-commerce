@@ -1,11 +1,14 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { call } from './api.js'
+import { mergeShopDrafts } from './cashfreeDrafts.js'
 const data = ref(null), busy = ref(false), error = ref(''), message = ref(''), details = ref({}), credits = ref({})
 const fundingForms = ref({}), reimbursements = ref({})
 const profile = ref({ name: '', environment: 'sandbox', enabled: false, client_id: '', client_secret: '' })
-async function load() {
-  data.value = await call('cashfree.settings')
+async function load(savedShop = '') {
+  const fresh = await call('cashfree.settings')
+  fresh.shops = mergeShopDrafts(fresh.shops, data.value?.shops, savedShop)
+  data.value = fresh
   for (const order of data.value.orders) {
     order.offerData = JSON.parse(order.gateway_accounting_json || '{}')
     fundingForms.value[order.name] ||= { provider: '', evidence: '', account: '' }
@@ -13,9 +16,10 @@ async function load() {
   for (const shop of data.value.shops) shop.cashfree_settlement_mode ||= 'Easy Split'
 }
 onMounted(async () => { try { await load() } catch (e) { error.value = e.message } })
-async function run(action) {
+async function run(action, { savedShop = '', refresh = true, success = 'Updated successfully.' } = {}) {
+  if (busy.value) return
   busy.value = true; error.value = ''; message.value = ''
-  try { await action(); await load(); message.value = 'Updated successfully.' }
+  try { await action(); if (refresh) await load(savedShop); message.value = success }
   catch (e) { error.value = e.message }
   finally { busy.value = false }
 }
@@ -28,7 +32,7 @@ function saveShop(shop) {
   const values = Object.fromEntries(Object.entries(shop).filter(([key]) => key.startsWith('cashfree_')))
   values.cashfree_enabled = Number(!!values.cashfree_enabled)
   values.cashfree_auto_reconcile = Number(!!values.cashfree_auto_reconcile)
-  return run(() => call('cashfree.save_shop', { shop: shop.name, values }, true))
+  return run(() => call('cashfree.save_shop', { shop: shop.name, values }, true), { savedShop: shop.name })
 }
 async function prepareCredit(order) {
   await run(async () => {
@@ -51,7 +55,7 @@ function accounts(shop, type) { return data.value.accounts.filter(a => a.company
         <h2>Cashfree gateway</h2>
         <p>Use a separate profile for Sandbox and Production. Keep old profiles for payment history. Disabling a profile stops new checkout sessions; existing payments can still be verified.</p>
         <p><strong>Webhook URL</strong><br><code class="gateway-url">{{ data.webhook_url }}</code></p>
-        <div class="button-row"><button v-for="row in data.profiles" :key="row.name" @click="edit(row)">{{ row.name }} · {{ row.environment }} · {{ row.enabled ? 'Enabled' : 'Disabled' }}</button></div>
+        <div class="button-row"><button v-for="row in data.profiles" :key="row.name" :disabled="busy" @click="edit(row)">{{ row.name }} · {{ row.environment }} · {{ row.enabled ? 'Enabled' : 'Disabled' }}</button></div>
         <form @submit.prevent="saveProfile">
           <fieldset :disabled="busy">
             <div class="form-columns">
@@ -86,7 +90,8 @@ function accounts(shop, type) { return data.value.accounts.filter(a => a.company
             <p v-if="shop.gst_enabled">The GST &amp; commission settings override the legacy commission calculation below. Vendor payouts exclude retained commission and Section 9(5) GST; gateway fees must be merchant-borne.</p><p v-else-if="shop.cashfree_settlement_mode === 'Easy Split'">Commission applies to the full order total, including delivery and taxes. The remainder goes to this vendor. Changes apply to new orders only. Complete vendor onboarding and KYC in Cashfree before enabling.</p>
             <p v-else>Payments use the merchant account linked to the selected gateway profile. No vendor ID or marketplace commission is needed. Cashfree fees still apply in production. Changes apply to new orders only.</p>
             <label class="check-label"><input v-model="shop.cashfree_auto_reconcile" type="checkbox">Automatically reconcile paid orders and bank settlements every hour</label><button class="lc-primary">Save shop payment settings</button>
-            <button v-if="shop.cashfree_settlement_mode === 'Easy Split'" type="button" @click="run(async () => { details[shop.name] = await call('cashfree.vendor_status', { shop: shop.name }, true) })">Check vendor status</button><pre v-if="details[shop.name] && shop.cashfree_settlement_mode === 'Easy Split'">{{ details[shop.name] }}</pre>
+            <p>Save your choices before checking vendor status.</p>
+            <button v-if="shop.cashfree_settlement_mode === 'Easy Split'" type="button" @click="run(async () => { details[shop.name] = await call('cashfree.vendor_status', { shop: shop.name }, true) }, { refresh: false, success: 'Vendor status checked using saved shop settings.' })">Check vendor status</button><pre v-if="details[shop.name] && shop.cashfree_settlement_mode === 'Easy Split'">{{ details[shop.name] }}</pre>
           </fieldset>
         </form>
       </section>
