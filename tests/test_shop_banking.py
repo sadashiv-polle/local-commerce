@@ -168,3 +168,37 @@ class BankSchemaCompatibilityTests(TestCase):
         fn = load('checked_account', ifsc_field=lambda:'branch_code',
                   frappe=SimpleNamespace(get_doc=Mock(side_effect=[bank,ledger])))
         self.assertIs(fn('Bank','Company'),bank)
+
+
+class ArchiveBankTests(TestCase):
+    def setup_archive(self, *, selected=False, default=False, company='Company A'):
+        bank = SimpleNamespace(name='bank', company=company, is_company_account=1,
+                               account='ledger', disabled=0, save=Mock(), get=lambda key: default if key == 'is_default' else None)
+        frappe = Mock()
+        frappe.db.get_value.return_value = 'Company A'
+        frappe.db.exists.return_value = selected
+        frappe.get_doc.side_effect = [SimpleNamespace(get=lambda key: None),
+                                     SimpleNamespace(company='Company A'), bank]
+        guard = Mock()
+        return load('archive_shop_bank', frappe=frappe, require_platform=guard), bank, guard
+
+    def test_archives_record_without_deleting_ledger(self):
+        archive, bank, guard = self.setup_archive()
+        self.assertTrue(archive('shop', 'bank')['archived'])
+        self.assertEqual(bank.disabled, 1)
+        bank.save.assert_called_once_with(ignore_permissions=True)
+        guard.assert_called_once()
+
+    def test_rejects_selected_default_and_other_company(self):
+        for options in ({'selected': True}, {'default': True}, {'company': 'Other'}):
+            archive, bank, _ = self.setup_archive(**options)
+            with self.assertRaises(ValueError):
+                archive('shop', 'bank')
+            bank.save.assert_not_called()
+
+    def test_platform_permission_required(self):
+        archive, bank, guard = self.setup_archive()
+        guard.side_effect = PermissionError
+        with self.assertRaises(PermissionError):
+            archive('shop', 'bank')
+        bank.save.assert_not_called()

@@ -5,14 +5,14 @@ const props = defineProps({ shop: { type: String, required: true } })
 const emit = defineEmits(['changed'])
 const data = ref(null), busy = ref(false), error = ref(''), message = ref('')
 const blank = () => ({ mode: 'new', bank: '', holder: '', number: '', confirm_number: '', ifsc: '' })
-const form = ref(blank()), usage = ref('store')
+const form = ref(blank()), usage = ref('store'), archiveTarget = ref('')
 let generation = 0
 async function load() {
   const request = ++generation
   try { const result = await call('admin.shop_banks', { shop: props.shop }); if (request === generation) data.value = result }
   catch (e) { if (request === generation) error.value = e.message }
 }
-watch(() => props.shop, () => { data.value = null; error.value = ''; message.value = ''; form.value = blank(); load() }, { immediate: true })
+watch(() => props.shop, () => { archiveTarget.value = ''; data.value = null; error.value = ''; message.value = ''; form.value = blank(); load() }, { immediate: true })
 async function save(details, target) {
   const shop = props.shop
   busy.value = true; error.value = ''; message.value = ''
@@ -21,6 +21,18 @@ async function save(details, target) {
     if (shop !== props.shop) return
     form.value = blank()
     message.value = target === 'store' ? 'Bank account saved. Current payment accounts are unchanged.' : 'Bank selection updated. Previous bank records are preserved.'
+    await load(); emit('changed')
+  } catch (e) { if (shop === props.shop) error.value = e.message }
+  finally { busy.value = false }
+}
+async function archive(bank) {
+  const shop = props.shop
+  busy.value = true; error.value = ''; message.value = ''
+  try {
+    await call('admin.archive_shop_bank', { shop, bank_account: bank.name }, true)
+    if (shop !== props.shop) return
+    archiveTarget.value = ''
+    message.value = 'Bank account archived. Its ledger and accounting history are preserved.'
     await load(); emit('changed')
   } catch (e) { if (shop === props.shop) error.value = e.message }
   finally { busy.value = false }
@@ -45,6 +57,12 @@ async function save(details, target) {
           <div class="bank-settings-actions">
             <button type="button" :disabled="busy || bank.account === data.upi_ledger" @click="save({ mode: 'existing', existing: bank.name }, 'upi')">Use for UPI</button>
             <button type="button" :disabled="busy || bank.account === data.settlement_ledger" @click="save({ mode: 'existing', existing: bank.name }, 'settlement')">Use for settlement</button>
+            <button type="button" :disabled="busy || bank.account === data.upi_ledger || bank.account === data.settlement_ledger" @click="archiveTarget = bank.name">Archive account</button>
+          </div>
+          <p v-if="bank.account === data.upi_ledger || bank.account === data.settlement_ledger"><small>Select a replacement before archiving this account.</small></p>
+          <div v-if="archiveTarget === bank.name" role="group" aria-label="Confirm account archive">
+            <p>Archive {{ bank.bank }} ending {{ bank.last_four }}? It will no longer appear for selection. Past transactions and the ledger will remain. This does not change the bank details registered with Cashfree.</p>
+            <div class="bank-settings-actions"><button type="button" :disabled="busy" @click="archiveTarget = ''">Keep account</button><button type="button" :disabled="busy" @click="archive(bank)">{{ busy ? 'Archiving…' : 'Confirm archive' }}</button></div>
           </div>
         </li>
       </ul>

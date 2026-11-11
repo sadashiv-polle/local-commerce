@@ -138,3 +138,24 @@ def save_shop_bank(shop, details, usage='store'):
     if usage != 'store':
         doc.save()
     return dict(bank_account=name, usage=usage)
+
+
+def archive_shop_bank(shop, bank_account):
+    require_platform()
+    company_name = frappe.db.get_value('LC Shop', shop, 'company')
+    company = frappe.get_doc('Company', company_name, for_update=True)
+    doc = frappe.get_doc('LC Shop', shop, for_update=True)
+    if doc.company != company_name:
+        reject('The shop Company changed; reload and try again')
+    bank = frappe.get_doc('Bank Account', bank_account, for_update=True)
+    if not bank.is_company_account or bank.company != company_name:
+        reject('Select a Company Bank Account belonging to this shop Company')
+    if bank.get('is_default') or (bank.account and company.get('default_bank_account') == bank.account):
+        reject('Choose a different Company default bank account in ERPNext before archiving this account')
+    if bank.account and any(frappe.db.exists('LC Shop', {field: bank.account})
+                            for field in ('upi_bank_account', 'cashfree_bank_account')):
+        reject('Choose replacement UPI and settlement accounts for every shop using this account before archiving it')
+    if not bank.disabled:
+        bank.disabled = 1
+        bank.save(ignore_permissions=True)
+    return dict(bank_account=bank.name, archived=True)

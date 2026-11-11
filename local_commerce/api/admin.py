@@ -100,3 +100,9 @@ def app_icon():
 def save_app_icon(icon):
     from local_commerce.services.branding import save_installed_icon
     return save_installed_icon(icon)
+
+
+@frappe.whitelist(methods=['POST'])
+def archive_shop_bank(shop, bank_account):
+    from local_commerce.services.shop_banking import archive_shop_bank as archive
+    return archive(shop, bank_account)
