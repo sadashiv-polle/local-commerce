@@ -2,6 +2,7 @@
 import { acceptanceBlock, requestedOrderMessage } from './orderAcceptance.js'
 import CheckoutSummary from './CheckoutSummary.vue'
 import RefundTimeline from './RefundTimeline.vue'
+import CancellationRequest from './CancellationRequest.vue'
 import ReturnRequest from './ReturnRequest.vue'
 import { displayTime } from './display-time.js'
 import LocationFreshness from './LocationFreshness.vue'
@@ -264,6 +265,7 @@ onBeforeUnmount(() => {
     <article v-for="order in visibleOrders" :key="order.name" class="order-card" :class="{ 'customer-order-cancelled': !shop && order.status === 'Cancelled' }">
       <OrderReference :order-id="order.name" />
       <RefundTimeline :rows="order.refund_tracking || []" :refunded="order.refunded_amount || 0" :payment-status="order.payment_status" />
+      <CancellationRequest v-if="order.cancellation" :order="order" @updated="load" />
       <ReturnRequest :order="order" :customer="!shop" :reviewer="!!shop && editable" @updated="load" />
       <section v-if="!shop && needsPaymentReview(order)" class="payment-review-help" aria-label="Payment help"><strong>Payment needs review</strong><p v-if="order.payment_method === 'Cashfree' && order.payment_status !== 'Refunded'">Use “Refresh payment status” below to check for an update.</p><p>If your bank shows a debit and the order still shows failed, cancelled or unconfirmed, contact the shop with this order ID and your transaction reference before paying again.</p><p v-if="order.payment_status === 'Refunded'">This order is marked refunded. Check your bank statement and contact the shop if the credit has not arrived.</p><a v-if="supportNumber(order.shop_support_phone)" :href="`tel:${order.shop_support_phone}`">Call shop to check payment</a><p v-else>Share the order ID above with the shop owner to check the payment.</p></section>
       <div class="workspace-heading"><div><span class="eyebrow">{{ order.shop_name }}</span><h3>{{ order.recipient }}</h3><small>{{ displayTime(order.created) }}</small></div><span class="status-pill">{{ order.status }}</span></div>
@@ -315,7 +317,7 @@ onBeforeUnmount(() => {
         <button v-if="shop && ['Accepted', 'Preparing'].includes(order.status) && order.can_repack" :disabled="busy" @click="repack(order)">Repack with fresh stock</button>
         <button v-if="shop && next[order.status]" class="lc-primary" :disabled="busy || !!acceptanceBlock(order)" @click="change(order, next[order.status])">{{ nextLabel[order.status] }}</button>
         <p v-if="shop && next[order.status] && acceptanceBlock(order)" role="status">{{ acceptanceBlock(order) }}</p>
-        <details v-if="cancellable.has(order.status)"><summary>Cancel order</summary><p v-if="order.payment_method === 'Cashfree'">If payment is verified, cancellation automatically queues a refund of the amount you paid. Bank credit is confirmed separately.</p><label>Reason<input v-model="reasons[order.name]" minlength="3" maxlength="500"></label><button :disabled="busy || (reasons[order.name] || '').trim().length < 3" @click="change(order, 'Cancelled')">Confirm cancellation</button></details>
+        <details v-if="!order.cancellation && cancellable.has(order.status)"><summary>Cancel order</summary><p v-if="order.payment_method === 'Cashfree'">If payment is verified, cancellation automatically queues a refund of the amount you paid. Bank credit is confirmed separately.</p><label>Reason<input v-model="reasons[order.name]" minlength="3" maxlength="500"></label><button :disabled="busy || (reasons[order.name] || '').trim().length < 3" @click="change(order, 'Cancelled')">Confirm cancellation</button></details>
       </div>
     </article>
     <dialog ref="reorderDialog" class="reorder-dialog" aria-labelledby="reorder-title">

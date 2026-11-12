@@ -48,6 +48,8 @@ def request_return(order, reason):
         frappe.throw('Only the order customer can request a return', frappe.PermissionError)
     reason = note(reason)
     doc = lock(order)
+    if getattr(doc, 'cancellation_json', None) and json.loads(doc.cancellation_json).get('status') != 'Rejected':
+        reject('Resolve the cancellation case before requesting a return')
     if doc.status != 'Delivered':
         reject('Returns are available after delivery. Contact the shop for cancellation before delivery.')
     if state(doc):

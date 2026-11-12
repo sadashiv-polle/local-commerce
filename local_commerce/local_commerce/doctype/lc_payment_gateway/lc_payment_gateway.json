@@ -25,13 +25,27 @@
       "fieldname": "client_secret",
       "label": "Client Secret",
       "fieldtype": "Password"
+    },
+    {
+      "fieldname": "marketplace_policy_enabled",
+      "fieldtype": "Check",
+      "label": "Enable marketplace cancellation policy for new orders",
+      "read_only": 0
+    },
+    {
+      "fieldname": "marketplace_hold_confirmed",
+      "fieldtype": "Check",
+      "label": "Cashfree split-after-delivery configuration confirmed",
+      "read_only": 0
     }
   ],
   "field_order": [
     "enabled",
     "environment",
     "client_id",
-    "client_secret"
+    "client_secret",
+    "marketplace_policy_enabled",
+    "marketplace_hold_confirmed"
   ],
   "permissions": [
     {

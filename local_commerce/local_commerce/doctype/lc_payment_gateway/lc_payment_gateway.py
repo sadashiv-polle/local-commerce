@@ -7,6 +7,8 @@ from local_commerce.permissions.scope import require_platform
 class LCPaymentGateway(Document):
     def validate(self):
         require_platform()
+        if self.get("marketplace_policy_enabled") and not self.get("marketplace_hold_confirmed"):
+            frappe.throw("Confirm Cashfree split-after-delivery configuration first")
         if self.environment not in {"sandbox", "production"}:
             frappe.throw("Select Sandbox or Production")
         if not self.client_id or not self.get_password("client_secret", raise_exception=False):

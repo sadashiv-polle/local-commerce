@@ -71,6 +71,10 @@ def book_refunds(doc, rows):
     from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_sales_return
 
     snap, data = json.loads(doc.gateway_snapshot), state(doc)
+    if doc.get('cancellation_policy_json') and doc.status == 'Cancelled' and doc.get('cancellation_json'):
+        # A cancellation fee/compensation is not an item-proportional return.
+        # Do not silently retain 7% commission on the preparation compensation.
+        reject("Use the marketplace cancellation ledger and accountant-reviewed cancellation credit/commission reversal; the standard return allocation does not apply")
     refunds = refunds_for_order(
         rows, doc.gateway_order_id, doc.gateway_payment_id, snap["currency"], snap["amount"]
     )

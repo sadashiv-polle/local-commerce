@@ -815,6 +815,7 @@ def authorize(doc, write=False):
 def serialize(doc):
     from local_commerce.services.payments.offers import summary as offer_summary
     from local_commerce.services.returns import public as return_summary
+    from local_commerce.services.marketplace import public as cancellation_summary
     from local_commerce.services.manual_upi import reconciled_receipt_is_valid
 
     payment_status = "Paid" if reconciled_receipt_is_valid(doc) else doc.payment_status
@@ -916,6 +917,7 @@ def serialize(doc):
         "payment_status": payment_status,
         "refund_tracking": refund_tracking.summary(doc),
         "return_request": return_summary(doc),
+        "cancellation": cancellation_summary(doc),
         "refunded_amount": float(doc.get("gateway_refunded_amount") or 0),
         "accounting_pending": bool(doc.get("gateway_accounting_error")),
         "payment_offer": offer_summary(doc),
@@ -1409,6 +1411,8 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
     ):
         frappe.throw("This delivery is no longer assigned to you", frappe.PermissionError)
     try:
+        from local_commerce.services import marketplace
+        marketplace.guard(doc)
         changed = order_rules.delivery_transition(doc.status, target)
     except ValueError as exc:
         reject(str(exc))
@@ -1483,6 +1487,8 @@ def delivery_change(order, target, collected_amount=None, note="", delivery_otp_
         doc.save(ignore_permissions=True)
         doc.add_comment("Info", escape(f"{previous} → {target}."))
         order_notifications.status_changed(doc, previous)
+        if target == 'Delivered' and doc.get('cancellation_policy_json'):
+            frappe.enqueue('local_commerce.services.marketplace.process', order=doc.name, enqueue_after_commit=True)
         if target == 'Delivered' and doc.get('commission_pending'):
             frappe.enqueue('local_commerce.services.gst.commission.process', order=doc.name, enqueue_after_commit=True)
         return serialize(doc)
@@ -1677,6 +1683,7 @@ def reconcile_cod(collection, owner_note=""):
 
 
 def change(order, target, reason=""):
+    from local_commerce.services import marketplace
     doc = frappe.get_doc("LC Order", order)
     is_customer = doc.customer_user == frappe.session.user and not can_access_shop(
         *identity(), memberships(frappe.session.user), doc.shop, "write"
@@ -1685,15 +1692,19 @@ def change(order, target, reason=""):
         authorize(doc, True)
     if target == "Cancelled" and doc.status == "Cancelled":
         return serialize(doc)
+    if target == "Cancelled" and marketplace.enabled(doc) and not marketplace.internal_cancel.get():
+        return marketplace.initiate(order, reason)
     cancellation = None
-    if doc.payment_method == "Cashfree" and target == "Cancelled":
+    if doc.payment_method == "Cashfree" and target == "Cancelled" and not marketplace.internal_cancel.get():
         cancellation = cashfree.prepare_cancellation(doc)
     # Match creation and inventory lock order, then refresh state after the lock.
     frappe.db.sql("select name from `tabLC Shop` where name=%s for update", doc.shop)
     frappe.db.sql("select name from `tabLC Order` where name=%s for update", doc.name)
     doc.reload()
     try:
-        changed = order_rules.transition(doc.status, target, customer=is_customer)
+        marketplace.guard(doc)
+        changed = (doc.status != target if marketplace.internal_cancel.get() and target == "Cancelled"
+                   else order_rules.transition(doc.status, target, customer=is_customer))
     except ValueError as exc:
         reject(str(exc))
     if not changed:
@@ -1702,7 +1713,8 @@ def change(order, target, reason=""):
 
     if doc.payment_method == "Cashfree":
         if target == "Cancelled":
-            cashfree.ensure_cancellable(doc, cancellation)
+            if not marketplace.internal_cancel.get():
+                cashfree.ensure_cancellable(doc, cancellation)
         elif (doc.payment_status != "Paid" or not doc.payment_entry
               or doc.gateway_accounting_error or doc.gateway_refunded_amount):
             reject("Wait for Cashfree payment and accounting verification")
@@ -1741,6 +1753,8 @@ def change(order, target, reason=""):
         doc.save(ignore_permissions=True)
         doc.add_comment("Info", escape(f"{previous} → {target}. {doc.reason}"))
         order_notifications.status_changed(doc, previous)
+        if target == 'Delivered' and doc.get('cancellation_policy_json'):
+            frappe.enqueue('local_commerce.services.marketplace.process', order=doc.name, enqueue_after_commit=True)
         if target == 'Delivered' and doc.get('commission_pending'):
             frappe.enqueue('local_commerce.services.gst.commission.process', order=doc.name, enqueue_after_commit=True)
         return serialize(doc)

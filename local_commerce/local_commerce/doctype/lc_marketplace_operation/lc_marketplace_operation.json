@@ -1,0 +1,57 @@
+{
+  "doctype": "DocType",
+  "name": "LC Marketplace Operation",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "fields": [
+    {
+      "fieldname": "order",
+      "fieldtype": "Link",
+      "label": "Order",
+      "options": "LC Order"
+    },
+    {
+      "fieldname": "operation_key",
+      "fieldtype": "Data",
+      "label": "Operation key",
+      "unique": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "kind",
+      "fieldtype": "Data",
+      "label": "Kind"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Data",
+      "label": "Status"
+    },
+    {
+      "fieldname": "payload_json",
+      "fieldtype": "Long Text",
+      "label": "Payload"
+    },
+    {
+      "fieldname": "response_json",
+      "fieldtype": "Long Text",
+      "label": "Provider response"
+    }
+  ],
+  "field_order": [
+    "order",
+    "operation_key",
+    "kind",
+    "status",
+    "payload_json",
+    "response_json"
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1
+    }
+  ],
+  "track_changes": 1
+}

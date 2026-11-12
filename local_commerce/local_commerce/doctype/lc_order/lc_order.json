@@ -71,7 +71,11 @@
     "return_request_json",
     "commission_pending",
     "commission_error",
-    "commission_attempted_at"
+    "commission_attempted_at",
+    "cancellation_policy_json",
+    "cancellation_json",
+    "cancellation_state",
+    "marketplace_settlement_state"
   ],
   "fields": [
     {
@@ -533,6 +537,32 @@
       "fieldtype": "Datetime",
       "read_only": 1,
       "hidden": 1
+    },
+    {
+      "fieldname": "cancellation_policy_json",
+      "fieldtype": "Long Text",
+      "label": "Cancellation policy snapshot",
+      "read_only": 1
+    },
+    {
+      "fieldname": "cancellation_json",
+      "fieldtype": "Long Text",
+      "label": "Cancellation case",
+      "read_only": 1
+    },
+    {
+      "fieldname": "cancellation_state",
+      "fieldtype": "Data",
+      "label": "Cancellation state",
+      "read_only": 1,
+      "search_index": 1
+    },
+    {
+      "fieldname": "marketplace_settlement_state",
+      "fieldtype": "Data",
+      "label": "Marketplace settlement state",
+      "read_only": 1,
+      "search_index": 1
     }
   ],
   "permissions": [

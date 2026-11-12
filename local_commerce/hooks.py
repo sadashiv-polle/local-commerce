@@ -11,7 +11,7 @@ scheduler_events = {
     "cron": {
         "17 * * * *": ["local_commerce.services.payments.accounting.reconcile_due"],
         "*/5 * * * *": ["local_commerce.services.gst.commission.recover", "local_commerce.services.payments.cashfree.reconcile_pending",
-                         "local_commerce.services.returns.process_pending"],
+                         "local_commerce.services.returns.process_pending", "local_commerce.services.marketplace.pending"],
         "* * * * *": ["local_commerce.services.orders.expire_requested_orders",
                          "local_commerce.services.scheduled.compile_due",
                          "local_commerce.services.stock_alerts.process_pending",

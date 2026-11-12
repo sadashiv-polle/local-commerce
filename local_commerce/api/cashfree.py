@@ -14,7 +14,7 @@ from local_commerce.services.payments.rules import valid_signature
 def settings():
     require_platform()
     return {
-        "profiles": frappe.get_all("LC Payment Gateway", fields=["name", "enabled", "environment"]),
+        "profiles": frappe.get_all("LC Payment Gateway", fields=["name", "enabled", "environment", "marketplace_policy_enabled", "marketplace_hold_confirmed"]),
         "shops": frappe.get_all(
             "LC Shop",
             fields=["name", "shop_name", "company", "gst_enabled", *cashfree.SHOP_FIELDS],
@@ -56,7 +56,7 @@ def settings():
 
 
 @frappe.whitelist(methods=["POST"])
-def save_profile(name, enabled=0, environment="sandbox", client_id="", client_secret=""):
+def save_profile(name, enabled=0, environment="sandbox", client_id="", client_secret="", marketplace_policy_enabled=0, marketplace_hold_confirmed=0):
     require_platform()
     if environment not in {"sandbox", "production"}:
         reject("Select Sandbox or Production")
@@ -72,6 +72,10 @@ def save_profile(name, enabled=0, environment="sandbox", client_id="", client_se
         doc.name = name
     doc.enabled = int(str(enabled) in {"1", "True", "true"})
     doc.environment = environment
+    doc.marketplace_policy_enabled = int(str(marketplace_policy_enabled) in {"1", "True", "true"})
+    doc.marketplace_hold_confirmed = int(str(marketplace_hold_confirmed) in {"1", "True", "true"})
+    if doc.marketplace_policy_enabled and not doc.marketplace_hold_confirmed:
+        reject("Confirm Cashfree has no static vendor splits and supports split-after-delivery before enabling")
     if client_id:
         doc.client_id = client_id.strip()
     if client_secret:

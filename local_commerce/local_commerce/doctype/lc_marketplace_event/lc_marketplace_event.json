@@ -1,0 +1,51 @@
+{
+  "doctype": "DocType",
+  "name": "LC Marketplace Event",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "fields": [
+    {
+      "fieldname": "order",
+      "fieldtype": "Link",
+      "label": "Order",
+      "options": "LC Order"
+    },
+    {
+      "fieldname": "event_key",
+      "fieldtype": "Data",
+      "label": "Event key",
+      "unique": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "event_type",
+      "fieldtype": "Data",
+      "label": "Event type"
+    },
+    {
+      "fieldname": "data_json",
+      "fieldtype": "Long Text",
+      "label": "Ledger data"
+    },
+    {
+      "fieldname": "actor",
+      "fieldtype": "Data",
+      "label": "Actor"
+    }
+  ],
+  "field_order": [
+    "order",
+    "event_key",
+    "event_type",
+    "data_json",
+    "actor"
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1
+    }
+  ],
+  "track_changes": 1
+}

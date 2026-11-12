@@ -273,6 +273,8 @@ def validate_shop(shop, method=None):
 
 def snapshot(order, shop, so):
     validate_shop(shop)
+    from local_commerce.services import marketplace
+    marketplace.snapshot(order, shop, so)
     mode = settlement_mode(shop)
     split = mode == "Easy Split"
     vendor, commission = (
@@ -284,6 +286,23 @@ def snapshot(order, shop, so):
     if tax_snapshot:
         vendor = money(tax_snapshot['amounts']['vendor_amount'])
         commission = money(tax_snapshot['amounts']['commission_gross'])
+    if order.get('cancellation_policy_json'):
+        from local_commerce.services.cancellation_policy import delivery_allocation, paise, rupees
+        parts = tax_snapshot['amounts'] if tax_snapshot else None
+        allocated = delivery_allocation(paise(str(money(so.grand_total))),
+            base=paise(parts['base']) if parts else None,
+            gst_bps=paise(tax_snapshot['platform']['rate']) if tax_snapshot else 0,
+            inclusive=bool(tax_snapshot and tax_snapshot['inclusive']),
+            retained_gst=paise(parts['eco_tax']) if parts else 0)
+        vendor, commission = money(rupees(allocated['vendor_paise'])), money(rupees(allocated['commission_gross_paise']))
+        if parts:
+            parts.update(commission_base=rupees(allocated['commission_paise']),
+                commission_tax=rupees(allocated['commission_gst_paise']),
+                commission_gross=str(commission), vendor_amount=str(vendor))
+            order.gst_snapshot = json.dumps(tax_snapshot)
+        policy_snapshot = json.loads(order.cancellation_policy_json)
+        policy_snapshot['delivery_allocation_paise'] = allocated
+        order.cancellation_policy_json = json.dumps(policy_snapshot)
     if money(so.grand_total) < 1 or money(so.grand_total) != money(
         so.rounded_total or so.grand_total
     ):
@@ -406,7 +425,7 @@ def checkout(order):
                 "notify_url": origin + "/api/method/local_commerce.api.cashfree.webhook",
             },
         }
-        if snap.get("settlement_mode", "Easy Split") == "Easy Split":
+        if snap.get("settlement_mode", "Easy Split") == "Easy Split" and not doc.get("cancellation_policy_json"):
             payload["order_splits"] = [
                 {"vendor_id": snap["vendor_id"], "amount": float(snap["vendor_amount"])}
             ]
@@ -475,6 +494,8 @@ def sync(order, authorize=True):
             "offers": verified_payment.get("payment_offers") or [],
         }
         doc.gateway_accounting_json = json.dumps(data)
+        from local_commerce.services.marketplace import payment_verified
+        payment_verified(doc, verified_payment["payment_amount"], payment_id)
         from local_commerce.services.payments.refund_tracking import merge
         tracking = merge(doc.get("refund_tracking_json"), refunds, doc.gateway_order_id,
                          payment_id, snap["currency"], verified_payment["payment_amount"], str(frappe.utils.now_datetime()))

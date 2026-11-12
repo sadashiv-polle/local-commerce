@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import CancellationDashboard from './CancellationDashboard.vue'
 import GstSettings from './GstSettings.vue'
 import EasySplitManager from './EasySplitManager.vue'
 import { call } from './api.js'
@@ -69,11 +70,15 @@ function accounts(shop, type) { return data.value.accounts.filter(a => a.company
               <label>Client secret<input v-model="profile.client_secret" type="password" autocomplete="new-password" placeholder="Leave blank to retain existing secret"></label>
             </div>
             <label class="check-label"><input v-model="profile.enabled" type="checkbox">Enable profile</label>
+            <label class="check-label"><input v-model="profile.marketplace_hold_confirmed" type="checkbox">Cashfree is configured with no static vendor splits, merchant-borne gateway fees, and a split window covering delivery</label>
+            <label class="check-label"><input v-model="profile.marketplace_policy_enabled" type="checkbox">Enable marketplace cancellation policy for new orders (7% commission)</label>
+            <p>Confirm these settings with Cashfree first. Vendor splits are sent only after delivery; cancellation compensation is handled separately. Existing orders retain their original policy.</p>
             <button class="lc-primary">Save gateway</button>
           </fieldset>
         </form>
       </section>
       <section class="admin-card"><h2>Commission &amp; GST setup</h2><p>Set vendor commission and GST separately, and preview the vendor split here. Save each section before returning to payment settings. Settings apply to new orders.</p><button type="button" :disabled="busy" @click="toggleGst">{{ showGst ? 'Close GST setup and refresh payment settings' : 'Open commission & GST setup' }}</button><GstSettings v-if="showGst" /></section>
+      <CancellationDashboard />
       <EasySplitManager :profiles="data.profiles" />
       <section v-for="shop in data.shops" :key="shop.name" class="admin-card">
         <h3>{{ shop.shop_name }}</h3><p>{{ shop.company }}</p>
