@@ -1,4 +1,5 @@
 <script setup>
+import { acceptanceBlock, requestedOrderMessage } from './orderAcceptance.js'
 import CheckoutSummary from './CheckoutSummary.vue'
 import RefundTimeline from './RefundTimeline.vue'
 import ReturnRequest from './ReturnRequest.vue'
@@ -109,7 +110,7 @@ function deliveryEstimate(order) {
   if (order.status === 'Ready') return order.delivery_user ? 'Ready for pickup — delivery person assigned' : 'Ready — waiting for delivery assignment'
   if (order.status === 'Preparing') return 'The shop is preparing your order'
   if (order.status === 'Accepted') return 'Confirmed by the shop'
-  return 'Waiting for shop confirmation'
+  return requestedOrderMessage(order)
 }
 function supportNumber(phone) {
   const digits = String(phone || '').replace(/\D/g, '')
@@ -312,7 +313,8 @@ onBeforeUnmount(() => {
       </div>
       <div v-if="(shop && editable) || (!shop && ['Requested', 'Accepted'].includes(order.status))" class="order-actions">
         <button v-if="shop && ['Accepted', 'Preparing'].includes(order.status) && order.can_repack" :disabled="busy" @click="repack(order)">Repack with fresh stock</button>
-        <button v-if="shop && next[order.status] && !(order.payment_method === 'Cashfree' && (order.payment_status !== 'Paid' || order.accounting_pending))" class="lc-primary" :disabled="busy" @click="change(order, next[order.status])">{{ nextLabel[order.status] }}</button>
+        <button v-if="shop && next[order.status]" class="lc-primary" :disabled="busy || !!acceptanceBlock(order)" @click="change(order, next[order.status])">{{ nextLabel[order.status] }}</button>
+        <p v-if="shop && next[order.status] && acceptanceBlock(order)" role="status">{{ acceptanceBlock(order) }}</p>
         <details v-if="cancellable.has(order.status)"><summary>Cancel order</summary><p v-if="order.payment_method === 'Cashfree'">If payment is verified, cancellation automatically queues a refund of the amount you paid. Bank credit is confirmed separately.</p><label>Reason<input v-model="reasons[order.name]" minlength="3" maxlength="500"></label><button :disabled="busy || (reasons[order.name] || '').trim().length < 3" @click="change(order, 'Cancelled')">Confirm cancellation</button></details>
       </div>
     </article>
