@@ -3,6 +3,13 @@ import { ref, onMounted } from 'vue'
 import { call } from './api.js'
 import CommissionDashboard from './CommissionDashboard.vue'
 import GstinLookup from './GstinLookup.vue'
+const previews = ref({}), examples = ref({})
+function example(shop) { return examples.value[shop.name] ||= { base: 1000, delivery: 30, tax: 0 } }
+async function preview(shop) {
+  delete previews.value[shop.name]
+  await run(async () => { previews.value[shop.name] = await call('gst.preview_split', { ...example(shop), rate: shop.gst_commission_rate, gst_rate: data.value.platform.gst_rate, inclusive: Number(!!shop.gst_commission_inclusive), mode: shop.gst_mode }, true) }, 'Preview calculated. No settings changed.')
+}
+const splitLabels = { total: 'Customer order total', commission_base: 'Platform commission before GST', commission_tax: 'GST on commission', commission_gross: 'Commission including GST', supply_tax: 'GST on customer supply', eco_tax: 'Supply GST retained by platform', vendor_amount: 'Vendor split before any applicable deductions' }
 const data = ref(null), busy = ref(false), error = ref(''), message = ref(''), report = ref(null)
 const today = new Date().toISOString().slice(0,10)
 const start = ref(today.slice(0,8)+'01'), end = ref(today)
@@ -22,7 +29,7 @@ function applyIdentity(target, value) {
   Object.assign(target, { gst_number: value.gstin, gst_legal_name: value.legal_name, gst_state: value.state, gst_address: value.address })
 }
 function accounts(company,root) { return data.value.accounts.filter(a=>a.company===company && a.root_type===root && !['Receivable','Payable'].includes(a.account_type)) }
-async function run(action) { busy.value=true;error.value='';message.value='';try { await action();message.value='Saved successfully.' } catch(e) { error.value=e.message } finally {busy.value=false} }
+async function run(action, success = 'Saved successfully.') { busy.value=true;error.value='';message.value='';try { await action();message.value=success } catch(e) { error.value=e.message } finally {busy.value=false} }
 async function load() { data.value=await call('gst.settings') }
 onMounted(()=>run(load))
 function saveShop(shop) { const values=Object.fromEntries(Object.entries(shop).filter(([key])=>key.startsWith('gst_') || key.startsWith('commission_') || key==='cashfree_commission_account')); return run(()=>call('gst.save_shop',{shop:shop.name,values},true)) }
@@ -78,6 +85,18 @@ function bankAllocation() { const {shop_bank: _shopBank,...values}=settlement.va
           <p v-if="shop.gst_mode==='Restaurant 9(5)'">For eligible restaurant services only. Customer prices must exclude GST. The app adds 5% once on food and restaurant delivery charges. Remove the seller tax template. Do not mix ordinary retail goods or specified-premises services in this profile.</p>
           <label class="check-label"><input v-model="shop.gst_enabled" type="checkbox">Enable this reviewed GST model for new orders</label>
           <button class="lc-primary">Save shop GST settings</button>
+          <section v-if="shop.gst_mode !== 'Legacy'" class="admin-card">
+            <h4>Preview commission, GST and vendor split</h4>
+            <p>Example only, using the draft rates above. This does not save settings or transfer funds. Amounts are in INR; gateway fees, offers and refunds are excluded.</p>
+            <div class="form-columns">
+              <label>Items after discount, before tax<input v-model.number="example(shop).base" type="number" min="0" step="0.01"></label>
+              <label>Delivery before tax<input v-model.number="example(shop).delivery" type="number" min="0" step="0.01"></label>
+              <label>Supply GST amount<input v-model.number="example(shop).tax" type="number" min="0" step="0.01"></label>
+            </div>
+            <button type="button" @click="preview(shop)">Calculate draft split</button>
+            <dl v-if="previews[shop.name]" class="split-preview"><template v-for="(label,key) in splitLabels" :key="key"><dt>{{ label }}</dt><dd>₹{{ previews[shop.name][key] }}</dd></template></dl>
+            <p v-if="previews[shop.name]">Snapshot of your last calculation. Calculate again after changing any amount or rate. GST is tracked separately from commission income.</p>
+          </section>
         </fieldset>
       </form>
       <section class="admin-card">
@@ -99,3 +118,8 @@ function bankAllocation() { const {shop_bank: _shopBank,...values}=settlement.va
     </template>
   </div>
 </template>
+
+<style scoped>
+.split-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 20px; }
+.split-preview dd { margin: 0; font-weight: 700; }
+</style>

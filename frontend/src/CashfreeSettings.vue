@@ -1,8 +1,11 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import GstSettings from './GstSettings.vue'
 import EasySplitManager from './EasySplitManager.vue'
 import { call } from './api.js'
 import { mergeShopDrafts } from './cashfreeDrafts.js'
+const showGst = ref(false)
+async function toggleGst() { showGst.value = !showGst.value; if (!showGst.value) await run(() => load(), { refresh: false }) }
 const data = ref(null), busy = ref(false), error = ref(''), message = ref(''), details = ref({}), credits = ref({})
 const fundingForms = ref({}), reimbursements = ref({})
 const profile = ref({ name: '', environment: 'sandbox', enabled: false, client_id: '', client_secret: '' })
@@ -70,6 +73,7 @@ function accounts(shop, type) { return data.value.accounts.filter(a => a.company
           </fieldset>
         </form>
       </section>
+      <section class="admin-card"><h2>Commission &amp; GST setup</h2><p>Set vendor commission and GST separately, and preview the vendor split here. Save each section before returning to payment settings. Settings apply to new orders.</p><button type="button" :disabled="busy" @click="toggleGst">{{ showGst ? 'Close GST setup and refresh payment settings' : 'Open commission & GST setup' }}</button><GstSettings v-if="showGst" /></section>
       <EasySplitManager :profiles="data.profiles" />
       <section v-for="shop in data.shops" :key="shop.name" class="admin-card">
         <h3>{{ shop.shop_name }}</h3><p>{{ shop.company }}</p>
@@ -80,8 +84,8 @@ function accounts(shop, type) { return data.value.accounts.filter(a => a.company
               <label>Gateway profile<select v-model="shop.cashfree_gateway"><option value="">Select profile</option><option v-for="row in data.profiles" :key="row.name">{{ row.name }}</option></select></label>
               <label>Receive payments into<select v-model="shop.cashfree_settlement_mode"><option value="Direct merchant">Main merchant account — my own shop</option><option value="Easy Split">Vendor account — Easy Split</option></select></label>
               <label v-if="shop.cashfree_settlement_mode === 'Easy Split'">Easy Split vendor ID<input v-model="shop.cashfree_vendor_id" placeholder="Approved vendor ID from Cashfree"></label>
-              <label v-if="shop.cashfree_settlement_mode === 'Easy Split'">Commission type<select v-model="shop.cashfree_commission_type"><option>Percentage</option><option>Fixed</option></select></label>
-              <label v-if="shop.cashfree_settlement_mode === 'Easy Split'">Commission<input v-model.number="shop.cashfree_commission" type="number" min="0" step="0.01"></label>
+              <label v-if="shop.cashfree_settlement_mode === 'Easy Split' && !shop.gst_enabled">Legacy commission type<select v-model="shop.cashfree_commission_type"><option>Percentage</option><option>Fixed</option></select></label>
+              <label v-if="shop.cashfree_settlement_mode === 'Easy Split' && !shop.gst_enabled">Legacy commission<input v-model.number="shop.cashfree_commission" type="number" min="0" step="0.01"></label>
               <label>Cashfree clearing account<select v-model="shop.cashfree_clearing_account"><option value="">Select asset account</option><option v-for="account in accounts(shop, 'Asset')" :key="account.name">{{ account.name }}</option></select></label>
               <label v-if="shop.cashfree_settlement_mode === 'Easy Split'">Commission expense account<select v-model="shop.cashfree_commission_account"><option value="">Select expense account</option><option v-for="account in accounts(shop, 'Expense')" :key="account.name">{{ account.name }}</option></select></label>
               <label>Settlement receiving bank<select v-model="shop.cashfree_bank_account"><option value="">Select actual bank account</option><option v-for="account in accounts(shop, 'Asset').filter(a => a.name !== shop.cashfree_clearing_account)" :key="account.name">{{ account.name }}</option></select></label>
@@ -89,7 +93,7 @@ function accounts(shop, type) { return data.value.accounts.filter(a => a.company
               <label>Gateway fee tax expense<select v-model="shop.cashfree_fee_tax_account"><option value="">Select expense account</option><option v-for="account in accounts(shop, 'Expense')" :key="account.name">{{ account.name }}</option></select></label>
               <label>Mode of Payment<select v-model="shop.cashfree_mode_of_payment"><option value="">Select bank payment mode</option><option v-for="mode in data.modes" :key="mode">{{ mode }}</option></select></label>
             </div>
-            <p v-if="shop.gst_enabled">The GST &amp; commission settings override the legacy commission calculation below. Vendor payouts exclude retained commission and Section 9(5) GST; gateway fees must be merchant-borne.</p><p v-else-if="shop.cashfree_settlement_mode === 'Easy Split'">Commission applies to the full order total, including delivery and taxes. The remainder goes to this vendor. Changes apply to new orders only. Complete vendor onboarding and KYC in Cashfree before enabling.</p>
+            <p v-if="shop.gst_enabled">This shop uses the separate commission and GST model. Edit it in Commission &amp; GST setup above. Vendor payouts exclude retained commission and Section 9(5) GST; gateway fees must be merchant-borne.</p><p v-else-if="shop.cashfree_settlement_mode === 'Easy Split'">Commission applies to the full order total, including delivery and taxes. The remainder goes to this vendor. Changes apply to new orders only. Complete vendor onboarding and KYC in Cashfree before enabling.</p>
             <p v-else>Payments use the merchant account linked to the selected gateway profile. No vendor ID or marketplace commission is needed. Cashfree fees still apply in production. Changes apply to new orders only.</p>
             <label class="check-label"><input v-model="shop.cashfree_auto_reconcile" type="checkbox">Automatically reconcile paid orders and bank settlements every hour</label><button class="lc-primary">Save shop payment settings</button>
             <p>Save your choices before checking vendor status.</p>

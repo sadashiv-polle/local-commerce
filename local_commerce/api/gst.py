@@ -206,3 +206,17 @@ def record_manual_refund(order,credit_note,payment_entry):
 def lookup_gstin(number):
     from local_commerce.services.gst.lookup import lookup
     return lookup(number)
+
+
+@frappe.whitelist(methods=['POST'])
+def preview_split(base, delivery, tax, rate, gst_rate, inclusive, mode):
+    """Preview draft amounts without changing settings or sending a transfer."""
+    require_platform()
+    from local_commerce.services.gst.rules import amounts
+    try:
+        base, delivery, tax = map(money, (base, delivery, tax))
+        flags = values_arg({'gst_commission_inclusive': inclusive}, ['gst_commission_inclusive'])
+        return amounts(base, delivery, tax, base + delivery + tax, rate, gst_rate,
+                       bool(flags['gst_commission_inclusive']), mode)
+    except ValueError as exc:
+        reject(str(exc))
