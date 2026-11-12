@@ -22,11 +22,11 @@ const daily = ref(true)
 const editing = ref(''), routeSlot = ref(''), drivers = ref([]), riders = ref({}), products = ref([])
 const blank = () => ({ title: '', enabled: 1, ordering_start: '', ordering_end: '', delivery_start: '', delivery_end: '', capacity: 20, radius_km: 5, products: '', postcodes: '' })
 const form = ref(blank()), selectedItems = ref([]), search = ref('')
-async function load() {
-  try { settings.value = await call('scheduled.settings', { shop: props.shop, start: pageStart.value }); drivers.value = await call('orders.drivers', { shop: props.shop }); revision.value++ }
+async function load(resetOptions = false) {
+  try { const fresh = await call('scheduled.settings', { shop: props.shop, start: pageStart.value }); if (settings.value && !resetOptions) { fresh.normal = settings.value.normal; fresh.scheduled = settings.value.scheduled }; settings.value = fresh; drivers.value = await call('orders.drivers', { shop: props.shop }); revision.value++ }
   catch (e) { error.value = e.message }
 }
-async function run(fn, text) { busy.value = true; error.value = ''; message.value = ''; try { await fn(); message.value = text; await load() } catch(e) { error.value = e.message } finally { busy.value = false } }
+async function run(fn, text, resetOptions = false) { if (busy.value) return; busy.value = true; error.value = ''; message.value = ''; try { await fn(); message.value = text; await load(resetOptions) } catch(e) { error.value = e.message } finally { busy.value = false } }
 async function assignBatch(slot) {
   const rider = riders.value[slot.name]
   if (!rider || busy.value) return
@@ -61,7 +61,7 @@ onBeforeUnmount(() => window.clearInterval(refreshTimer))
 </script>
 <template>
   <section class="scheduled-panel">
-    <div class="workspace-heading"><div><span class="eyebrow">{{ batchesOnly ? 'SCHEDULED ORDERS' : 'DELIVERY BOOKINGS' }}</span><h3>{{ batchesOnly ? 'Batch preparation & delivery' : 'Normal & scheduled delivery' }}</h3></div><button v-if="batchesOnly" type="button" @click="load">Refresh batches</button></div>
+    <div class="workspace-heading"><div><span class="eyebrow">{{ batchesOnly ? 'SCHEDULED ORDERS' : 'DELIVERY BOOKINGS' }}</span><h3>{{ batchesOnly ? 'Batch preparation & delivery' : 'Normal & scheduled delivery' }}</h3></div><button v-if="batchesOnly" type="button" @click="load()">Refresh batches</button></div>
     <p v-if="error" role="alert" class="lc-error">{{ error }}</p><p v-if="message" role="status">{{ message }}</p>
     <section v-if="deleting" ref="deletePanel" class="schedule-delete-confirm" role="alertdialog" aria-label="Confirm schedule deletion">
       <h4>Delete {{ deleting.row.title }}?</h4><p>This stops future bookings for this schedule. Existing orders and their delivery batches stay available.</p>
@@ -70,8 +70,8 @@ onBeforeUnmount(() => window.clearInterval(refreshTimer))
     <template v-if="settings">
       <p>Times use {{ settings.timezone }}. Scheduled delivery has no delivery fee.</p>
       <template v-if="!batchesOnly">
-        <div class="form-columns"><label class="check-label"><input v-model="settings.normal" type="checkbox" :disabled="!canManage">Normal delivery</label><label class="check-label"><input v-model="settings.scheduled" type="checkbox" :disabled="!canManage">Scheduled delivery</label></div>
-        <button v-if="canManage" type="button" :disabled="busy" @click="run(() => call('scheduled.configure', { shop, normal: settings.normal ? 1 : 0, scheduled_enabled: settings.scheduled ? 1 : 0 }, true), 'Delivery options saved.')">Save delivery options</button>
+        <div class="form-columns"><label class="check-label"><input v-model="settings.normal" type="checkbox" :disabled="!canManage || busy">Normal delivery</label><label class="check-label"><input v-model="settings.scheduled" type="checkbox" :disabled="!canManage || busy">Scheduled delivery</label></div>
+        <button v-if="canManage" type="button" :disabled="busy" @click="run(() => call('scheduled.configure', { shop, normal: settings.normal ? 1 : 0, scheduled_enabled: settings.scheduled ? 1 : 0 }, true), 'Delivery options saved.', true)">Save delivery options</button>
         <div class="schedule-list-heading"><h4>Daily time slots</h4><span>Repeat automatically · show or hide anytime</span></div>
         <p v-if="!settings.schedules?.length">Create your first daily slot below. No daily date changes needed.</p>
         <article v-for="schedule in settings.schedules" :key="schedule.name" class="scheduled-slot">

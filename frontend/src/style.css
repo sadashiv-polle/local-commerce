@@ -286,7 +286,8 @@ html { scroll-behavior: smooth; }
 #lc-app .panel-tabs button[aria-pressed=true] { background: white; box-shadow: 0 2px 5px #00000008; }
 #lc-app fieldset { padding: 0; margin: 0; border: none; min-width: 0; }
 #lc-app .check-label { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--lc-line); border-radius: 9px; align-items: start; }
-#lc-app .check-label input { width: 18px; height: 18px; accent-color: #176547; }
+#lc-app .check-label input[type=checkbox], #lc-app .check-label input[type=radio] { flex: 0 0 20px; width: 20px; height: 20px; padding: 0; margin: 2px 0 0; accent-color: #176547; }
+#lc-app .check-label:has(input:checked) { border-color: #176547; background: #eef6ed; }
 #lc-app .check-label small { display: block; color: #818b7a; font-size: 11px; margin-top: 3px; }
 #lc-app .stock-total { background: #eff5e9; padding: 20px; border-radius: 12px; }
 #lc-app .stock-total>span { font-size: 9px; letter-spacing: 1px; }

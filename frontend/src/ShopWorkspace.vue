@@ -57,9 +57,12 @@ async function savePayment() {
   finally { paymentSaving.value = false }
 }
 async function saveHours() {
+  if (hoursSaving.value || saving.value) return
+  const current = request
   hoursSaving.value = true; hoursSaved.value = ''; error.value = ''
   try {
     const result = await call('shops.update_hours', { shop: shop.value.name, accepting_orders: shop.value.accepting_orders ? 1 : 0, opening_hours: shop.value.opening_hours }, true)
+    if (current !== request) return
     shop.value.opening_hours = result.opening_hours
     shop.value.accepting_orders = result.accepting_orders
     shop.value.availability = result.availability
@@ -68,6 +71,7 @@ async function saveHours() {
   finally { hoursSaving.value = false }
 }
 async function save() {
+  if (saving.value || hoursSaving.value) return
   saving.value = true; error.value = ''; saved.value = ''
   const current = request
   try {
@@ -139,7 +143,7 @@ watch(() => route.query.tab, value => { if (tabs.has(value)) tab.value = value }
         <FishInventory v-if="tab === 'fish' && shop.shop_type === 'Fish' && canEdit" :shop="shop.name" />
         <ScheduledDelivery v-if="canSettings && tab === 'settings'" :shop="shop.name" /><form v-show="tab === 'settings'" class="lc-form" @submit.prevent="save">
           <h2>Shop settings</h2><p class="muted">Keep your shop details and availability up to date.</p>
-          <fieldset :disabled="!canEdit || saving" class="workspace-fields">
+          <fieldset :disabled="!canEdit || saving || hoursSaving" class="workspace-fields">
             <label>Name<input v-model="shop.shop_name" required></label>
             <label>Shop email<input v-model="shop.shop_email" type="email" maxlength="140" placeholder="accounts@shop.com"><small>For invoices and shop correspondence. Saving does not send an email.</small></label>
             <label>FSSAI licence / registration number<input v-model="shop.fssai_number" type="text" inputmode="numeric" pattern="[0-9]{14}" maxlength="14" placeholder="Enter 14-digit number"><small>Optional. Saving this number does not verify the licence or registration.</small></label>
