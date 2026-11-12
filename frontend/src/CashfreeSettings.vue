@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import EasySplitManager from './EasySplitManager.vue'
 import { call } from './api.js'
 import { mergeShopDrafts } from './cashfreeDrafts.js'
 const data = ref(null), busy = ref(false), error = ref(''), message = ref(''), details = ref({}), credits = ref({})
@@ -69,6 +70,7 @@ function accounts(shop, type) { return data.value.accounts.filter(a => a.company
           </fieldset>
         </form>
       </section>
+      <EasySplitManager :profiles="data.profiles" />
       <section v-for="shop in data.shops" :key="shop.name" class="admin-card">
         <h3>{{ shop.shop_name }}</h3><p>{{ shop.company }}</p>
         <form @submit.prevent="saveShop(shop)">

@@ -1,0 +1,51 @@
+{
+  "doctype": "DocType",
+  "name": "LC Cashfree Transfer",
+  "module": "Local Commerce",
+  "engine": "InnoDB",
+  "autoname": "hash",
+  "fields": [
+    {
+      "fieldname": "gateway_profile",
+      "label": "Gateway profile",
+      "fieldtype": "Link",
+      "options": "LC Payment Gateway"
+    },
+    {
+      "fieldname": "vendor_id",
+      "label": "Vendor ID",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "status",
+      "label": "Request status",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "payload",
+      "label": "Transfer request",
+      "fieldtype": "Code",
+      "options": "JSON"
+    },
+    {
+      "fieldname": "response",
+      "label": "Cashfree response",
+      "fieldtype": "Code",
+      "options": "JSON"
+    }
+  ],
+  "field_order": [
+    "gateway_profile",
+    "vendor_id",
+    "status",
+    "payload",
+    "response"
+  ],
+  "permissions": [
+    {
+      "role": "LC Platform Administrator",
+      "read": 1
+    }
+  ],
+  "track_changes": 1
+}
