@@ -30,7 +30,19 @@ function applyIdentity(target, value) {
 }
 function accounts(company,root) { return data.value.accounts.filter(a=>a.company===company && a.root_type===root && !['Receivable','Payable'].includes(a.account_type)) }
 async function run(action, success = 'Saved successfully.') { busy.value=true;error.value='';message.value='';try { await action();message.value=success } catch(e) { error.value=e.message } finally {busy.value=false} }
-async function load() { data.value=await call('gst.settings') }
+async function load() {
+  const fresh = await call('gst.settings')
+  // Frappe Check fields arrive as 0/1; Vue checkboxes expect booleans.
+  for (const key of ['commission_billing_enabled', 'commission_reminders']) {
+    fresh.platform[key] = Number(fresh.platform[key]) === 1
+  }
+  for (const shop of fresh.shops) {
+    for (const key of ['gst_enabled', 'gst_commission_inclusive']) {
+      shop[key] = Number(shop[key]) === 1
+    }
+  }
+  data.value = fresh
+}
 onMounted(()=>run(load))
 function saveShop(shop) { const values=Object.fromEntries(Object.entries(shop).filter(([key])=>key.startsWith('gst_') || key.startsWith('commission_') || key==='cashfree_commission_account')); return run(()=>call('gst.save_shop',{shop:shop.name,values},true)) }
 async function loadReport() { report.value=await call('gst.report',{start:start.value,end:end.value}) }
