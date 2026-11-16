@@ -57,6 +57,7 @@ class FishReallocationTests(unittest.TestCase):
             Decimal=Decimal,
             fish_rules=fish_rules,
             enabled=lambda shop: True,
+            tracked_code=lambda code: code == "fish",
             now_datetime=lambda: now,
             get_datetime=lambda value: value,
             reject=reject,

@@ -34,18 +34,22 @@ class TestFishService(unittest.TestCase):
                                      'local_commerce.permissions.scope': Mock(),
                                      'local_commerce.services.owner': owner}):
             spec.loader.exec_module(self.module)
-        self.frappe.get_doc.return_value = self.shop
+        self.frappe.db.exists.return_value = False
+        self.frappe.db.get_value.return_value = 'Fish'
+        self.frappe.get_doc.side_effect = lambda dt, name: (
+            Row(name=name, stock_uom='Litre' if name == 'other' else 'Pack' if 'pack' in name else 'Nos', item_group='Fish')
+            if dt == 'Item' else self.shop)
         self.module.lots = Mock(return_value=[Row(
             name='lot', item='fish', remaining=10, expires_at=self.now + timedelta(hours=1))])
         self.module.reservations = Mock(return_value={})
 
     def test_fish_only_default_offer_requires_packing_without_changing_other_shops(self):
-        fish = Row(stock_uom='Kg')
+        fish = Row(stock_uom='Kg', item_group='Fish')
         default = self.module.selling_options(self.shop, fish, [])
         self.assertEqual(default[0]['billing'], 'Weight')
         self.assertEqual(default[0]['kind'], 'Weight')
         self.assertEqual(self.module.selling_options(Row(shop_type='General'), fish, []), [])
-        self.assertEqual(self.module.selling_options(self.shop, Row(stock_uom='Nos'), []), [])
+        self.assertEqual(self.module.selling_options(self.shop, Row(stock_uom='Nos', item_group='Fish'), []), [])
         configured = [{'id': 'count', 'kind': 'Count', 'billing': 'Pieces'}]
         self.assertIs(self.module.selling_options(self.shop, fish, configured), configured)
 
@@ -77,7 +81,8 @@ class TestFishService(unittest.TestCase):
                   expires_at=self.now - timedelta(seconds=1))
         so = SimpleNamespace(items=[Row(item_code='fish', stock_uom='Kg', stock_qty=0.8)])
         self.frappe.get_doc.side_effect = lambda dt, name: {
-            'LC Shop': self.shop, 'Sales Order': so, 'LC Fish Lot': lot}[dt]
+            'LC Shop': self.shop, 'Sales Order': so, 'LC Fish Lot': lot,
+            'Item': Row(name='fish', stock_uom='Kg', item_group='Fish')}[dt]
         parts = [{'lot': 'lot', 'item': 'fish', 'quantity': 0.8}]
         order = Row(shop='shop', sales_order='SO', fish_allocations_json=json.dumps(parts))
         with self.assertRaises(ValueError):
@@ -86,7 +91,7 @@ class TestFishService(unittest.TestCase):
         self.module.validate_order(order)
 
     def test_pieces_have_expiry_and_reservations_without_weight_options(self):
-        item = Row(name='fish', stock_uom='Nos')
+        item = Row(name='fish', stock_uom='Nos', item_group='Fish')
         self.assertTrue(self.module.enabled(self.shop, item))
         self.assertFalse(self.module.enabled(Row(shop_type='General'), item))
         self.assertEqual(self.module.selling_options(self.shop, item, []), [])
@@ -113,9 +118,28 @@ class TestFishService(unittest.TestCase):
                        for row in json.loads(order.fish_allocations_json)}
         self.assertEqual(allocations, {'six-pack': 1, 'loose': 3})
         self.assertNotIn('fifteen-pack', allocations)
-        pack = Row(name='six-pack', stock_uom='Pack')
+        pack = Row(name='six-pack', stock_uom='Pack', item_group='Fish')
         self.assertTrue(self.module.enabled(self.shop, pack))
         self.assertEqual(self.module.selling_options(self.shop, pack, []), [])
         self.module.reservations.return_value = {'six-pack-lot': 1}
         self.assertEqual(self.module.sellable(self.shop, pack, 10), 9)
-        self.assertEqual(self.module.sellable(self.shop, Row(name='loose', stock_uom='Nos'), 30), 30)
+        self.assertEqual(self.module.sellable(self.shop, Row(name='loose', stock_uom='Nos', item_group='Fish'), 30), 30)
+
+    def test_non_fish_categories_use_normal_stock_in_fish_shop(self):
+        for category in ('Rice', 'Vegetables', 'Dairy & Eggs', 'Fruits'):
+            item = Row(name='grocery', stock_uom='Kg', item_group=category)
+            self.assertFalse(self.module.enabled(self.shop, item))
+            self.assertEqual(self.module.sellable(self.shop, item, 12), 12)
+        self.module.lots.assert_not_called()
+
+    def test_existing_non_fish_lots_keep_their_tracking(self):
+        self.frappe.db.exists.return_value = True
+        self.assertTrue(self.module.enabled(self.shop, Row(name='eggs', stock_uom='Nos', item_group='Dairy & Eggs')))
+
+    def test_mixed_order_only_reserves_fish(self):
+        products = {'fish': Row(name='fish', stock_uom='Kg', item_group='Fish'),
+                    'rice': Row(name='rice', stock_uom='Kg', item_group='Rice')}
+        self.frappe.get_doc.side_effect = lambda dt, name: products[name] if dt == 'Item' else self.shop
+        order = Row(name='order', shop='shop')
+        self.module.reserve(order, [Row(item_code='fish', stock_qty=1), Row(item_code='rice', stock_qty=5)])
+        self.assertEqual(json.loads(order.fish_allocations_json), [{'lot':'lot', 'item':'fish', 'quantity':1.0}])
