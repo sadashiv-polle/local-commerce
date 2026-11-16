@@ -7,6 +7,7 @@ from local_commerce.services.owner import reject
 # Stable names allow reuse within a Company without changing its existing ledgers.
 ACCOUNTS = {
     'cashfree_commission_account': ('LC Commission on Sales', 'Expense', ''),
+    'commission_prepaid': ('LC Prepaid Commission', 'Asset', ''),
     'gst_shop_payable': ('LC Amounts Payable to Platform', 'Liability', ''),
     'gst_shop_eco_account': ('LC Restaurant GST Collected for ECO', 'Liability', 'Tax'),
     'cashfree_clearing_account': ('LC Cashfree Clearing', 'Asset', 'Bank'),
@@ -60,6 +61,8 @@ def provision(shop, bank_details=None):
     from local_commerce.services.shop_banking import configure as configure_bank
     selected_bank = configure_bank(shop, bank_details)
     for field, (label, root, kind) in ACCOUNTS.items():
+        if field == 'commission_prepaid' and getattr(shop, 'business_model', None) == 'Owned shop':
+            continue
         if field == "cashfree_bank_account" and selected_bank:
             continue
         if field == 'fish_wastage_account' and shop.shop_type != 'Fish':
