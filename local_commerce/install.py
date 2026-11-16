@@ -44,6 +44,8 @@ def after_install():
 
 
 def after_setup(args=None):
+    from local_commerce.services.product_units import ensure_product_units
+    ensure_product_units()
     # Seed after ERPNext's initial setup stages as well as installation/migration.
     from local_commerce.services.category_menu import seed_menu
     from local_commerce.services.item_groups import ensure_item_groups
@@ -55,6 +57,8 @@ def after_setup(args=None):
 
 
 def after_migrate():
+    from local_commerce.services.product_units import ensure_product_units
+    ensure_product_units()
     from local_commerce.schema.business_structure import allow_shared_company
     allow_shared_company()
     if not frappe.db.exists("Role", "LC Scheduled Delivery Manager"):
